@@ -187,7 +187,7 @@ const remainingInfoTags = computed<RemainingInfoTag[]>(() => {
   return items
 })
 
-const customTags = computed(() => parseTags(props.node.tags).map(t => t.text))
+const customTags = computed(() => parseTags(props.node.tags).flatMap(t => t.text.length ? t.text.split(' ').filter(Boolean) : [t.text]))
 
 function hasRegion(region: string | null | undefined): boolean {
   return Boolean(region?.trim())
@@ -466,8 +466,11 @@ function hasRegion(region: string | null | undefined): boolean {
         </div>
 
         <!-- 自定义标签 -->
-        <div v-if="customTags.length > 0" class="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-          <span v-for="(tag, i) in customTags" :key="i">{{ tag }}</span>
+        <div v-if="customTags.length > 0" class="flex flex-wrap gap-1">
+          <span
+            v-for="(tag, i) in customTags" :key="i"
+            class="rounded-full bg-slate-500/10 px-2 py-0.5 text-[11px] leading-tight text-slate-600 ring-1 ring-inset ring-slate-400/20 dark:bg-slate-400/10 dark:text-slate-300 dark:ring-slate-400/20"
+          >{{ tag }}</span>
         </div>
 
         <!-- 离线遮罩 -->
