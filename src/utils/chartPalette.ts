@@ -12,16 +12,16 @@ export interface LoadChartPalette {
 }
 
 const DEFAULT_LOAD_CHART_PALETTE: LoadChartPalette = {
-  primary: '#FF6B6B',
-  primaryAreaStrong: 'rgba(255, 107, 107, 0.25)',
-  primaryAreaFaint: 'rgba(255, 107, 107, 0.02)',
-  secondary: '#FFB347',
-  tertiary: '#4ECDC4',
-  tertiaryAreaStrong: 'rgba(78, 205, 196, 0.25)',
-  tertiaryAreaFaint: 'rgba(78, 205, 196, 0.02)',
-  quaternary: '#A78BFA',
-  quinary: '#60A5FA',
-  senary: '#34D399',
+  primary: '#18181b',
+  primaryAreaStrong: 'rgba(24, 24, 27, 0.12)',
+  primaryAreaFaint: 'rgba(24, 24, 27, 0.03)',
+  secondary: '#52525b',
+  tertiary: '#71717a',
+  tertiaryAreaStrong: 'rgba(113, 113, 122, 0.12)',
+  tertiaryAreaFaint: 'rgba(113, 113, 122, 0.03)',
+  quaternary: '#a1a1aa',
+  quinary: '#3f3f46',
+  senary: '#d4d4d8',
 }
 
 const ACCESSIBLE_LOAD_CHART_PALETTE: LoadChartPalette = {
@@ -38,14 +38,14 @@ const ACCESSIBLE_LOAD_CHART_PALETTE: LoadChartPalette = {
 }
 
 const DEFAULT_SERIES_PALETTE = [
-  '#FF6B6B',
-  '#4ECDC4',
-  '#A78BFA',
-  '#60A5FA',
-  '#FFB347',
-  '#F472B6',
-  '#34D399',
-  '#FB923C',
+  '#18181b',
+  '#52525b',
+  '#71717a',
+  '#a1a1aa',
+  '#3f3f46',
+  '#d4d4d8',
+  '#27272a',
+  '#e4e4e7',
 ]
 
 const ACCESSIBLE_SERIES_PALETTE = [
