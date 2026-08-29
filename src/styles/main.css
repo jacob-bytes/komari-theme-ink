@@ -10,21 +10,21 @@
 
 /* ===== blueprint 主题 · 白图（light）设计令牌 ===== */
 :root {
-  --background: #f6f8fb;
-  --foreground: #1d4e89;
-  --card: #f6f8fb;
-  --card-foreground: #1d4e89;
+  --background: #fafafa;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --card-foreground: #18181b;
   --popover: #f6f8fb;
   --popover-foreground: #1d4e89;
-  --primary: #1d4e89;
-  --primary-foreground: #f6f8fb;
-  --secondary: #eef2f7;
-  --secondary-foreground: #1d4e89;
-  --muted: #eef2f7;
-  --muted-foreground: #41608c;
-  --accent: #eef2f7;
-  --accent-foreground: #1d4e89;
-  --destructive: #c62f2f;
+  --primary: #18181b;
+  --primary-foreground: #fafafa;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #dc2626;
   --destructive-foreground: #f6f8fb;
   --warning: #a86e00;
   --warning-foreground: #f6f8fb;
@@ -38,16 +38,16 @@
   --signal-3: #7ba05b;
   --signal-4: #a86e00;
   --signal-5: #c62f2f;
-  --border: rgb(29 78 137 / 0.28);
-  --input: rgb(29 78 137 / 0.28);
-  --ring: rgb(29 78 137 / 0.55);
-  --chart-1: #1d4e89;
-  --chart-2: #2f9e6b;
-  --chart-3: #a86e00;
-  --chart-4: #c62f2f;
-  --chart-5: #7a6bb5;
-  --radius: 0.125rem;
-  --font-sans: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #18181b;
+  --chart-1: #18181b;
+  --chart-2: #52525b;
+  --chart-3: #a1a1aa;
+  --chart-4: #3f3f46;
+  --chart-5: #71717a;
+  --radius: 0.75rem;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   /* 地球外圈大气层发光：亮色极淡，暗色荧光青蓝 */
   --globe-glow: rgb(100 160 255 / 0.18);
   /* 线状图纸地球（line-grid）配色 */
@@ -65,21 +65,21 @@
 
 /* ===== blueprint 主题 · 晒图蓝（dark）设计令牌 ===== */
 .dark {
-  --background: #143d72;
-  --foreground: #e9f2ff;
-  --card: #143d72;
-  --card-foreground: #e9f2ff;
+  --background: #101012;
+  --foreground: #fafafa;
+  --card: #18181b;
+  --card-foreground: #fafafa;
   --popover: #143d72;
   --popover-foreground: #e9f2ff;
-  --primary: #e9f2ff;
-  --primary-foreground: #143d72;
-  --secondary: #0f3160;
-  --secondary-foreground: #e9f2ff;
-  --muted: #0f3160;
-  --muted-foreground: rgb(233 242 255 / 0.66);
-  --accent: #0f3160;
-  --accent-foreground: #e9f2ff;
-  --destructive: #ff8f86;
+  --primary: #fafafa;
+  --primary-foreground: #18181b;
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
+  --destructive: #ef4444;
   --destructive-foreground: #143d72;
   --warning: #ffb000;
   --warning-foreground: #143d72;
@@ -93,14 +93,14 @@
   --signal-3: #d6e08f;
   --signal-4: #ffb000;
   --signal-5: #ff8f86;
-  --border: rgb(233 242 255 / 0.22);
-  --input: rgb(233 242 255 / 0.22);
+  --border: #27272a;
+  --input: #27272a;
   --ring: rgb(233 242 255 / 0.48);
-  --chart-1: #8fb7f5;
-  --chart-2: #5fd6a5;
-  --chart-3: #ffb000;
-  --chart-4: #ff8f86;
-  --chart-5: #b8a8f0;
+  --chart-1: #e4e4e7;
+  --chart-2: #a1a1aa;
+  --chart-3: #71717a;
+  --chart-4: #52525b;
+  --chart-5: #3f3f46;
   --globe-glow: rgb(0 240 255 / 0.45);
   /* 线状图纸地球（line-grid）配色 · 晒图蓝 */
   --globe-rim: rgb(233 242 255 / 0.28);
@@ -186,21 +186,21 @@
 
 /* iOS 15.4-16.3 can run the app but lacks Tailwind v4's modern color stack. */
 html.legacy-webkit {
-  --background: #f6f8fb;
-  --foreground: #1d4e89;
-  --card: #f6f8fb;
-  --card-foreground: #1d4e89;
+  --background: #fafafa;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --card-foreground: #18181b;
   --popover: #f6f8fb;
   --popover-foreground: #1d4e89;
-  --primary: #1d4e89;
-  --primary-foreground: #f6f8fb;
-  --secondary: #eef2f7;
-  --secondary-foreground: #1d4e89;
-  --muted: #eef2f7;
-  --muted-foreground: #41608c;
-  --accent: #eef2f7;
-  --accent-foreground: #1d4e89;
-  --destructive: #c62f2f;
+  --primary: #18181b;
+  --primary-foreground: #fafafa;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #dc2626;
   --destructive-foreground: #f6f8fb;
   --border: #c2cfdd;
   --input: #c2cfdd;
@@ -208,21 +208,21 @@ html.legacy-webkit {
 }
 
 html.legacy-webkit.dark {
-  --background: #143d72;
-  --foreground: #e9f2ff;
-  --card: #143d72;
-  --card-foreground: #e9f2ff;
+  --background: #101012;
+  --foreground: #fafafa;
+  --card: #18181b;
+  --card-foreground: #fafafa;
   --popover: #143d72;
   --popover-foreground: #e9f2ff;
-  --primary: #e9f2ff;
-  --primary-foreground: #143d72;
-  --secondary: #0f3160;
-  --secondary-foreground: #e9f2ff;
-  --muted: #0f3160;
+  --primary: #fafafa;
+  --primary-foreground: #18181b;
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
+  --muted: #27272a;
   --muted-foreground: #a7bcd8;
-  --accent: #0f3160;
-  --accent-foreground: #e9f2ff;
-  --destructive: #ff8f86;
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
+  --destructive: #ef4444;
   --destructive-foreground: #143d72;
   --border: #3a5f92;
   --input: #3a5f92;

@@ -104,7 +104,7 @@
         "key": "hideEarth",
         "name": "隐藏地球",
         "type": "switch",
-        "default": false,
+        "default": true,
         "help": "隐藏地球后仅显示总览卡片"
       },
       {
