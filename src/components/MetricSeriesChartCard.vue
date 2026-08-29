@@ -108,16 +108,30 @@ const chartOption = computed(() => ({
   },
   yAxis: {
     type: 'value',
-    min: props.percentScale ? 0 : undefined,
-    max: props.percentScale ? 100 : undefined,
+    min: 0,
+    max: props.percentScale
+      ? 100
+      : (() => {
+          // 动态 Y 轴：取所有系列的最大有效值（含总量轴），并留 10% 呼吸空间
+          let peak = 0
+          for (const item of props.series) {
+            for (const point of item.data) {
+              const v = point?.[1]
+              if (typeof v === 'number' && Number.isFinite(v))
+                peak = Math.max(peak, v)
+            }
+          }
+          return peak > 0 ? Math.ceil(peak * 1.1) : undefined
+        })(),
     axisLine: { show: false },
     axisTick: { show: false },
     axisLabel: {
       color: 'var(--color-muted-foreground)',
       fontSize: 10,
+      fontFamily: 'ui-monospace, monospace',
       formatter: (value: number) => formatMetricValue(value, primaryKind.value),
     },
-    splitLine: { lineStyle: { color: 'var(--color-border)', opacity: 0.45 } },
+    splitLine: { lineStyle: { color: 'var(--color-border)', opacity: 0.35, type: 'dashed' } },
   },
   series: props.series.map(item => ({
     name: item.name,
@@ -150,7 +164,7 @@ const displayOption = computed<any>(() => (chartPaused.value && frozenOption.val
         {{ latestText }}
       </MetricChartHeader>
     </template>
-    <div class="h-48">
+    <div class="h-[180px]">
       <VChart :option="displayOption" autoresize />
     </div>
   </CardX>

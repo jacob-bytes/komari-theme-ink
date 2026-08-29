@@ -1062,9 +1062,18 @@ const memoryChartOption = computed(() => ({
   yAxis: {
     ...baseYAxisConfig.value,
     name: '内存',
+    min: 0,
+    max: (() => {
+      let peak = 0
+      for (const r of chartData.value) {
+        peak = Math.max(peak, r.ram_total ?? nodeInfo.value?.mem_total ?? 0, r.swap_total ?? nodeInfo.value?.swap_total ?? 0)
+      }
+      return peak > 0 ? Math.ceil(peak * 1.1) : undefined
+    })(),
     nameTextStyle: { color: chartThemeColors.value.textSecondary, padding: [0, 40, 0, 0] },
     axisLabel: {
       ...baseYAxisConfig.value.axisLabel,
+      fontFamily: 'ui-monospace, monospace',
       formatter: (val: number) => formatBytes(val),
     },
   },
@@ -1075,7 +1084,7 @@ const memoryChartOption = computed(() => ({
       data: chartData.value.map(r => r.ram),
 
       showSymbol: false,
-      lineStyle: { width: 1.5, color: chartColors.primary, cap: 'round' as const },
+      lineStyle: { width: 1.5, color: 'var(--chart-ram, #10b981)', cap: 'round' as const },
       areaStyle: {
         color: {
           type: 'linear',
@@ -1084,8 +1093,8 @@ const memoryChartOption = computed(() => ({
           x2: 0,
           y2: 1,
           colorStops: [
-            { offset: 0, color: chartColors.primaryAreaStrong },
-            { offset: 1, color: chartColors.primaryAreaFaint },
+            { offset: 0, color: 'rgba(16, 185, 129, 0.06)' },
+            { offset: 1, color: 'rgba(16, 185, 129, 0.015)' },
           ],
         },
       },
@@ -1103,7 +1112,20 @@ const memoryChartOption = computed(() => ({
       data: chartData.value.map(r => r.swap),
 
       showSymbol: false,
-      lineStyle: { width: 1.5, color: chartColors.secondary, cap: 'round' as const },
+      lineStyle: { width: 1.5, color: '#f59e0b', cap: 'round' as const },
+      areaStyle: {
+        color: {
+          type: 'linear',
+          x: 0,
+          y: 0,
+          x2: 0,
+          y2: 1,
+          colorStops: [
+            { offset: 0, color: 'rgba(245, 158, 11, 0.05)' },
+            { offset: 1, color: 'rgba(245, 158, 11, 0.012)' },
+          ],
+        },
+      },
     },
     {
       name: 'Swap 总量',
