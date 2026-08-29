@@ -11,7 +11,7 @@ import { useNodeProviderMetadata } from '@/composables/useNodeProviderMetadata'
 import { useAppStore } from '@/stores/app'
 import { useNodesStore } from '@/stores/nodes'
 import { formatBytesWithConfig, formatUptimeWithFormat } from '@/utils/helper'
-import { getRegionCode, getRegionDisplayName } from '@/utils/regionHelper'
+import { getRegionCode } from '@/utils/regionHelper'
 
 import { formatPrice, formatPriceWithCycle, getExpireText, parseTags } from '@/utils/tagHelper'
 
@@ -81,7 +81,6 @@ const showPrice = computed(() => appStore.privateFeaturesAllowed || !appStore.hi
 
 const formatBytes = (bytes: number) => formatBytesWithConfig(bytes, appStore.byteDecimals)
 const formatUptime = (seconds: number) => formatUptimeWithFormat(seconds, 'minute')
-const getRegionAltText = (region: string) => getRegionDisplayName(region) || getRegionCode(region)
 
 const nodePriceText = computed(() => {
   if (!data.value)
