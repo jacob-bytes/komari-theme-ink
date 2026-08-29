@@ -846,7 +846,7 @@ onUnmounted(() => {
         :data-general-card-key="card.key"
         hoverable
         :class="[cardClass, getCardPositionClass(index), card.action && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring']"
-        content-class="h-full !p-3"
+        content-class="h-full !p-3 flex flex-col justify-between"
         :role="card.action ? 'button' : undefined"
         :tabindex="card.action ? 0 : undefined"
         :aria-label="card.action ? `查看${card.label}明细` : undefined"
