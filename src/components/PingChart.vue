@@ -822,7 +822,7 @@ onBeforeUnmount(() => {
       <template v-else>
         <!-- 最新值统计卡片（可点击切换选中状态） -->
         <div
-          v-if="latestValues.length > 0" class="gap-3 grid"
+          v-if="latestValues.length > 0" class="grid grid-cols-2 gap-3 lg:grid-cols-4"
           style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr))"
         >
           <div
@@ -837,7 +837,10 @@ onBeforeUnmount(() => {
             <div class="flex-1 min-w-0">
               <TooltipProvider>
                 <div class="flex gap-2 items-center">
-                  <span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: task.color }" />
+                  <span
+                    class="size-2 shrink-0 rounded-full"
+                    :style="{ backgroundColor: (task.latest ?? 0) > 150 ? '#f43f5e' : (task.latest ?? 0) > 50 ? '#f59e0b' : '#10b981' }"
+                  />
                   <span class="text-xs font-medium truncate">{{ task.name }}</span>
                   <div class="flex-1" />
                   <Tooltip

@@ -179,10 +179,10 @@ const detailSummaryFields = computed(() => {
             {{ data.online ? `在线 ${formatUptime(data.uptime)}` : '离线' }}
           </span>
           <template v-if="customTags.length">
-            <template v-for="(tag, i) in customTags" :key="i">
-              <span v-if="i > 0" class="text-muted-foreground/50">·</span>
-              <span class="text-xs font-normal text-muted-foreground">{{ tag }}</span>
-            </template>
+            <span
+              v-for="(tag, i) in customTags" :key="i"
+              class="rounded-xl bg-muted/60 px-2 py-0.5 text-[11px] font-normal leading-tight text-muted-foreground ring-1 ring-inset ring-border/60 backdrop-blur-xs"
+            >{{ tag }}</span>
           </template>
         </div>
         <div class="ml-auto flex h-8 shrink-0 items-center gap-1 rounded-md bg-background/50 p-0.5 backdrop-blur-xs">
@@ -268,7 +268,7 @@ const detailSummaryFields = computed(() => {
             <div class="text-[11px] font-medium tracking-wider text-muted-foreground">
               {{ field.label }}
             </div>
-            <div class="mt-1 truncate font-mono text-sm font-semibold text-foreground">
+            <div class="mt-1 max-w-full truncate font-mono text-sm font-semibold text-foreground">
               <template v-if="field.upValue">
                 <span class="text-indigo-500">↑ {{ field.upValue }}</span>
                 <span class="text-muted-foreground"> · </span>
