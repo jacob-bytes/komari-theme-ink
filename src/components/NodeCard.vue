@@ -84,8 +84,6 @@ const {
   latencyPanelTooltip,
 } = useNodePingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled })
 
-const latencyCompact = computed(() => latencyDisplay.value.replace('ms', '').trim())
-const lossCompact = computed(() => lossDisplay.value.replace('%', '').trim())
 const latencyScorePct = computed(() => {
   const value = Number.parseFloat(latencyDisplay.value) || 0
   return `${Math.min(100, Math.max(8, Math.round((value / 500) * 100)))}%`
