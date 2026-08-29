@@ -6,8 +6,6 @@ import type { TopNodeMetric } from '@/utils/nodeMetricsHelper'
 import { Icon } from '@iconify/vue'
 import { useNow } from '@vueuse/core'
 import { computed, defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue'
-import NodeEarthCobeGlobe from '@/components/NodeEarthCobeGlobe.vue'
-import NodeEarthLineGridGlobe from '@/components/NodeEarthLineGridGlobe.vue'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
 import { UI_CONFIG } from '@/constants/ui'
@@ -83,6 +81,13 @@ const globeOfflineCount = computed(() => summaryNodes.value.filter(n => !n.onlin
 /** netSpeed 卡迷你趋势采样（每 2s 采一次全域上下行总和，保留 30 点） */
 const netHistory = ref<number[]>([])
 let netTimer: number | undefined
+let trafficTimer: number | undefined
+
+const trafficHistory = ref<number[]>([])
+function sampleTrafficTotal() {
+  const total = summaryNodes.value.reduce((sum, n) => sum + ((n.traffic_up ?? 0) + (n.traffic_down ?? 0)), 0) / 1073741824
+  trafficHistory.value = [...trafficHistory.value, Math.round(total * 100) / 100].slice(-30)
+}
 function sampleNetSpeed() {
   const total = summaryNodes.value.reduce((sum, n) => sum + (n.net_out ?? 0) + (n.net_in ?? 0), 0) / 1024
   netHistory.value = [...netHistory.value, Math.round(total * 10) / 10].slice(-30)
@@ -757,12 +762,6 @@ const wrapperClass = computed(() => {
     ? 'p-4 grid grid-cols-12 gap-2 h-auto md:min-h-66'
     : 'p-4 grid grid-cols-12 grid-rows-1 gap-2 h-auto md:h-66'
 })
-const earthClass = computed(() => {
-  if (isTiledEarth.value)
-    return 'col-span-12 row-start-2 min-h-[18rem] h-[18rem] sm:h-[20rem] md:h-[24rem] lg:h-[28rem]'
-
-  return 'col-span-12 col-start-1 md:col-span-6 md:col-start-7 md:row-start-1'
-})
 const cardGridClass = computed(() => {
   if (!showEarth.value)
     return 'col-span-1 grid grid-cols-3 md:grid-cols-6 gap-2'
@@ -841,6 +840,8 @@ function resetExchangeRates() {
 onMounted(() => {
   sampleNetSpeed()
   netTimer = window.setInterval(sampleNetSpeed, 2000)
+  sampleTrafficTotal()
+  trafficTimer = window.setInterval(sampleTrafficTotal, 2000)
 })
 
 onMounted(async () => {
@@ -856,22 +857,12 @@ onMounted(async () => {
 onUnmounted(() => {
   if (netTimer !== undefined)
     window.clearInterval(netTimer)
+  window.clearInterval(trafficTimer)
 })
 </script>
 
 <template>
   <div v-if="shouldRenderHeader" :class="wrapperClass">
-    <div v-if="showEarth" class="relative" :class="[earthClass]">
-      <NodeEarthCobeGlobe
-        v-if="appStore.earthRenderer !== 'line-grid'"
-        :nodes="globeNodes"
-      />
-      <NodeEarthLineGridGlobe
-        v-else
-        :nodes="globeNodes"
-      />
-    </div>
-
     <div v-if="visibleCards.length > 0" :class="cardGridClass">
       <CardX
         v-for="(card, index) in visibleCards"
@@ -916,7 +907,7 @@ onUnmounted(() => {
               </div>
             </Transition>
           </DataTooltip>
-          <div v-if="card.key === 'netSpeed' && netHistory.length > 1" class="mt-2 h-9 w-full text-muted-foreground" aria-hidden="true">
+          <div v-if="(card.key === 'netSpeed' && netHistory.length > 1) || (card.key === 'totalTraffic' && trafficHistory.length > 1)" class="mt-2 h-9 w-full text-muted-foreground" aria-hidden="true">
             <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="h-full w-full">
               <defs>
                 <linearGradient id="inkSparkGrad" x1="0" y1="0" x2="0" y2="1">
@@ -924,8 +915,8 @@ onUnmounted(() => {
                   <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
                 </linearGradient>
               </defs>
-              <polygon :points="sparkArea(netHistory)" fill="url(#inkSparkGrad)" />
-              <polyline :points="sparkPoints(netHistory)" fill="none" stroke="currentColor" stroke-width="1.2" />
+              <polygon :points="sparkArea(card.key === 'netSpeed' ? netHistory : trafficHistory)" fill="url(#inkSparkGrad)" />
+              <polyline :points="sparkPoints(card.key === 'netSpeed' ? netHistory : trafficHistory)" fill="none" stroke="currentColor" stroke-width="1.2" />
             </svg>
           </div>
         </div>
