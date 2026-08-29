@@ -188,7 +188,7 @@ const DEFAULT_GENERAL_CARD_ENABLED: Record<GeneralCardKey, boolean> = {
   uploadPeakNode: false,
   downloadPeakNode: false,
   offlineNodes: false,
-  highLoadNodes: false,
+  highLoadNodes: true,
   expiringNodes: false,
   trafficWarnings: false,
   connectionPeakNode: false,
