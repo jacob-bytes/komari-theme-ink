@@ -17,14 +17,14 @@
 
 ## 1. 项目是什么
 
-**blueprint** 是一个 Komari Monitor 主题，使用 Vue 3 + Vite 构建。它的发布产物是 Komari 可以导入的 zip 包，不是普通 Web App 部署包。
+**ink** 是一个 Komari Monitor 主题，使用 Vue 3 + Vite 构建。它的发布产物是 Komari 可以导入的 zip 包，不是普通 Web App 部署包。
 
 关键事实：
 
 - 主题清单：[komari-theme.json](komari-theme.json)。这是发布输入，不是可选元数据。
 - 版本唯一来源：[komari-theme.json](komari-theme.json) 的 `version`。
 - 不要在 [package.json](package.json) 重新添加顶层 `version`。
-- 打包产物：`blueprint-build-<short-sha>.zip`。
+- 打包产物：`ink-build-<short-sha>.zip`。
 - zip 内固定包含：`komari-theme.json`、`preview.png`、`dist/`。
 - `preview.png` 来自 [docs/preview.png](docs/preview.png)，打包时重命名。
 
@@ -39,7 +39,6 @@
 - reka-ui + 本地 shadcn-vue 风格组件库：[src/components/ui/](src/components/ui/)
 - Iconify 图标：`@iconify/vue`
 - ECharts / vue-echarts 图表
-- cobe / three / globe 相关地球展示
 - vue-sonner toast，通过 `window.$message` 暴露
 
 明确禁止：
@@ -92,7 +91,7 @@ bun run build
 成功后根目录应有：
 
 - `dist/`
-- `blueprint-build-<short-sha>.zip`
+- `ink-build-<short-sha>.zip`
 
 zip 固定结构：
 

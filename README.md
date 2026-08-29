@@ -20,5 +20,3 @@ Vue 3 + Vite + Tailwind CSS v4 + reka-ui + Pinia + vue-echarts，`bun` 构建。
 MIT License。设计灵感致谢 [shadcn/ui](https://github.com/shadcn-ui/ui) 与上游生态。
 
 ---
-
-> 当前为初始化骨架（业务层就绪，UI 层改造进行中）。

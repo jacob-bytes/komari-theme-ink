@@ -13,6 +13,18 @@
 
 ## 当前任务
 
+- 状态：done（清理遗留已完成，详情页改版待执行）
+- 目标：清理 ink 主题中的 blueprint / 地球遗留代码，并整理详情页改版清单。
+- 范围：
+  - 删除 `src/components/blueprint/`、地球相关组件/composable/utils/data
+  - 清理 HomeView、NodeGeneralCards、app store、manifest、样式、Footer、测试
+  - 移除 cobe 依赖
+  - 品牌命名同步为 ink
+- 验证：`bun run type-check`、`bun run lint`、`bun run build` 均通过。
+- 产物：`ink-build-4a3d842.zip`，manifest `0.1.13`。
+- 下一步：按“详情页改版正式清单”实施 InstanceDetail / LoadChart / PingChart 极简改造。
+
+
 - 状态：done，blueprint 主题彻底改造完成(未发版，待用户确认后再决定是否发版)
 - 目标：把 komari-theme-Glassmorphism 从毛玻璃主题彻底改造成 blueprint（工程蓝图）主题并命名为 blueprint。
 - 里程碑：M4 UI/UX 大改造 + 发布契约改名。

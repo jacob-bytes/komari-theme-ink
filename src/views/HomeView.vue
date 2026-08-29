@@ -32,8 +32,8 @@ interface QuickControlOption {
   icon: string
 }
 
-type HomeToolKey = 'nodes' | 'nodeCompare' | 'providerValue' | 'snapshotExport' | 'auditLog' | 'blueprint'
-type PrivateHomeToolKey = Exclude<HomeToolKey, 'nodes' | 'nodeCompare' | 'blueprint'>
+type HomeToolKey = 'nodes' | 'nodeCompare' | 'providerValue' | 'snapshotExport' | 'auditLog'
+type PrivateHomeToolKey = Exclude<HomeToolKey, 'nodes' | 'nodeCompare'>
 
 interface HomeToolOption {
   key: HomeToolKey
@@ -322,7 +322,7 @@ async function toggleHomeTool(key: HomeToolKey) {
     return
   }
 
-  const permission = (key === 'nodes' || key === 'nodeCompare' || key === 'blueprint') ? null : homeToolPermissionMap[key]
+  const permission = (key === 'nodes' || key === 'nodeCompare') ? null : homeToolPermissionMap[key]
   if (permission) {
     const granted = await appStore.requireLoginPermission(permission, { force: true })
     if (!granted) {
@@ -410,7 +410,6 @@ const nodeCardGridClass = computed(() => {
 
     <NodeGeneralCards
       v-if="activeHomeTool === 'nodes'"
-      :globe-nodes="groupNodeList"
       :transition-key="appStore.nodeSelectedGroup"
     />
 

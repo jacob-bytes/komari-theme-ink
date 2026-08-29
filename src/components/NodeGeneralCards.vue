@@ -59,7 +59,6 @@ interface OnlineStats {
 
 const props = defineProps<{
   nodes?: NodeData[]
-  globeNodes?: NodeData[]
   transitionKey?: string
 }>()
 const appStore = useAppStore()
@@ -77,7 +76,7 @@ const financeDetailsOpen = ref(false)
 const currentTime = useNow({ interval: 1000 })
 const summaryNodes = computed(() => props.nodes ?? nodesStore.visibleNodes)
 const summaryTransitionKey = computed(() => props.transitionKey ?? nodesStore.visibleNodes.length)
-const globeOfflineCount = computed(() => summaryNodes.value.filter(n => !n.online).length)
+const offlineCount = computed(() => summaryNodes.value.filter(n => !n.online).length)
 /** netSpeed 卡迷你趋势采样（每 2s 采一次全域上下行总和，保留 30 点） */
 const netHistory = ref<number[]>([])
 let netTimer: number | undefined
@@ -537,7 +536,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
         label: '在线节点',
         icon: 'tabler:activity-heartbeat',
         value: formatCount(onlineNodeCount.value),
-        unit: `/ ${formatCount(totalNodeCount.value)} · 离线 ${formatCount(globeOfflineCount.value)}`,
+        unit: `/ ${formatCount(totalNodeCount.value)} · 离线 ${formatCount(offlineCount.value)}`,
       }
     case 'avgCpu':
       return {
@@ -747,24 +746,9 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
 }
 
 const visibleCards = computed(() => appStore.generalCardOrder.map(getCardDefinition))
-const showEarth = computed(() => !appStore.hideEarth)
-const isTiledEarth = computed(() => showEarth.value && appStore.earthRenderer === 'tiled')
-const shouldRenderHeader = computed(() => showEarth.value || visibleCards.value.length > 0)
-const hasExtraCards = computed(() => visibleCards.value.length > 6)
-const wrapperClass = computed(() => {
-  if (!showEarth.value)
-    return 'p-4 grid grid-cols-1 gap-2 h-auto'
-
-  if (isTiledEarth.value)
-    return 'p-3 sm:p-4 grid grid-cols-12 gap-2 sm:gap-3 h-auto min-h-[40rem] sm:min-h-[30rem] md:min-h-[36rem] lg:min-h-[40rem]'
-
-  return hasExtraCards.value
-    ? 'p-4 grid grid-cols-12 gap-2 h-auto md:min-h-66'
-    : 'p-4 grid grid-cols-12 grid-rows-1 gap-2 h-auto md:h-66'
-})
-const cardGridClass = computed(() => {
-  return 'col-span-12 grid grid-cols-2 md:grid-cols-4 gap-2'
-})
+const shouldRenderHeader = computed(() => visibleCards.value.length > 0)
+const wrapperClass = 'p-4 grid grid-cols-1 gap-2 h-auto'
+const cardGridClass = 'grid grid-cols-2 md:grid-cols-4 gap-2'
 const cardClass = 'group relative z-10 h-full bg-card/75 backdrop-blur-sm md:bg-card md:backdrop-blur-none border-border hover:bg-secondary transition-all'
 const cardPositionClasses = [
   'col-span-1',

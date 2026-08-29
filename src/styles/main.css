@@ -8,7 +8,7 @@
   scrollbar-width: thin;
 }
 
-/* ===== blueprint 主题 · 白图（light）设计令牌 ===== */
+/* ===== ink 主题 · light 设计令牌 ===== */
 :root {
   --background: #fafafa;
   --foreground: #18181b;
@@ -48,14 +48,6 @@
   --chart-5: #71717a;
   --radius: 0.75rem;
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  /* 地球外圈大气层发光：亮色极淡，暗色荧光青蓝 */
-  --globe-glow: rgb(100 160 255 / 0.18);
-  /* 线状图纸地球（line-grid）配色 */
-  --globe-rim: rgb(29 78 137 / 0.25);
-  --globe-grid: rgb(29 78 137 / 0.22);
-  --globe-coast: rgb(29 78 137 / 0.85);
-  --globe-point: #1d4e89;
-  --globe-text: #1d4e89;
   /* 状态语义色（默认与原 Tailwind 值一致，零视觉变化） */
   --status-ok: #16a34a;
   --status-warn: #f59e0b;
@@ -63,7 +55,7 @@
   --status-alert: #ef4444;
 }
 
-/* ===== blueprint 主题 · 晒图蓝（dark）设计令牌 ===== */
+/* ===== ink 主题 · dark 设计令牌 ===== */
 .dark {
   --background: #101012;
   --foreground: #fafafa;
@@ -101,13 +93,6 @@
   --chart-3: #71717a;
   --chart-4: #52525b;
   --chart-5: #3f3f46;
-  --globe-glow: rgb(0 240 255 / 0.45);
-  /* 线状图纸地球（line-grid）配色 · 晒图蓝 */
-  --globe-rim: rgb(233 242 255 / 0.28);
-  --globe-grid: rgb(233 242 255 / 0.18);
-  --globe-coast: rgb(233 242 255 / 0.75);
-  --globe-point: #e9f2ff;
-  --globe-text: #e9f2ff;
 }
 
 @theme inline {
@@ -325,7 +310,7 @@ html.legacy-webkit [data-slot='card'] {
   }
 }
 
-/* ===== blueprint 纸样卡片（替代毛玻璃 backdrop-filter） ===== */
+/* ===== ink 纸样卡片 ===== */
 
 .node-card,
 .bg-card,
@@ -384,7 +369,7 @@ header {
   background-color: var(--secondary) !important;
 }
 
-/* ===== blueprint 主题 · 彻底移除毛玻璃 backdrop-filter ===== */
+/* ===== ink 主题 · 移除毛玻璃 backdrop-filter ===== */
 [class*='backdrop-blur'],
 [class*='backdrop-filter'],
 [class*='backdrop-saturate'] {
@@ -397,28 +382,6 @@ header {
   background-color: color-mix(in srgb, var(--card) 20%, transparent) !important;
   backdrop-filter: blur(16px) saturate(150%) !important;
   -webkit-backdrop-filter: blur(16px) saturate(150%) !important;
-}
-
-/* 线状地球标签 hover 联动高亮（纯视觉） */
-.globe-callout {
-  cursor: pointer;
-}
-.globe-callout text {
-  transition: fill 0.15s ease;
-}
-.globe-callout:hover text,
-.globe-callout:focus-visible text {
-  fill: var(--globe-point);
-  font-weight: 700;
-}
-.globe-callout:hover polyline,
-.globe-callout:focus-visible polyline {
-  stroke: var(--globe-point);
-  stroke-opacity: 0.9;
-}
-.globe-callout:hover circle,
-.globe-callout:focus-visible circle {
-  stroke-width: 1.4;
 }
 
 html.legacy-webkit .glass-header {

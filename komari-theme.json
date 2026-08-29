@@ -2,7 +2,7 @@
   "name": "ink",
   "short": "ink",
   "description": "A minimal ink theme for Komari (deep navy-black, shadcn-inspired)",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "author": "jacob-bytes",
   "url": "https://github.com/jacob-bytes/komari-theme-ink",
   "preview": "preview.png",
@@ -79,35 +79,6 @@
         "help": "公告的详细内容（支持简单 Markdown 格式）"
       },
       {
-        "key": "earthRenderer",
-        "name": "地球样式",
-        "type": "select",
-        "default": "line-grid",
-        "options": "cobe,line-grid",
-        "help": "cobe=点阵星球； line-grid=线状图纸地球（经纬网格+海岸线+标签引线）。"
-      },
-      {
-        "key": "globeRadarEnabled",
-        "name": "雷达扫描线",
-        "type": "switch",
-        "default": true,
-        "help": "线状图纸地球上叠加青蓝雷达扫描线（扇形残影+扫描线），关闭后仅显示静态线稿。"
-      },
-      {
-        "key": "stopEarth",
-        "name": "停止地球旋转",
-        "type": "switch",
-        "default": false,
-        "help": "开启后地球默认不自动旋转，用户仍可手动拖拽查看"
-      },
-      {
-        "key": "hideEarth",
-        "name": "隐藏地球",
-        "type": "switch",
-        "default": true,
-        "help": "隐藏地球后仅显示总览卡片"
-      },
-      {
         "key": "visitorInfoEnabled",
         "name": "显示访客信息",
         "type": "switch",
@@ -131,7 +102,7 @@
         "name": "登录后显示高级工具",
         "type": "switch",
         "default": true,
-        "help": "显示节点、蓝图、对比、性价比、导出和审计日志工具。"
+        "help": "显示节点、对比、性价比、导出和审计日志工具。"
       },
       {
         "key": "hideAdminEntryWhenLoggedOut",

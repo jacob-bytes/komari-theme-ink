@@ -17,12 +17,10 @@ const REGION_FIXTURES = [
 
 export interface VisualFixtureOptions {
   dark?: boolean
-  earthRenderer?: 'cobe' | 'realistic' | 'tiled'
   colorVisionFriendly?: boolean
   viewMode?: 'card' | 'list'
   nodeCardSize?: 'mini' | 'compact' | 'comfortable' | 'large'
   freePriceNode?: boolean
-  hideEarth?: boolean
   expiryThresholds?: boolean
   missingCpuMetricHistory?: boolean
   pingTaskOrdering?: boolean
@@ -348,9 +346,6 @@ export async function installKomariFixture(page: Page, options: VisualFixtureOpt
     rpcTransportMode: 'http',
     defaultViewMode: options.viewMode ?? 'card',
     nodeCardSize: options.nodeCardSize ?? 'compact',
-    earthRenderer: options.earthRenderer ?? 'realistic',
-    hideEarth: options.hideEarth ?? false,
-    stopEarth: true,
     visitorInfoEnabled: true,
     colorVisionMode: options.colorVisionFriendly ? '色觉友好' : '标准',
     hideAdminEntryWhenLoggedOut: false,
@@ -360,11 +355,7 @@ export async function installKomariFixture(page: Page, options: VisualFixtureOpt
     homeQuickControlPreset: '完整',
     homeToolsEnabled: true,
     generalCardPreset: '自定义',
-    generalCardKeys: (options.generalCardKeys ?? (
-      options.earthRenderer === 'tiled'
-        ? ['onlineNodes', 'remainingValue', 'monthlyCost', 'totalTraffic', 'uploadSpeed', 'downloadSpeed']
-        : ['onlineNodes', 'highLoadNodes', 'totalTraffic', 'netSpeed']
-    )).join('\n'),
+    generalCardKeys: (options.generalCardKeys ?? ['onlineNodes', 'highLoadNodes', 'totalTraffic', 'netSpeed']).join('\n'),
   }
 
   await page.addInitScript(({ fixedNow }) => {
@@ -401,7 +392,7 @@ export async function installKomariFixture(page: Page, options: VisualFixtureOpt
         record_preserve_time: 720,
         ping_record_preserve_time: 720,
         sitename: 'Komari Visual Lab',
-        theme: 'blueprint',
+        theme: 'ink',
         theme_settings: settings,
         visitor_audit_enabled: false,
       },

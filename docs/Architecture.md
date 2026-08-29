@@ -1,6 +1,6 @@
 # v3 Architecture
 
-blueprint moves new code toward a layered architecture:
+ink moves new code toward a layered architecture:
 
 ```text
 Vue Component

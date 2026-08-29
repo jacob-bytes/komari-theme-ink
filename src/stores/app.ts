@@ -89,7 +89,6 @@ type Lang = 'zh-CN' | 'en-US'
 type NodeViewMode = 'card' | 'list'
 type NodeCardSize = 'mini' | 'compact' | 'comfortable' | 'large'
 type RpcTransportMode = 'websocket' | 'http'
-type EarthRenderer = 'realistic' | 'cobe' | 'tiled' | 'line-grid'
 type ColorVisionMode = 'default' | 'accessible'
 export type ChartDashboardCardKey
   = | 'cpu'
@@ -862,10 +861,6 @@ const useAppStore = defineStore('app', () => {
     return value === 'mini' || value === 'compact' || value === 'comfortable' || value === 'large'
   }
 
-  function isValidEarthRenderer(value: unknown): value is EarthRenderer {
-    return value === 'realistic' || value === 'cobe' || value === 'tiled' || value === 'line-grid'
-  }
-
   const nodeCardSize = computed<NodeCardSize>(() => {
     const settings = themeSettings.value
     if (isValidNodeCardSize(settings.nodeCardSize))
@@ -916,15 +911,6 @@ const useAppStore = defineStore('app', () => {
   })
 
   const dataUpdateInterval = computed<number>(() => readNumberSetting(themeSettings.value, 'dataUpdateInterval', 3, 1, 60))
-
-  const stopEarth = computed<boolean>(() => readBooleanSetting(themeSettings.value, 'stopEarth', false))
-
-  const earthRenderer = computed<EarthRenderer>(() => {
-    const value = themeSettings.value.earthRenderer
-    return isValidEarthRenderer(value) ? value : 'realistic'
-  })
-
-  const hideEarth = computed<boolean>(() => readBooleanSetting(themeSettings.value, 'hideEarth', false))
 
   const hideGeneralCard = computed<boolean>(() => readBooleanSetting(themeSettings.value, 'hideGeneralCard', false))
 
@@ -980,8 +966,6 @@ const useAppStore = defineStore('app', () => {
   const colorVisionMode = computed<ColorVisionMode>(() => parseColorVisionMode(themeSettings.value.colorVisionMode))
 
   const colorVisionFriendly = computed<boolean>(() => colorVisionMode.value === 'accessible')
-
-  const globeRadarEnabled = computed<boolean>(() => readBooleanSetting(themeSettings.value, 'globeRadarEnabled', true))
 
   const homeQuickControlsEnabled = computed<boolean>(() => readBooleanSetting(themeSettings.value, 'homeQuickControlsEnabled', true))
 
@@ -1213,9 +1197,6 @@ const useAppStore = defineStore('app', () => {
     alertTitle,
     alertContent,
     dataUpdateInterval,
-    stopEarth,
-    earthRenderer,
-    hideEarth,
     hideGeneralCard,
     visitorInfoEnabled,
     generalCardEnabledMap,
@@ -1223,7 +1204,6 @@ const useAppStore = defineStore('app', () => {
     homeToolsEnabled,
     homeAdvancedToolsVisible,
     colorVisionMode,
-    globeRadarEnabled,
     colorVisionFriendly,
     visitorAuditSupported,
     visitorAuditEnabled,

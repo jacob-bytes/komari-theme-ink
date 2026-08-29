@@ -24,51 +24,6 @@ async function expectNodeMetricIcons(page: Page): Promise<void> {
     await expect(page.locator(`[data-node-metric-icon="${metric}"]`).first()).toBeVisible()
 }
 
-const BLUEPRINT_TOOL = '蓝图：工程蓝图总图 · 分区 · 设备表'
-const SHOW_TOOLS = '显示首页工具'
-
-/** 工具条默认折叠，先展开再进入蓝图工具 */
-async function openBlueprint(page: Page): Promise<void> {
-  await page.getByRole('button', { name: SHOW_TOOLS }).click()
-  await page.getByRole('button', { name: BLUEPRINT_TOOL }).click()
-}
-
-// ===== blueprint 视图（通过「蓝图」工具切换，默认视图为节点卡片） =====
-
-test('blueprint home light desktop', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 })
-  await installKomariFixture(page)
-  await openStablePage(page)
-
-  await openBlueprint(page)
-  await expect(page.getByText('基础设施蓝图')).toBeVisible()
-  await expect(page.getByText('拓扑总图')).toBeVisible()
-  await expect(page.getByText('总线 · komari-core')).toBeVisible()
-  await expect(page.getByRole('heading', { name: '设备表' })).toBeVisible()
-  await expect(page).toHaveScreenshot('blueprint-home.png', { fullPage: false })
-})
-
-test('blueprint home dark mobile', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 })
-  await installKomariFixture(page, { dark: true })
-  await openStablePage(page)
-
-  await openBlueprint(page)
-  await expect(page.getByText('基础设施蓝图')).toBeVisible()
-  await expect(page).toHaveScreenshot('blueprint-home-dark-mobile.png', { fullPage: false })
-})
-
-test('blueprint schedule renders grouped rows', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 })
-  await installKomariFixture(page)
-  await openStablePage(page)
-
-  await openBlueprint(page)
-  await expect(page.getByText('基础设施蓝图')).toBeVisible()
-  await expect(page.locator('table.bp-sched')).toBeVisible()
-  await expect(page.locator('table.bp-sched tbody tr').first()).toBeVisible()
-})
-
 // ===== 节点卡片 / 列表视图（默认视图，无需切换） =====
 
 test('nodes tool view renders card grid', async ({ page }) => {

@@ -1,5 +1,5 @@
 {
-  "name": "blueprint",
+  "name": "ink",
   "type": "module",
   "packageManager": "bun@1.3.14",
   "author": {
@@ -29,7 +29,6 @@
     "@vueuse/core": "^14.2.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "cobe": "^2.0.1",
     "dayjs": "^1.11.19",
     "echarts": "^6.0.0",
     "pinia": "^3.0.4",

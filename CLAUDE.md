@@ -13,14 +13,14 @@ This file is the Claude Code entrypoint for this repository. The full AI/develop
 
 ## What this project is
 
-blueprint is a Komari Monitor theme built with Vue 3 + Vite. The release artifact is a Komari-importable zip package, not a generic deployed web app.
+ink is a Komari Monitor theme built with Vue 3 + Vite. The release artifact is a Komari-importable zip package, not a generic deployed web app.
 
 Key release facts:
 
 - [komari-theme.json](komari-theme.json) is release input and the only release-version source.
 - Do not add a top-level `version` to [package.json](package.json).
 - `bun run build` must preserve zip packaging from [vite.config.ts](vite.config.ts).
-- Build output must include `dist/` and `blueprint-build-<short-sha>.zip`.
+- Build output must include `dist/` and `ink-build-<short-sha>.zip`.
 - Zip layout must stay: `komari-theme.json`, `preview.png`, `dist/`.
 
 ## Commands
