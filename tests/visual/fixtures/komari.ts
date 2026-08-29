@@ -363,7 +363,7 @@ export async function installKomariFixture(page: Page, options: VisualFixtureOpt
     generalCardKeys: (options.generalCardKeys ?? (
       options.earthRenderer === 'tiled'
         ? ['onlineNodes', 'remainingValue', 'monthlyCost', 'totalTraffic', 'uploadSpeed', 'downloadSpeed']
-        : ['memory', 'disk', 'netSpeed', 'remainingValue', 'totalTraffic', 'onlineNodes']
+        : ['onlineNodes', 'highLoadNodes', 'totalTraffic', 'netSpeed']
     )).join('\n'),
   }
 

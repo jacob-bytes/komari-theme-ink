@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "author": "jacob-bytes",
   "url": "https://github.com/jacob-bytes/komari-theme-ink",
-  "preview": "preview-blueprint.png",
+  "preview": "preview.png",
   "configuration": {
     "type": "managed",
     "name": "主题设置",

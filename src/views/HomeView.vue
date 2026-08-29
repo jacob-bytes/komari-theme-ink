@@ -52,7 +52,6 @@ const NodeComparePanel = defineAsyncComponent(() => import('@/components/NodeCom
 const PingMonitorDialog = defineAsyncComponent(() => import('@/components/PingMonitorDialog.vue'))
 const ProviderValuePanel = defineAsyncComponent(() => import('@/components/ProviderValuePanel.vue'))
 const SnapshotExportPanel = defineAsyncComponent(() => import('@/components/SnapshotExportPanel.vue'))
-const BlueprintPanel = defineAsyncComponent(() => import('@/components/blueprint/BlueprintPanel.vue'))
 
 const nodeItemStaggerMs = UI_CONFIG.motion.staggerMs
 const nodeItemStaggerLimit = UI_CONFIG.motion.staggerLimit
@@ -115,7 +114,6 @@ const homeTools = computed<HomeToolOption[]>(() => {
   const tools: HomeToolOption[] = [
     { key: 'nodes', label: '节点', icon: 'tabler:layout-grid', description: '节点卡片与列表视图' },
     { key: 'nodeCompare', label: '对比', icon: 'tabler:columns-3', description: '最多四台节点实时横向对比' },
-    { key: 'blueprint', label: '蓝图', icon: 'tabler:map-2', description: '工程蓝图总图 · 分区 · 设备表' },
   ]
   if (!appStore.privateFeaturesAllowed)
     return tools
@@ -424,7 +422,6 @@ const nodeCardGridClass = computed(() => {
 
     <NodeGeneralCards
       v-if="activeHomeTool === 'nodes'"
-      :nodes="groupNodeList"
       :globe-nodes="groupNodeList"
       :transition-key="appStore.nodeSelectedGroup"
     />
@@ -532,7 +529,6 @@ const nodeCardGridClass = computed(() => {
             <ProviderValuePanel v-else-if="activeHomeTool === 'providerValue'" :nodes="groupNodeList" />
             <SnapshotExportPanel v-else-if="activeHomeTool === 'snapshotExport'" :nodes="groupNodeList" />
             <AuditLogPanel v-else-if="activeHomeTool === 'auditLog'" />
-            <BlueprintPanel v-else-if="activeHomeTool === 'blueprint'" :nodes="groupNodeList" />
             <TransitionGroup
               v-else-if="nodeList.length !== 0 && appStore.nodeViewMode === 'card'"
               :appear="enableNodeCardTransition"

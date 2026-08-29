@@ -61,7 +61,7 @@ function komariThemeZip(): Plugin {
     apply: 'build',
     closeBundle: async () => {
       const commitHash = getCommitHash()
-      const zipFileName = `blueprint-build-${commitHash}.zip`
+      const zipFileName = `ink-build-${commitHash}.zip`
       const distDir = resolve(__dirname, 'dist')
       const previewPath = resolve(__dirname, 'docs/preview.png')
       const outputPath = resolve(__dirname, zipFileName)

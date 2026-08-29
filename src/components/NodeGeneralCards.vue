@@ -754,10 +754,10 @@ const cardGridClass = computed(() => {
 const cardClass = 'group relative z-10 h-full bg-card/75 backdrop-blur-sm md:bg-card md:backdrop-blur-none border-border hover:bg-secondary transition-all'
 const cardPositionClasses = [
   'col-span-4 row-span-1 col-start-1 row-start-1',
-  'col-span-4 row-span-1 col-start-1 row-start-2',
   'col-span-4 row-span-1 col-start-5 row-start-1',
-  'col-span-4 row-span-1 col-start-5 row-start-2',
   'col-span-4 row-span-1 col-start-9 row-start-1',
+  'col-span-4 row-span-1 col-start-1 row-start-2',
+  'col-span-4 row-span-1 col-start-5 row-start-2',
   'col-span-4 row-span-1 col-start-9 row-start-2',
 ]
 const tiledCardPositionClasses = [

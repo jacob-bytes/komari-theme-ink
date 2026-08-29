@@ -121,12 +121,10 @@ const BYTE_DECIMALS: ByteDecimalsConfig = {
 }
 
 const DEFAULT_GENERAL_CARD_ORDER: GeneralCardKey[] = [
-  'memory',
-  'disk',
-  'netSpeed',
-  'remainingValue',
-  'totalTraffic',
   'onlineNodes',
+  'highLoadNodes',
+  'totalTraffic',
+  'netSpeed',
 ]
 
 const ALL_GENERAL_CARD_KEYS = [
