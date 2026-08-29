@@ -7,9 +7,10 @@ import { DataTooltip } from '@/components/ui/data-tooltip'
 import { ProgressThin } from '@/components/ui/progress-thin'
 import { useNodePingDisplay } from '@/composables/useNodePingDisplay'
 import { useAppStore } from '@/stores/app'
-import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, getStatus } from '@/utils/helper'
-import { getDiskPercentage, getMemoryPercentage, hasTrafficLimit } from '@/utils/nodeMetricsHelper'
+import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, getStatus, getUptimeDays } from '@/utils/helper'
+import { getDiskPercentage, getMemoryPercentage, getTrafficUsed, getTrafficUsedPercentage, hasTrafficLimit } from '@/utils/nodeMetricsHelper'
 import { getRegionCode } from '@/utils/regionHelper'
+import { formatCurrencyValue, formatPriceWithCycle, getDaysUntilExpired, getExpireStatus, getRemainingValue, isFreePrice, parseTags } from '@/utils/tagHelper'
 
 const props = withDefaults(defineProps<{
   node: NodeData
@@ -80,7 +81,127 @@ const diskStatus = computed(() => getStatus(diskPercentage.value))
 const {
   latencyDisplay,
   lossDisplay,
+  latencyPanelTooltip,
 } = useNodePingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled })
+
+const latencyAlert = computed(() => {
+  const loss = Number.parseFloat(lossDisplay.value) || 0
+  const ms = Number.parseFloat(latencyDisplay.value) || 0
+  return loss > 0 || ms > 250
+})
+const latencyScorePct = computed(() => {
+  const value = Number.parseFloat(latencyDisplay.value) || 0
+  return `${Math.min(100, Math.max(8, Math.round((value / 500) * 100)))}%`
+})
+const latencyBlocks = computed<string[]>(() => {
+  const ms = Number.parseFloat(latencyDisplay.value) || 0
+  const color = ms < 50
+    ? 'bg-emerald-500'
+    : ms < 150
+      ? 'bg-amber-500'
+      : 'bg-rose-500'
+  return Array.from({ length: 14 }).fill(color) as string[]
+})
+const lossBlocks = computed<string[]>(() => {
+  const loss = Number.parseFloat(lossDisplay.value) || 0
+  const hit = loss > 0 ? Math.max(1, Math.round((loss / 10) * 14)) : 0
+  return Array.from({ length: 14 }, (_, i) => (i < hit ? 'bg-rose-500' : 'bg-slate-200 dark:bg-slate-700'))
+})
+const trafficUsedPercentage = computed(() => getTrafficUsedPercentage(props.node))
+const trafficUsed = computed(() => getTrafficUsed(props.node))
+const nodeMessage = computed(() => props.node.message?.trim() ?? '')
+const nodeMessageTooltip = computed(() => {
+  const message = nodeMessage.value
+  if (!message)
+    return ''
+  const updatedAt = props.node.status_updated_at ? `\n更新时间：${formatDateTime(props.node.status_updated_at)}` : ''
+  return `${message}${updatedAt}`
+})
+
+// 流量状态颜色
+const trafficStatus = computed(() => {
+  if (!hasTrafficLimit(props.node))
+    return 'success'
+  if (trafficUsedPercentage.value >= 95)
+    return 'error'
+  if (trafficUsedPercentage.value >= 80)
+    return 'warning'
+  if (trafficUsedPercentage.value >= 60)
+    return 'info'
+  return 'success'
+})
+
+const trafficPercentageClass = computed(() => {
+  if (!hasTrafficLimit(props.node))
+    return 'text-muted-foreground'
+  if (trafficUsedPercentage.value >= 95)
+    return 'text-destructive'
+  if (trafficUsedPercentage.value >= 80)
+    return 'text-warning'
+  if (trafficUsedPercentage.value >= 60)
+    return 'text-warning'
+  return 'text-success'
+})
+
+// 是否显示金额：未登录且开启「未登录隐藏价格」时不显示价格 / 剩余价值，
+// 但在线天数、剩余天数等非金额信息仍然展示
+const showPrice = computed(() => appStore.privateFeaturesAllowed || !appStore.hidePriceWhenLoggedOut)
+
+const uptimeDaysText = computed(() => {
+  const days = getUptimeDays(props.node.uptime)
+  return appStore.lang === 'zh-CN' ? `在线 ${days} 天` : `${days} days online`
+})
+
+const priceText = computed(() => {
+  const node = props.node
+  if (node.price === 0 || !showPrice.value)
+    return ''
+  return formatPriceWithCycle(node.price, node.billing_cycle, node.currency, appStore.lang)
+})
+
+// 第三列：剩余天数（始终） + 剩余价值（仅在允许显示金额时），带图标与相邻列对齐
+const remainingInfoTags = computed<RemainingInfoTag[]>(() => {
+  const node = props.node
+  if (node.price === 0)
+    return []
+  const lang = appStore.lang
+  const days = getDaysUntilExpired(node.expired_at)
+  const status = getExpireStatus(node.expired_at)
+  const items: RemainingInfoTag[] = []
+  const expiryClass = status === 'expired' || status === 'critical'
+    ? 'text-destructive'
+    : status === 'warning' ? 'text-warning' : 'text-muted-foreground'
+
+  if (status === 'unknown') {
+    items.push({ icon: 'tabler:calendar-stats', text: '-', className: expiryClass })
+  }
+  else if (status === 'expired') {
+    items.push({ icon: 'tabler:calendar-stats', text: lang === 'zh-CN' ? '已过期' : 'Expired', className: expiryClass })
+  }
+  else if (status === 'long_term') {
+    items.push({ icon: 'tabler:calendar-stats', text: lang === 'zh-CN' ? '长期' : 'Long-term', className: expiryClass })
+  }
+  else if (lang === 'zh-CN') {
+    items.push({ icon: 'tabler:calendar-stats', prefix: '剩余', value: String(days), unit: '天', className: expiryClass })
+  }
+  else {
+    items.push({ icon: 'tabler:calendar-stats', prefix: 'left', value: String(days), unit: 'days', className: expiryClass })
+  }
+
+  if (showPrice.value) {
+    const text = isFreePrice(node.price)
+      ? lang === 'zh-CN' ? '无' : 'N/A'
+      : formatCurrencyValue(getRemainingValue(node.price, node.billing_cycle, node.expired_at), node.currency)
+    items.push({ icon: 'tabler:coins', text })
+  }
+  return items
+})
+
+const customTags = computed(() => parseTags(props.node.tags).map(t => t.text))
+
+function hasRegion(region: string | null | undefined): boolean {
+  return Boolean(region?.trim())
+}
 </script>
 
 <template>
