@@ -79,10 +79,6 @@ const customTags = computed(() => parseTags(data.value?.tags).map(t => t.text))
 // 未登录且开启「未登录隐藏价格」时，屏蔽金额类指标（剩余时间为天数，仍显示）
 const showPrice = computed(() => appStore.privateFeaturesAllowed || !appStore.hidePriceWhenLoggedOut)
 
-const remainingDays = computed(() => {
-  const num = Number.parseInt(remainingTimeText.value, 10)
-  return Number.isFinite(num) ? num : null
-})
 const hasRegion = (region: string) => !!region
 const formatBytes = (bytes: number) => formatBytesWithConfig(bytes, appStore.byteDecimals)
 const formatUptime = (seconds: number) => formatUptimeWithFormat(seconds, 'minute')
@@ -99,6 +95,11 @@ const remainingTimeText = computed(() => {
   if (!data.value?.expired_at)
     return '-'
   return getExpireText(data.value.expired_at, appStore.lang)
+})
+
+const remainingDays = computed(() => {
+  const num = Number.parseInt(remainingTimeText.value, 10)
+  return Number.isFinite(num) ? num : null
 })
 
 const trafficUsed = computed(() => {
