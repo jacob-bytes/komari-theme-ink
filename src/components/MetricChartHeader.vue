@@ -15,21 +15,21 @@ const props = withDefaults(defineProps<{
 })
 
 const toneClass = computed(() => ({
-  rose: 'bg-muted/60 text-muted-foreground ring-border/60',
-  amber: 'bg-muted/60 text-muted-foreground ring-border/60',
-  emerald: 'bg-muted/60 text-muted-foreground ring-border/60',
-  cyan: 'bg-muted/60 text-muted-foreground ring-border/60',
-  sky: 'bg-muted/60 text-muted-foreground ring-border/60',
-  violet: 'bg-muted/60 text-muted-foreground ring-border/60',
-  orange: 'bg-muted/60 text-muted-foreground ring-border/60',
-  slate: 'bg-muted/60 text-muted-foreground ring-border/60',
+  rose: 'text-muted-foreground',
+  amber: 'text-muted-foreground',
+  emerald: 'text-muted-foreground',
+  cyan: 'text-muted-foreground',
+  sky: 'text-muted-foreground',
+  violet: 'text-muted-foreground',
+  orange: 'text-muted-foreground',
+  slate: 'text-muted-foreground',
 })[props.tone])
 </script>
 
 <template>
   <div class="flex min-w-0 items-center justify-between gap-3">
     <div class="flex min-w-0 items-center gap-2.5">
-      <div class="flex size-8 shrink-0 items-center justify-center rounded-md ring-1 ring-inset" :class="toneClass">
+      <div class="flex size-8 shrink-0 items-center justify-center rounded-md ring-0" :class="toneClass">
         <Icon :icon="icon" :width="17" :height="17" />
       </div>
       <div class="min-w-0">

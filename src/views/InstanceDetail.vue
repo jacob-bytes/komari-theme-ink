@@ -2,7 +2,6 @@
 import { Icon } from '@iconify/vue'
 import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
@@ -170,22 +169,19 @@ const detailSummaryFields = computed(() => {
         <Button variant="ghost" size="icon-sm" class="bg-background/50 hover:bg-background" aria-label="返回首页" @click="router.push('/')">
           <Icon icon="tabler:arrow-left" :width="16" :height="16" />
         </Button>
-        <div class="min-w-0 text-lg font-bold flex gap-2 items-center">
-          <img loading="lazy" :src="`/images/flags/${getRegionCode(data.region)}.svg`" :alt="getRegionAltText(data.region)" class="size-6">
+        <div class="min-w-0 text-lg font-bold flex items-center gap-2">
           <span class="truncate">{{ data.name }}</span>
-        </div>
-        <Badge :variant="data.online ? 'default' : 'destructive'" class="text-xs !rounded flex items-center gap-1.5">
-          <span v-if="data.online" class="status-pulse" />
-          {{ data.online ? `在线 ${formatUptime(data.uptime)}` : '离线' }}
-        </Badge>
-        <!-- 节点自定义标签 -->
-        <div v-if="customTags.length" class="flex flex-wrap gap-1">
-          <Badge
-            v-for="(tag, i) in customTags" :key="i" variant="outline"
-            class="!text-[11px] rounded text-muted-foreground border-muted-foreground/15 px-1.5 py-0"
-          >
-            {{ tag }}
-          </Badge>
+          <span v-if="hasRegion(data.region)" class="text-[11px] font-mono text-slate-400 dark:text-slate-500">{{ getRegionCode(data.region) }}</span>
+          <span class="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
+            <span v-if="data.online" class="size-1.5 rounded-full bg-green-600" />
+            {{ data.online ? `在线 ${formatUptime(data.uptime)}` : '离线' }}
+          </span>
+          <template v-if="customTags.length">
+            <template v-for="(tag, i) in customTags" :key="i">
+              <span v-if="i > 0" class="text-muted-foreground/50">·</span>
+              <span class="text-xs font-normal text-muted-foreground">{{ tag }}</span>
+            </template>
+          </template>
         </div>
         <div class="ml-auto flex h-8 shrink-0 items-center gap-1 rounded-md bg-background/50 p-0.5 backdrop-blur-xs">
           <Button
