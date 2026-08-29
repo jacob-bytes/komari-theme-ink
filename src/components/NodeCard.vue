@@ -95,7 +95,7 @@ const latencyBlocks = computed<string[]>(() => {
 const lossBlocks = computed<string[]>(() => {
   const loss = Number.parseFloat(lossDisplay.value) || 0
   const hit = loss > 0 ? Math.max(1, Math.round((loss / 10) * 14)) : 0
-  return Array.from({ length: 14 }, (_, i) => (i < hit ? 'bg-rose-500' : 'bg-slate-200 dark:bg-slate-700'))
+  return Array.from({ length: 14 }, (_, i) => (i < hit ? 'bg-rose-600/85' : 'bg-slate-200 dark:bg-slate-700'))
 })
 const trafficUsedPercentage = computed(() => getTrafficUsedPercentage(props.node))
 const trafficUsed = computed(() => getTrafficUsed(props.node))
