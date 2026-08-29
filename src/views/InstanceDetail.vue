@@ -135,7 +135,9 @@ const detailSummaryFields = computed(() => {
     },
     {
       label: '流量',
-      value: `↑ ${formatBytes(node.net_total_up)} · ↓ ${formatBytes(node.net_total_down)}`,
+      value: '',
+      upValue: formatBytes(node.net_total_up),
+      downValue: formatBytes(node.net_total_down),
       sub: hasTrafficLimit.value
         ? `已用 ${formatBytes(trafficUsed.value)} / ${formatBytes(node.traffic_limit)}`
         : '无限流量',
@@ -169,7 +171,7 @@ const detailSummaryFields = computed(() => {
         <Button variant="ghost" size="icon-sm" class="bg-background/50 hover:bg-background" aria-label="返回首页" @click="router.push('/')">
           <Icon icon="tabler:arrow-left" :width="16" :height="16" />
         </Button>
-        <div class="min-w-0 text-lg font-bold flex items-center gap-2">
+        <div class="min-w-0 text-xl font-bold flex items-center gap-2">
           <span class="truncate">{{ data.name }}</span>
           <span v-if="hasRegion(data.region)" class="text-[11px] font-mono text-slate-400 dark:text-slate-500">{{ getRegionCode(data.region) }}</span>
           <span class="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
@@ -260,14 +262,21 @@ const detailSummaryFields = computed(() => {
       <div class="px-4">
         <div
           data-detail-summary
-          class="grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-border bg-card p-4 md:grid-cols-3 xl:grid-cols-5"
+          class="grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-slate-200/60 bg-slate-50/50 p-4 md:grid-cols-3 xl:grid-cols-5 dark:border-slate-800/60 dark:bg-slate-900/50"
         >
           <div v-for="field in detailSummaryFields" :key="field.label" class="min-w-0">
             <div class="text-[11px] font-medium tracking-wider text-muted-foreground">
               {{ field.label }}
             </div>
-            <div class="mt-1 truncate text-sm font-semibold text-foreground">
-              {{ field.value }}
+            <div class="mt-1 truncate font-mono text-sm font-semibold text-foreground">
+              <template v-if="field.upValue">
+                <span class="text-indigo-500">↑ {{ field.upValue }}</span>
+                <span class="text-muted-foreground"> · </span>
+                <span class="text-emerald-500">↓ {{ field.downValue }}</span>
+              </template>
+              <template v-else>
+                {{ field.value }}
+              </template>
             </div>
             <div v-if="field.sub" class="mt-0.5 truncate text-xs text-muted-foreground">
               {{ field.sub }}
