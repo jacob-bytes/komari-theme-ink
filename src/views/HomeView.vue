@@ -314,18 +314,6 @@ function setQuickControl(key: HomeQuickControlKey) {
   })
 }
 
-function setNodeViewMode(mode: 'card' | 'list') {
-  if (appStore.nodeViewMode === mode)
-    return
-  appStore.nodeViewMode = mode
-  void recordVisitorEvent({
-    event: 'view_mode_change',
-    path: '/',
-    route: 'home',
-    target: mode,
-  })
-}
-
 async function toggleHomeTool(key: HomeToolKey) {
   if (!homeTools.value.some(tool => tool.key === key))
     return
@@ -478,23 +466,6 @@ const nodeCardGridClass = computed(() => {
                   <Icon :icon="tool.icon" :width="14" :height="14" />
                 </Button>
               </div>
-
-              <Button
-                variant="outline" size="icon" aria-label="卡片视图"
-                class="w-8 h-8 border-none bg-background/50 backdrop-blur-xs shadow-none hover:bg-background/60 rounded-md"
-                :class="[appStore.nodeViewMode === 'card' ? '!text-selection !bg-background' : '']"
-                @click="setNodeViewMode('card')"
-              >
-                <Icon icon="tabler:layout-grid" :width="14" :height="14" />
-              </Button>
-              <Button
-                variant="outline" size="icon" aria-label="列表视图"
-                class="w-8 h-8 border-none bg-background/50 backdrop-blur-xs shadow-none hover:bg-background/60 rounded-md"
-                :class="[appStore.nodeViewMode === 'list' ? '!text-selection !bg-background' : '']"
-                @click="setNodeViewMode('list')"
-              >
-                <Icon icon="tabler:table" :width="14" :height="14" />
-              </Button>
               <div class="relative z-1 h-8" :class="searchText ? 'w-full sm:w-60' : 'w-8 focus-within:!w-48 sm:focus-within:!w-52'">
                 <div class="absolute top-0 right-0 w-full">
                   <Input
