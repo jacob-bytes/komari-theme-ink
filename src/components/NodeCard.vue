@@ -9,8 +9,7 @@ import { useNodePingDisplay } from '@/composables/useNodePingDisplay'
 import { useAppStore } from '@/stores/app'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, getStatus, getUptimeDays } from '@/utils/helper'
 import { getDiskPercentage, getMemoryPercentage, getTrafficUsed, getTrafficUsedPercentage, hasTrafficLimit } from '@/utils/nodeMetricsHelper'
-import { getOSImage, getOSName } from '@/utils/osImageHelper'
-import { getRegionCode, getRegionDisplayName } from '@/utils/regionHelper'
+import { getRegionCode } from '@/utils/regionHelper'
 import { formatCurrencyValue, formatPriceWithCycle, getDaysUntilExpired, getExpireStatus, getRemainingValue, isFreePrice, parseTags } from '@/utils/tagHelper'
 
 const props = withDefaults(defineProps<{
@@ -85,6 +84,8 @@ const {
   latencyPanelTooltip,
 } = useNodePingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled })
 
+const latencyCompact = computed(() => latencyDisplay.value.replace('ms', '').trim())
+const lossCompact = computed(() => lossDisplay.value.replace('%', '').trim())
 const latencyScorePct = computed(() => {
   const value = Number.parseFloat(latencyDisplay.value) || 0
   return `${Math.min(100, Math.max(8, Math.round((value / 500) * 100)))}%`
@@ -181,10 +182,6 @@ const remainingInfoTags = computed<RemainingInfoTag[]>(() => {
 
 const customTags = computed(() => parseTags(props.node.tags).map(t => t.text))
 
-function getRegionAltText(region: string): string {
-  return getRegionDisplayName(region) || getRegionCode(region)
-}
-
 function hasRegion(region: string | null | undefined): boolean {
   return Boolean(region?.trim())
 }
@@ -245,14 +242,10 @@ function hasRegion(region: string | null | undefined): boolean {
         >
           <Icon :icon="isFavorite ? 'tabler:star-filled' : 'tabler:star'" width="14" height="14" />
         </button>
-        <img loading="lazy" :src="getOSImage(props.node.os)" :alt="getOSName(props.node.os)" class="size-4">
-        <img
+        <span
           v-if="hasRegion(props.node.region)"
-          loading="lazy"
-          :src="`/images/flags/${getRegionCode(props.node.region)}.svg`"
-          :alt="getRegionAltText(props.node.region)"
-          class="size-5 shrink-0"
-        >
+          class="text-[11px] font-mono text-slate-400 dark:text-slate-500"
+        >{{ getRegionCode(props.node.region) }}</span>
       </div>
     </template>
 
@@ -453,8 +446,7 @@ function hasRegion(region: string | null | undefined): boolean {
           @click.stop="emit('pingClick')"
         >
           <span class="truncate text-muted-foreground">
-            延迟 <span class="font-medium text-foreground">{{ latencyDisplay }}</span>
-            <span class="opacity-60">·</span> 丢包 <span class="font-medium text-foreground">{{ lossDisplay }}</span>
+            延迟 <span class="font-medium text-foreground">{{ latencyDisplay }}</span> · <span class="font-medium text-foreground">{{ lossDisplay }} 丢包</span>
           </span>
           <span class="h-0.5 w-14 shrink-0 overflow-hidden rounded-full bg-muted-foreground/15" aria-hidden="true">
             <span class="block h-full rounded-full bg-muted-foreground/50" :style="{ width: latencyScorePct }" />
