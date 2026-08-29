@@ -98,6 +98,10 @@ function sparkPoints(data: number[]): string {
     return `${x.toFixed(1)},${y.toFixed(1)}`
   }).join(' ')
 }
+function sparkArea(data: number[]): string {
+  const pts = sparkPoints(data)
+  return pts ? `${pts} 100,24 0,24` : ''
+}
 
 const metricSwitchTransitionProps = computed(() => ({
   ...(appStore.disablePageAnimation
@@ -913,6 +917,13 @@ onUnmounted(() => {
           </DataTooltip>
           <div v-if="card.key === 'netSpeed' && netHistory.length > 1" class="mt-2 h-9 w-full text-muted-foreground" aria-hidden="true">
             <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="h-full w-full">
+              <defs>
+                <linearGradient id="inkSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="currentColor" stop-opacity="0.22" />
+                  <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+                </linearGradient>
+              </defs>
+              <polygon :points="sparkArea(netHistory)" fill="url(#inkSparkGrad)" />
               <polyline :points="sparkPoints(netHistory)" fill="none" stroke="currentColor" stroke-width="1.2" />
             </svg>
           </div>
