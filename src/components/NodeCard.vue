@@ -93,6 +93,20 @@ const latencyScorePct = computed(() => {
   const value = Number.parseFloat(latencyDisplay.value) || 0
   return `${Math.min(100, Math.max(8, Math.round((value / 500) * 100)))}%`
 })
+const latencyBlocks = computed<string[]>(() => {
+  const ms = Number.parseFloat(latencyDisplay.value) || 0
+  const color = ms < 50
+    ? 'bg-emerald-500'
+    : ms < 150
+      ? 'bg-amber-500'
+      : 'bg-rose-500'
+  return Array.from({ length: 14 }).fill(color) as string[]
+})
+const lossBlocks = computed<string[]>(() => {
+  const loss = Number.parseFloat(lossDisplay.value) || 0
+  const hit = loss > 0 ? Math.max(1, Math.round((loss / 10) * 14)) : 0
+  return Array.from({ length: 14 }, (_, i) => (i < hit ? 'bg-rose-500' : 'bg-slate-200 dark:bg-slate-700'))
+})
 const trafficUsedPercentage = computed(() => getTrafficUsedPercentage(props.node))
 const trafficUsed = computed(() => getTrafficUsed(props.node))
 const nodeMessage = computed(() => props.node.message?.trim() ?? '')
@@ -439,22 +453,27 @@ function hasRegion(region: string | null | undefined): boolean {
           </div>
         </div>
 
-        <!-- 延迟 + 丢包（单行简化） -->
-        <button
-          type="button"
-          class="flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-xs"
-          :class="[latencyAlert ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400' : 'bg-slate-100/80 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300', !props.node.online ? 'blur-xs opacity-50' : '']"
-          :title="latencyPanelTooltip"
-          :aria-label="`${props.node.name} 延迟与丢包监测`"
-          @click.stop="emit('pingClick')"
-        >
-          <span class="truncate text-muted-foreground">
-            延迟 <span class="font-mono font-medium">{{ latencyDisplay }}</span> · <span class="font-mono font-medium">{{ lossDisplay }} 丢包</span>
-          </span>
-          <span class="h-0.5 w-14 shrink-0 overflow-hidden rounded-full bg-muted-foreground/15" aria-hidden="true">
-            <span class="block h-full rounded-full bg-muted-foreground/50" :style="{ width: latencyScorePct }" />
-          </span>
-        </button>
+        <!-- 延迟 + 丢包（双卡片 + 像素点阵柱） -->
+        <div class="grid grid-cols-2 gap-2">
+          <div class="rounded-lg bg-slate-100/70 p-2.5 dark:border dark:border-slate-700/50 dark:bg-slate-800/50" :class="!props.node.online ? 'blur-xs opacity-50' : ''">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-normal text-slate-600 dark:text-slate-400">延迟</span>
+              <span class="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{{ latencyDisplay }}</span>
+            </div>
+            <div class="mt-1.5 flex gap-0.5" aria-hidden="true">
+              <div v-for="(b, bi) in latencyBlocks" :key="bi" class="h-3 flex-1 rounded-[1px]" :class="b" />
+            </div>
+          </div>
+          <div class="rounded-lg bg-slate-100/70 p-2.5 dark:border dark:border-slate-700/50 dark:bg-slate-800/50" :class="!props.node.online ? 'blur-xs opacity-50' : ''">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-normal text-slate-600 dark:text-slate-400">丢包</span>
+              <span class="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{{ lossDisplay }}</span>
+            </div>
+            <div class="mt-1.5 flex gap-0.5" aria-hidden="true">
+              <div v-for="(b, bi) in lossBlocks" :key="bi" class="h-3 flex-1 rounded-[1px]" :class="b" />
+            </div>
+          </div>
+        </div>
 
         <!-- 自定义标签 -->
         <div v-if="customTags.length > 0" class="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
