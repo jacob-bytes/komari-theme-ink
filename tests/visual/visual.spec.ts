@@ -56,7 +56,7 @@ test('detail light desktop', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 })
   await installKomariFixture(page)
   await openStablePage(page, '/instance/00000000-0000-4000-8000-000000000001')
-  await expect(page.getByText('硬件信息')).toBeVisible()
+  await expect(page.locator('[data-detail-summary]')).toBeVisible()
   await expect(page).toHaveScreenshot('detail-light-desktop.png', { fullPage: false })
 })
 
@@ -64,7 +64,7 @@ test('detail dark mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await installKomariFixture(page, { dark: true })
   await openStablePage(page, '/instance/00000000-0000-4000-8000-000000000002')
-  await expect(page.getByText('硬件信息')).toBeVisible()
+  await expect(page.locator('[data-detail-summary]')).toBeVisible()
   await expect(page).toHaveScreenshot('detail-dark-mobile.png', { fullPage: false })
 })
 
@@ -146,7 +146,7 @@ test('detail ping requests stay scoped to the current node', async ({ page }) =>
   metricCalls.length = 0
   await page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' }).click()
   await expect(page).toHaveURL(`/instance/${currentUuid}`)
-  await expect(page.getByText('硬件信息')).toBeVisible()
+  await expect(page.locator('[data-detail-summary]')).toBeVisible()
   await page.waitForTimeout(2_000)
 
   const detailPingCalls = metricCalls.filter(isPingMetricCall)
