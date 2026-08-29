@@ -835,12 +835,14 @@ onBeforeUnmount(() => {
             @click="toggleTask(task.id)"
           >
             <div class="flex-1 min-w-0">
+              <!-- 延迟阈值色条（解绑状态灯：仅作数据色彩提示） -->
+              <span
+                class="mb-1 block h-0.5 w-8 rounded-full"
+                :style="{ backgroundColor: ((task.latest ?? 0) > 220 || (task.loss ?? 0) > 0) ? '#ef4444' : (task.latest ?? 0) >= 100 ? '#3b82f6' : '#10b981' }"
+                aria-hidden="true"
+              />
               <TooltipProvider>
                 <div class="flex gap-2 items-center">
-                  <span
-                    class="size-2 shrink-0 rounded-full"
-                    :style="{ backgroundColor: (task.latest ?? 0) > 150 ? '#f43f5e' : (task.latest ?? 0) > 50 ? '#f59e0b' : '#10b981' }"
-                  />
                   <span class="text-xs font-medium truncate">{{ task.name }}</span>
                   <div class="flex-1" />
                   <Tooltip
