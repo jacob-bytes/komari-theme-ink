@@ -401,15 +401,15 @@ img[src*='/images/flags/'] {
 
 /* ===== ink · 延迟/丢包像素块（莫兰迪低饱和 · 暗色自适应） ===== */
 :root {
-  --pixel-green: rgba(52, 211, 153, 0.8);
-  --pixel-amber: rgba(251, 191, 36, 0.8);
-  --pixel-rose: rgba(239, 68, 68, 0.72);
+  --pixel-green: #34d399;
+  --pixel-amber: #fbbf24;
+  --pixel-rose: #f87171;
   --pixel-bg: #f3f4f6;
 }
 .dark {
-  --pixel-green: rgba(52, 211, 153, 0.36);
-  --pixel-amber: rgba(251, 191, 36, 0.4);
-  --pixel-rose: rgba(248, 113, 113, 0.4);
+  --pixel-green: #34d399;
+  --pixel-amber: #fbbf24;
+  --pixel-rose: #f87171;
   --pixel-bg: #27272a;
 }
 .px-green {

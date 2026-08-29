@@ -251,7 +251,7 @@ function hasRegion(region: string | null | undefined): boolean {
         </button>
         <span
           v-if="hasRegion(props.node.region)"
-          class="text-[11px] font-mono text-slate-400 dark:text-slate-500"
+          class="ml-auto shrink-0 rounded-full bg-[#f3f4f6] px-2 py-0.5 text-[10px] font-mono text-[#6b7280] dark:bg-slate-800/70 dark:text-slate-400"
         >{{ getRegionCode(props.node.region) }}</span>
       </div>
     </template>
@@ -332,7 +332,7 @@ function hasRegion(region: string | null | undefined): boolean {
               <span class="font-mono tabular-nums font-medium">{{ (props.node.cpu ?? 0).toFixed(1) }}%</span>
             </div>
             <ProgressThin :percentage="props.node.cpu ?? 0" :status="cpuStatus" :height="2" />
-            <div class="text-[11px] text-muted-foreground truncate">
+            <div class="text-[10px] text-muted-foreground opacity-60 truncate">
               {{ (props.node.load ?? 0).toFixed(2) }}, {{ (props.node.load5 ?? 0).toFixed(2) }}, {{ (props.node.load15 ?? 0).toFixed(2) }}
             </div>
           </div>
@@ -469,7 +469,7 @@ function hasRegion(region: string | null | undefined): boolean {
         <div v-if="customTags.length > 0" class="flex flex-wrap gap-1">
           <span
             v-for="(tag, i) in customTags" :key="i"
-            class="rounded-full bg-slate-500/10 px-2 py-0.5 text-[11px] leading-tight text-slate-600 ring-1 ring-inset ring-slate-400/20 dark:bg-slate-400/10 dark:text-slate-300 dark:ring-slate-400/20"
+            class="rounded-full bg-[#f3f4f6] px-2 py-0.5 text-[11px] leading-tight text-[#4b5563] ring-1 ring-inset ring-[#e5e7eb] dark:bg-slate-800/70 dark:text-slate-300 dark:ring-slate-700"
           >{{ tag }}</span>
         </div>
 
