@@ -79,6 +79,10 @@ const customTags = computed(() => parseTags(data.value?.tags).map(t => t.text))
 // 未登录且开启「未登录隐藏价格」时，屏蔽金额类指标（剩余时间为天数，仍显示）
 const showPrice = computed(() => appStore.privateFeaturesAllowed || !appStore.hidePriceWhenLoggedOut)
 
+const remainingDays = computed(() => {
+  const num = Number.parseInt(remainingTimeText.value, 10)
+  return Number.isFinite(num) ? num : null
+})
 const hasRegion = (region: string) => !!region
 const formatBytes = (bytes: number) => formatBytesWithConfig(bytes, appStore.byteDecimals)
 const formatUptime = (seconds: number) => formatUptimeWithFormat(seconds, 'minute')
@@ -262,24 +266,32 @@ const detailSummaryFields = computed(() => {
       <div class="px-4">
         <div
           data-detail-summary
-          class="grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-slate-200/60 bg-slate-50/50 p-4 md:grid-cols-3 xl:grid-cols-5 dark:border-slate-800/60 dark:bg-slate-900/50"
+          class="detail-summary grid items-center grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-slate-200/60 bg-slate-50/50 px-4 py-5 md:grid-cols-3 xl:grid-cols-5 dark:border-slate-800/60 dark:bg-slate-900/50"
         >
-          <div v-for="field in detailSummaryFields" :key="field.label" class="min-w-0">
-            <div class="text-[11px] font-medium tracking-wider text-muted-foreground">
+          <div v-for="field in detailSummaryFields" :key="field.label" class="detail-summary-field min-w-0">
+            <div class="field-label text-[11px] font-medium tracking-wider text-muted-foreground">
               {{ field.label }}
             </div>
             <div class="mt-1 max-w-full truncate font-mono text-sm font-semibold text-foreground">
               <template v-if="field.upValue">
-                <span class="text-indigo-500">↑ {{ field.upValue }}</span>
+                <span class="text-[#8b5cf6]">↑ {{ field.upValue }}</span>
                 <span class="text-muted-foreground"> · </span>
-                <span class="text-emerald-500">↓ {{ field.downValue }}</span>
+                <span class="text-[#10b981]">↓ {{ field.downValue }}</span>
               </template>
               <template v-else>
                 {{ field.value }}
               </template>
             </div>
             <div v-if="field.sub" class="mt-0.5 truncate text-xs text-muted-foreground">
-              {{ field.sub }}
+              <template v-if="field.label === '续费' && remainingDays !== null">
+                <span
+                  class="inline-flex rounded-full px-2 py-0.5 text-[10px] leading-tight"
+                  :class="remainingDays < 7 ? 'bg-[#fee2e2] text-[#dc2626]' : 'bg-[#f3f4f6] text-[#4b5563] dark:bg-slate-800 dark:text-slate-300'"
+                >{{ field.sub }}</span>
+              </template>
+              <template v-else>
+                {{ field.sub }}
+              </template>
             </div>
           </div>
         </div>
@@ -315,5 +327,36 @@ const detailSummaryFields = computed(() => {
   .status-pulse {
     animation: none;
   }
+}
+
+/* ===== 详情页基础信息栏 · Custom CSS（强覆盖） ===== */
+.detail-summary-field:not(:last-child) {
+  border-right: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+.dark .detail-summary-field:not(:last-child) {
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.detail-summary-field .field-label {
+  font-size: 11px !important;
+  color: #9ca3af !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+}
+.detail-summary-field .field-value {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #111827 !important;
+}
+.dark .detail-summary-field .field-value {
+  color: #fafafa !important;
+}
+.detail-summary-field:nth-child(2) .field-value {
+  max-width: 180px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  text-decoration: underline dotted rgba(0, 0, 0, 0.25) !important;
+  text-underline-offset: 3px !important;
+  cursor: help !important;
 }
 </style>
