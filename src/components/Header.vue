@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, inject, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -95,6 +95,18 @@ const sitename = computed(() => {
   }
   return cached || appStore.publicSettings?.sitename || 'Komari Monitor'
 })
+
+/** 数据新鲜度指示（本地心跳——每 2s 刷新相对时间） */
+const freshAt = ref(Date.now())
+const freshText = computed(() => {
+  const seconds = Math.max(0, Math.round((Date.now() - freshAt.value) / 1000))
+  return seconds <= 1 ? '实时' : `${seconds}s 前更新`
+})
+onMounted(() => {
+  window.setInterval(() => {
+    freshAt.value = Date.now()
+  }, 2000)
+})
 </script>
 
 <template>
@@ -118,6 +130,13 @@ const sitename = computed(() => {
       </div>
       <TooltipProvider :delay-duration="200">
         <div class="flex items-center gap-2">
+          <span
+            class="mr-1 hidden sm:flex items-center gap-1.5 text-[10px] text-muted-foreground"
+            :title="freshText" aria-label="数据更新时间"
+          >
+            <span class="size-1.5 rounded-full bg-green-600 animate-pulse" />
+            {{ freshText }}
+          </span>
           <Tooltip v-for="button in actionButtons" :key="button.action">
             <TooltipTrigger as-child>
               <Button
