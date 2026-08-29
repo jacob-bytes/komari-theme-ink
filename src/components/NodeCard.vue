@@ -81,18 +81,8 @@ const diskStatus = computed(() => getStatus(diskPercentage.value))
 const {
   latencyDisplay,
   lossDisplay,
-  latencyPanelTooltip,
 } = useNodePingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled })
 
-const latencyAlert = computed(() => {
-  const loss = Number.parseFloat(lossDisplay.value) || 0
-  const ms = Number.parseFloat(latencyDisplay.value) || 0
-  return loss > 0 || ms > 250
-})
-const latencyScorePct = computed(() => {
-  const value = Number.parseFloat(latencyDisplay.value) || 0
-  return `${Math.min(100, Math.max(8, Math.round((value / 500) * 100)))}%`
-})
 const latencyBlocks = computed<string[]>(() => {
   const ms = Number.parseFloat(latencyDisplay.value) || 0
   const color = ms < 50
