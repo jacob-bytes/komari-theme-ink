@@ -5,7 +5,7 @@ import type { CurrencyCode, ExchangeRateSource } from '@/utils/financeHelper'
 import type { TopNodeMetric } from '@/utils/nodeMetricsHelper'
 import { Icon } from '@iconify/vue'
 import { useNow } from '@vueuse/core'
-import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue'
 import NodeEarthCobeGlobe from '@/components/NodeEarthCobeGlobe.vue'
 import NodeEarthLineGridGlobe from '@/components/NodeEarthLineGridGlobe.vue'
 import { CardX } from '@/components/ui/card-x'
@@ -80,6 +80,25 @@ const currentTime = useNow({ interval: 1000 })
 const summaryNodes = computed(() => props.nodes ?? nodesStore.visibleNodes)
 const summaryTransitionKey = computed(() => props.transitionKey ?? nodesStore.visibleNodes.length)
 const globeOfflineCount = computed(() => summaryNodes.value.filter(n => !n.online).length)
+/** netSpeed 卡迷你趋势采样（每 2s 采一次全域上下行总和，保留 30 点） */
+const netHistory = ref<number[]>([])
+let netTimer: number | undefined
+function sampleNetSpeed() {
+  const total = summaryNodes.value.reduce((sum, n) => sum + (n.net_out ?? 0) + (n.net_in ?? 0), 0) / 1024
+  netHistory.value = [...netHistory.value, Math.round(total * 10) / 10].slice(-30)
+}
+function sparkPoints(data: number[]): string {
+  if (data.length < 2)
+    return ''
+  const min = Math.min(...data)
+  const max = Math.max(...data, min + 1)
+  return data.map((v, i) => {
+    const x = (i / (data.length - 1)) * 100
+    const y = 22 - ((v - min) / (max - min)) * 20
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+}
+
 const metricSwitchTransitionProps = computed(() => ({
   ...(appStore.disablePageAnimation
     ? { css: false }
@@ -814,6 +833,11 @@ function resetExchangeRates() {
   exchangeRates.value = { ...dailyExchangeRates.value }
 }
 
+onMounted(() => {
+  sampleNetSpeed()
+  netTimer = window.setInterval(sampleNetSpeed, 2000)
+})
+
 onMounted(async () => {
   financeCurrency.value = financeHelper.getStoredFinanceCurrency()
   excludeFreeNodes.value = financeHelper.shouldExcludeFreeNodes()
@@ -823,6 +847,10 @@ onMounted(async () => {
   exchangeRates.value = financeHelper.applyExchangeRateOverrides(rates)
   exchangeRateSource.value = source
   exchangeRateUpdatedAt.value = updatedAt
+})
+onUnmounted(() => {
+  if (netTimer !== undefined)
+    window.clearInterval(netTimer)
 })
 </script>
 
@@ -883,6 +911,11 @@ onMounted(async () => {
               </div>
             </Transition>
           </DataTooltip>
+          <div v-if="card.key === 'netSpeed' && netHistory.length > 1" class="mt-2 h-9 w-full text-muted-foreground" aria-hidden="true">
+            <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="h-full w-full">
+              <polyline :points="sparkPoints(netHistory)" fill="none" stroke="currentColor" stroke-width="1.2" />
+            </svg>
+          </div>
         </div>
       </CardX>
     </div>
