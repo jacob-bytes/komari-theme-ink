@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" /><script>;(()=>{let t='';try{t=sessionStorage.getItem('komariOfficialAppRoute')||'';if(t)sessionStorage.removeItem('komariOfficialAppRoute')}catch(e){console.warn('[blueprint] Session storage is unavailable.',e)}if(!t){try{t=new URL(location.href).searchParams.get('__komari_route')||''}catch{}}if(t&&/^\/(admin|terminal|manage)(\/|\?|#|$)/.test(t))history.replaceState(null,'',t)})();</script><link rel="stylesheet" href="/admin-app/glass-admin.css?v=ff601ce9eb94">
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+    <meta name="description" content="A simple server monitor tool." />
+    <meta
+      name="keywords"
+      content="server monitor, Komari Monitor, server uptime monitoring, real-time server status, server performance dashboard, monitoring tool"
+    />
+    <meta name="author" content="Akizon77" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (() => {
+        const parseAppearance = (value) => {
+          if (!value) return "system";
+          try {
+            const parsed = JSON.parse(value);
+            return typeof parsed === "string" ? parsed : value;
+          } catch {
+            return value;
+          }
+        };
+
+        try {
+          const appearance = parseAppearance(localStorage.getItem("appearance"));
+          const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+          const isDark = appearance === "dark" || (appearance !== "light" && prefersDark);
+          document.documentElement.classList.toggle("dark", isDark);
+        } catch {
+          document.documentElement.classList.remove("dark");
+        }
+      })();
+    </script>
+    <style>
+      :where(html) {
+        background: #ffffff;
+        color-scheme: light;
+      }
+
+      :where(html.dark) {
+        background: #111111;
+        color-scheme: dark;
+      }
+
+      html,
+      body,
+      #root {
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+      }
+    </style>
+
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="/admin-app/manifest.json" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Komari Monitor" />
+    <link rel="apple-touch-icon" href="/admin-app/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/admin-app/favicon.ico" />
+
+    <meta property="og:title" content="Komari Monitor" />
+    <meta property="og:description" content="A simple server monitor tool." />
+    <!-- <meta property="og:image" content="/images/komari-preview.png" /> -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Komari Monitor" />
+    <meta name="twitter:description" content="A simple server monitor tool." />
+    <!-- <meta name="twitter:image" content="/images/komari-preview.png" /> -->
+    <title>Komari Monitor</title>
+    <script type="module" crossorigin src="/admin-app/assets/entry-index-DMgHe_GM.js"></script>
+    <link rel="stylesheet" crossorigin href="/admin-app/assets/index-DMptLBan.css">
+  </head>
+  <body>
+    <div id="root"></div>
+
+  </body>
+</html>

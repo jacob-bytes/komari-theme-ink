@@ -1,0 +1,432 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+* {
+  scrollbar-color: var(--ring) transparent;
+  scrollbar-width: thin;
+}
+
+/* ===== blueprint 主题 · 白图（light）设计令牌 ===== */
+:root {
+  --background: #f6f8fb;
+  --foreground: #1d4e89;
+  --card: #f6f8fb;
+  --card-foreground: #1d4e89;
+  --popover: #f6f8fb;
+  --popover-foreground: #1d4e89;
+  --primary: #1d4e89;
+  --primary-foreground: #f6f8fb;
+  --secondary: #eef2f7;
+  --secondary-foreground: #1d4e89;
+  --muted: #eef2f7;
+  --muted-foreground: #41608c;
+  --accent: #eef2f7;
+  --accent-foreground: #1d4e89;
+  --destructive: #c62f2f;
+  --destructive-foreground: #f6f8fb;
+  --warning: #a86e00;
+  --warning-foreground: #f6f8fb;
+  --success: #157a55;
+  --success-foreground: #f6f8fb;
+  --info: #1d4e89;
+  --info-foreground: #f6f8fb;
+  --selection: #1d4e89;
+  --signal-1: #157a55;
+  --signal-2: #2f9e6b;
+  --signal-3: #7ba05b;
+  --signal-4: #a86e00;
+  --signal-5: #c62f2f;
+  --border: rgb(29 78 137 / 0.28);
+  --input: rgb(29 78 137 / 0.28);
+  --ring: rgb(29 78 137 / 0.55);
+  --chart-1: #1d4e89;
+  --chart-2: #2f9e6b;
+  --chart-3: #a86e00;
+  --chart-4: #c62f2f;
+  --chart-5: #7a6bb5;
+  --radius: 0.125rem;
+  --font-sans: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  /* 地球外圈大气层发光：亮色极淡，暗色荧光青蓝 */
+  --globe-glow: rgb(100 160 255 / 0.18);
+  /* 线状图纸地球（line-grid）配色 */
+  --globe-rim: rgb(29 78 137 / 0.25);
+  --globe-grid: rgb(29 78 137 / 0.22);
+  --globe-coast: rgb(29 78 137 / 0.85);
+  --globe-point: #1d4e89;
+  --globe-text: #1d4e89;
+  /* 状态语义色（默认与原 Tailwind 值一致，零视觉变化） */
+  --status-ok: #16a34a;
+  --status-warn: #f59e0b;
+  --status-load: #f97316;
+  --status-alert: #ef4444;
+}
+
+/* ===== blueprint 主题 · 晒图蓝（dark）设计令牌 ===== */
+.dark {
+  --background: #143d72;
+  --foreground: #e9f2ff;
+  --card: #143d72;
+  --card-foreground: #e9f2ff;
+  --popover: #143d72;
+  --popover-foreground: #e9f2ff;
+  --primary: #e9f2ff;
+  --primary-foreground: #143d72;
+  --secondary: #0f3160;
+  --secondary-foreground: #e9f2ff;
+  --muted: #0f3160;
+  --muted-foreground: rgb(233 242 255 / 0.66);
+  --accent: #0f3160;
+  --accent-foreground: #e9f2ff;
+  --destructive: #ff8f86;
+  --destructive-foreground: #143d72;
+  --warning: #ffb000;
+  --warning-foreground: #143d72;
+  --success: #5fd6a5;
+  --success-foreground: #143d72;
+  --info: #e9f2ff;
+  --info-foreground: #143d72;
+  --selection: #e9f2ff;
+  --signal-1: #5fd6a5;
+  --signal-2: #8fe0c0;
+  --signal-3: #d6e08f;
+  --signal-4: #ffb000;
+  --signal-5: #ff8f86;
+  --border: rgb(233 242 255 / 0.22);
+  --input: rgb(233 242 255 / 0.22);
+  --ring: rgb(233 242 255 / 0.48);
+  --chart-1: #8fb7f5;
+  --chart-2: #5fd6a5;
+  --chart-3: #ffb000;
+  --chart-4: #ff8f86;
+  --chart-5: #b8a8f0;
+  --globe-glow: rgb(0 240 255 / 0.45);
+  /* 线状图纸地球（line-grid）配色 · 晒图蓝 */
+  --globe-rim: rgb(233 242 255 / 0.28);
+  --globe-grid: rgb(233 242 255 / 0.18);
+  --globe-coast: rgb(233 242 255 / 0.75);
+  --globe-point: #e9f2ff;
+  --globe-text: #e9f2ff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-selection: var(--selection);
+  --color-signal-1: var(--signal-1);
+  --color-signal-2: var(--signal-2);
+  --color-signal-3: var(--signal-3);
+  --color-signal-4: var(--signal-4);
+  --color-signal-5: var(--signal-5);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --font-sans: var(--font-sans);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    background-color: var(--color-background);
+    font-family: var(--font-sans);
+  }
+
+  body,
+  #app {
+    min-height: 100vh;
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+
+  body {
+    /* Background.vue owns the visible canvas; html keeps the no-JS fallback color. */
+    background-color: transparent;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: 0.04em;
+  }
+}
+
+/* iOS 15.4-16.3 can run the app but lacks Tailwind v4's modern color stack. */
+html.legacy-webkit {
+  --background: #f6f8fb;
+  --foreground: #1d4e89;
+  --card: #f6f8fb;
+  --card-foreground: #1d4e89;
+  --popover: #f6f8fb;
+  --popover-foreground: #1d4e89;
+  --primary: #1d4e89;
+  --primary-foreground: #f6f8fb;
+  --secondary: #eef2f7;
+  --secondary-foreground: #1d4e89;
+  --muted: #eef2f7;
+  --muted-foreground: #41608c;
+  --accent: #eef2f7;
+  --accent-foreground: #1d4e89;
+  --destructive: #c62f2f;
+  --destructive-foreground: #f6f8fb;
+  --border: #c2cfdd;
+  --input: #c2cfdd;
+  --ring: #7d97b8;
+}
+
+html.legacy-webkit.dark {
+  --background: #143d72;
+  --foreground: #e9f2ff;
+  --card: #143d72;
+  --card-foreground: #e9f2ff;
+  --popover: #143d72;
+  --popover-foreground: #e9f2ff;
+  --primary: #e9f2ff;
+  --primary-foreground: #143d72;
+  --secondary: #0f3160;
+  --secondary-foreground: #e9f2ff;
+  --muted: #0f3160;
+  --muted-foreground: #a7bcd8;
+  --accent: #0f3160;
+  --accent-foreground: #e9f2ff;
+  --destructive: #ff8f86;
+  --destructive-foreground: #143d72;
+  --border: #3a5f92;
+  --input: #3a5f92;
+  --ring: #7ba0d4;
+}
+
+html.color-vision-friendly {
+  --selection: #0072b2;
+  --success: #0072b2;
+  --success-foreground: #ffffff;
+  --warning: #8a5a00;
+  --warning-foreground: #ffffff;
+  --destructive: #b54708;
+  --destructive-foreground: #ffffff;
+  --info: #8e477e;
+  --info-foreground: #ffffff;
+  --chart-1: #0072b2;
+  --chart-2: #e69f00;
+  --chart-3: #009e73;
+  --chart-4: #cc79a7;
+  --chart-5: #d55e00;
+  --signal-1: #0072b2;
+  --signal-2: #56b4e9;
+  --signal-3: #009e73;
+  --signal-4: #e69f00;
+  --signal-5: #d55e00;
+  /* 色觉友好：状态色跟随 signal 语义（OK=蓝绿 / warn=橙 / load=朱红 / alert=紫红） */
+  --status-ok: #009e73;
+  --status-warn: #e69f00;
+  --status-load: #d55e00;
+  --status-alert: #cc79a7;
+}
+
+html.color-vision-friendly.dark {
+  --selection: #56b4e9;
+  --success: #56b4e9;
+  --success-foreground: #07111f;
+  --warning: #e69f00;
+  --warning-foreground: #14151a;
+  --destructive: #f28e5b;
+  --destructive-foreground: #14151a;
+  --info: #d090c5;
+  --info-foreground: #14151a;
+  --chart-1: #56b4e9;
+  --chart-2: #e69f00;
+  --chart-3: #44c7a0;
+  --chart-4: #d090c5;
+  --chart-5: #f28e5b;
+  --signal-1: #56b4e9;
+  --signal-2: #9bd7f0;
+  --signal-3: #44c7a0;
+  --signal-4: #e69f00;
+  --signal-5: #f28e5b;
+}
+
+html.color-vision-friendly .ping-signal-pattern-2 {
+  background-image: repeating-linear-gradient(135deg, transparent 0 2px, rgb(255 255 255 / 0.45) 2px 3px);
+}
+
+html.color-vision-friendly .ping-signal-pattern-3 {
+  background-image: repeating-linear-gradient(90deg, transparent 0 2px, rgb(0 0 0 / 0.28) 2px 3px);
+}
+
+html.color-vision-friendly .ping-signal-pattern-4 {
+  background-image: repeating-linear-gradient(45deg, transparent 0 1px, rgb(255 255 255 / 0.58) 1px 2px);
+}
+
+html.legacy-webkit,
+html.legacy-webkit body {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html.legacy-webkit .node-card,
+html.legacy-webkit .bg-card,
+html.legacy-webkit [data-slot='card'] {
+  background-color: var(--card) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+@layer utilities {
+  .flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .flex-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .flex-col-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* ===== blueprint 纸样卡片（替代毛玻璃 backdrop-filter） ===== */
+
+.node-card,
+.bg-card,
+[data-slot='card'] {
+  background-color: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+.node-card:hover,
+.bg-card:hover,
+[data-slot='card']:hover {
+  background-color: var(--secondary) !important;
+}
+
+.dark .node-card,
+.dark .bg-card,
+.dark [data-slot='card'] {
+  background-color: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+.dark .node-card:hover,
+.dark .bg-card:hover,
+.dark [data-slot='card']:hover {
+  background-color: var(--secondary) !important;
+}
+
+/* ===== Header ===== */
+
+header {
+  background-color: var(--card) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* ===== 顶部统计栏 / 控制条 ===== */
+
+.bg-background {
+  background-color: var(--secondary) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ===== 小组件背景 ===== */
+
+.bg-slate-500\/5 {
+  background-color: var(--secondary) !important;
+}
+
+.dark .bg-slate-500\/5 {
+  background-color: var(--secondary) !important;
+}
+
+/* ===== blueprint 主题 · 彻底移除毛玻璃 backdrop-filter ===== */
+[class*='backdrop-blur'],
+[class*='backdrop-filter'],
+[class*='backdrop-saturate'] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ===== Header 例外：恢复半透明毛玻璃（桌面 + 移动；-webkit- 兼容 iOS） ===== */
+.glass-header {
+  background-color: color-mix(in srgb, var(--card) 20%, transparent) !important;
+  backdrop-filter: blur(16px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(150%) !important;
+}
+
+/* 线状地球标签 hover 联动高亮（纯视觉） */
+.globe-callout {
+  cursor: pointer;
+}
+.globe-callout text {
+  transition: fill 0.15s ease;
+}
+.globe-callout:hover text,
+.globe-callout:focus-visible text {
+  fill: var(--globe-point);
+  font-weight: 700;
+}
+.globe-callout:hover polyline,
+.globe-callout:focus-visible polyline {
+  stroke: var(--globe-point);
+  stroke-opacity: 0.9;
+}
+.globe-callout:hover circle,
+.globe-callout:focus-visible circle {
+  stroke-width: 1.4;
+}
+
+html.legacy-webkit .glass-header {
+  background-color: color-mix(in srgb, var(--card) 88%, white) !important;
+}
+
+/* 键盘焦点可见环（无障碍） */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
