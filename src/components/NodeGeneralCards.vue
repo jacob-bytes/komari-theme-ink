@@ -78,6 +78,20 @@ const summaryNodes = computed(() => props.nodes ?? nodesStore.visibleNodes)
 const summaryTransitionKey = computed(() => props.transitionKey ?? nodesStore.visibleNodes.length)
 const offlineCount = computed(() => summaryNodes.value.filter(n => !n.online).length)
 /** netSpeed 卡迷你趋势采样（每 2s 采一次全域上下行总和，保留 30 点） */
+const overviewAuxLines = computed<Record<string, string>>(() => {
+  const nodes = summaryNodes.value
+  const offline = nodes.filter(n => !n.online).length
+  const highLoad = nodes.filter(n => (n.cpu ?? 0) >= 90).length
+  const up = nodes.reduce((sum, n) => sum + (n.net_out ?? 0), 0)
+  const down = nodes.reduce((sum, n) => sum + (n.net_in ?? 0), 0)
+  const upFmt = formatBytesSplit(up)
+  const downFmt = formatBytesSplit(down)
+  return {
+    onlineNodes: offline > 0 ? `● ${offline} 台离线` : '● 全部在线',
+    highLoadNodes: highLoad > 0 ? `● ${highLoad} 台高负载` : '● 无高负载节点',
+    totalTraffic: `今日 ↑${upFmt.value}${upFmt.unit} · ↓${downFmt.value}${downFmt.unit}`,
+  }
+})
 const netHistory = ref<number[]>([])
 let netTimer: number | undefined
 
@@ -859,6 +873,9 @@ onUnmounted(() => {
               </div>
             </Transition>
           </DataTooltip>
+          <div v-if="overviewAuxLines[card.key]" class="mt-auto text-[11px] text-muted-foreground">
+            {{ overviewAuxLines[card.key] }}
+          </div>
           <div v-if="card.key === 'netSpeed' && netHistory.length > 1" class="mt-auto h-9 w-full text-muted-foreground" aria-hidden="true">
             <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="h-full w-full">
               <defs>
