@@ -850,7 +850,7 @@ onUnmounted(() => {
                 class="mt-1 flex items-baseline gap-1 min-w-0"
                 :style="getMetricSwitchStyle(index)"
               >
-                <span class="text-[11px] sm:text-md md:text-2xl font-bold leading-none tracking-tight truncate">
+                <span class="text-[11px] sm:text-md md:text-2xl font-mono font-bold leading-none tracking-tight truncate">
                   {{ card.value }}
                 </span>
                 <span v-if="card.unit" :class="unitClass">

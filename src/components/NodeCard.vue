@@ -190,7 +190,7 @@ function hasRegion(region: string | null | undefined): boolean {
     hoverable
     :size="nodeCardXSize"
     :content-class="nodeCardContentPaddingClass"
-    class="node-card w-full cursor-pointer border-none shadow-[0_0_0_3px] shadow-transparent transition-all duration-200 rounded-lg"
+    class="node-card w-full cursor-pointer border-none shadow-[0_0_0_3px] shadow-transparent transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 rounded-lg"
     :class="[!props.node.online && '!shadow-destructive/30']"
     role="button"
     tabindex="0"
@@ -270,7 +270,7 @@ function hasRegion(region: string | null | undefined): boolean {
                 <span class="inline-flex items-center text-sky-500" role="img" title="CPU" aria-label="CPU">
                   <Icon :icon="NODE_METRIC_ICONS.cpu" data-node-metric-icon="cpu" width="12" height="12" aria-hidden="true" />
                 </span>
-                <span class="tabular-nums font-medium">{{ (props.node.cpu ?? 0).toFixed(1) }}%</span>
+                <span class="font-mono tabular-nums font-medium">{{ (props.node.cpu ?? 0).toFixed(1) }}%</span>
               </div>
               <ProgressThin :percentage="props.node.cpu ?? 0" :status="cpuStatus" :height="2" />
             </div>
@@ -280,7 +280,7 @@ function hasRegion(region: string | null | undefined): boolean {
                 <span class="inline-flex items-center text-emerald-500" role="img" title="内存" aria-label="内存">
                   <Icon :icon="NODE_METRIC_ICONS.memory" data-node-metric-icon="memory" width="12" height="12" aria-hidden="true" />
                 </span>
-                <span class="tabular-nums font-medium">{{ memPercentage.toFixed(1) }}%</span>
+                <span class="font-mono tabular-nums font-medium">{{ memPercentage.toFixed(1) }}%</span>
               </div>
               <ProgressThin :percentage="memPercentage" :status="memStatus" :height="2" />
             </div>
@@ -296,7 +296,7 @@ function hasRegion(region: string | null | undefined): boolean {
                 <Icon :icon="NODE_METRIC_ICONS.traffic" data-node-metric-icon="traffic" width="12" height="12" class="shrink-0 text-violet-500" aria-hidden="true" />
                 <span class="truncate">流量</span>
               </span>
-              <span class="tabular-nums font-medium" :class="trafficPercentageClass">
+              <span class="font-mono tabular-nums font-medium" :class="trafficPercentageClass">
                 {{ hasTrafficLimit(props.node) ? `${trafficUsedPercentage.toFixed(1)}%` : '∞' }}
               </span>
             </div>
@@ -320,7 +320,7 @@ function hasRegion(region: string | null | undefined): boolean {
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
                 <span>CPU<span v-if="props.node.cpu_cores" class="text-muted-foreground"> {{ props.node.cpu_cores }} 核</span></span>
               </span>
-              <span class="tabular-nums font-medium">{{ (props.node.cpu ?? 0).toFixed(1) }}%</span>
+              <span class="font-mono tabular-nums font-medium">{{ (props.node.cpu ?? 0).toFixed(1) }}%</span>
             </div>
             <ProgressThin :percentage="props.node.cpu ?? 0" :status="cpuStatus" :height="2" />
             <div class="text-[11px] text-muted-foreground truncate">
@@ -334,7 +334,7 @@ function hasRegion(region: string | null | undefined): boolean {
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
                 <span class="truncate">内存</span>
               </span>
-              <span class="tabular-nums font-medium">{{ memPercentage.toFixed(1) }}%</span>
+              <span class="font-mono tabular-nums font-medium">{{ memPercentage.toFixed(1) }}%</span>
             </div>
             <ProgressThin :percentage="memPercentage" :status="memStatus" :height="2" />
             <div class="text-[11px] text-muted-foreground truncate">
@@ -348,7 +348,7 @@ function hasRegion(region: string | null | undefined): boolean {
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
                 <span class="truncate">硬盘</span>
               </span>
-              <span class="tabular-nums font-medium">{{ diskPercentage.toFixed(1) }}%</span>
+              <span class="font-mono tabular-nums font-medium">{{ diskPercentage.toFixed(1) }}%</span>
             </div>
             <ProgressThin :percentage="diskPercentage" :status="diskStatus" :height="2" />
             <div class="text-[11px] text-muted-foreground truncate">
@@ -363,7 +363,7 @@ function hasRegion(region: string | null | undefined): boolean {
                 <Icon :icon="NODE_METRIC_ICONS.traffic" data-node-metric-icon="traffic" width="13" height="13" class="shrink-0 text-violet-500" aria-hidden="true" />
                 <span class="truncate">流量</span>
               </span>
-              <span class="tabular-nums font-medium" :class="trafficPercentageClass">
+              <span class="font-mono tabular-nums font-medium" :class="trafficPercentageClass">
                 {{ hasTrafficLimit(props.node) ? `${trafficUsedPercentage.toFixed(1)}%` : '∞' }}
               </span>
             </div>
@@ -384,11 +384,11 @@ function hasRegion(region: string | null | undefined): boolean {
         <div class="grid gap-1.5" :class="nodeCardMetricGridClass">
           <!-- 实时网速 -->
           <div class="flex flex-col gap-0.5 rounded-lg bg-transparent min-w-0 overflow-hidden" :class="nodeCardMetricBoxClass">
-            <div class="text-[11px] text-success flex items-center gap-1">
+            <div class="text-[11px] text-indigo-500 flex items-center gap-1">
               <Icon icon="tabler:chevron-up" width="11" height="11" class="text-muted-foreground/70" />
               <span class="truncate min-w-0 overflow-hidden">{{ formatBytesPerSecond(props.node.net_out ?? 0) }}</span>
             </div>
-            <div class="text-[11px] text-blue-600 flex items-center gap-1">
+            <div class="text-[11px] text-emerald-500 flex items-center gap-1">
               <Icon icon="tabler:chevron-down" width="11" height="11" class="text-muted-foreground/70" />
               <span class="truncate min-w-0 overflow-hidden">{{ formatBytesPerSecond(props.node.net_in ?? 0) }}</span>
             </div>
