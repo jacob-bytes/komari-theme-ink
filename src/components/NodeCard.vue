@@ -95,7 +95,7 @@ const latencyBlocks = computed<string[]>(() => {
 const lossBlocks = computed<string[]>(() => {
   const loss = Number.parseFloat(lossDisplay.value) || 0
   const hit = loss > 0 ? Math.max(1, Math.round((loss / 10) * 14)) : 0
-  return Array.from({ length: 14 }, (_, i) => (i < hit ? 'bg-rose-600/85' : 'bg-slate-200 dark:bg-slate-700'))
+  return Array.from({ length: 14 }, (_, i) => (i < hit ? 'px-rose' : 'px-bg'))
 })
 const trafficUsedPercentage = computed(() => getTrafficUsedPercentage(props.node))
 const trafficUsed = computed(() => getTrafficUsed(props.node))
@@ -451,7 +451,7 @@ function hasRegion(region: string | null | undefined): boolean {
               <span class="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{{ latencyDisplay }}</span>
             </div>
             <div class="mt-1.5 flex gap-0.5" aria-hidden="true">
-              <div v-for="(b, bi) in latencyBlocks" :key="bi" class="h-3 flex-1 rounded-[1px]" :class="b" />
+              <div v-for="(b, bi) in latencyBlocks" :key="bi" class="h-3 flex-1 rounded-[2px]" :class="b" />
             </div>
           </div>
           <div class="rounded-lg bg-slate-100/70 p-2.5 dark:border dark:border-slate-700/50 dark:bg-slate-800/50" :class="!props.node.online ? 'blur-xs opacity-50' : ''">
@@ -460,7 +460,7 @@ function hasRegion(region: string | null | undefined): boolean {
               <span class="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{{ lossDisplay }}</span>
             </div>
             <div class="mt-1.5 flex gap-0.5" aria-hidden="true">
-              <div v-for="(b, bi) in lossBlocks" :key="bi" class="h-3 flex-1 rounded-[1px]" :class="b" />
+              <div v-for="(b, bi) in lossBlocks" :key="bi" class="h-3 flex-1 rounded-[2px]" :class="b" />
             </div>
           </div>
         </div>
