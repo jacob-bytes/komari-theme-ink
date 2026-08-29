@@ -143,4 +143,4 @@ jobs:
           overwrite_files: true
           fail_on_unmatched_files: true
           files: |
-            blueprint-build*.zip
+            ink-build*.zip
