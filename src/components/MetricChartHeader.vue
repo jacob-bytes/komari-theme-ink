@@ -15,14 +15,14 @@ const props = withDefaults(defineProps<{
 })
 
 const toneClass = computed(() => ({
-  rose: 'bg-rose-500/10 text-rose-500 ring-rose-500/20',
-  amber: 'bg-amber-500/10 text-[var(--status-warn)] ring-amber-500/20',
-  emerald: 'bg-emerald-500/10 text-emerald-500 ring-emerald-500/20',
-  cyan: 'bg-cyan-500/10 text-cyan-500 ring-cyan-500/20',
-  sky: 'bg-sky-500/10 text-sky-500 ring-sky-500/20',
-  violet: 'bg-violet-500/10 text-violet-500 ring-violet-500/20',
-  orange: 'bg-orange-500/10 text-[var(--status-load)] ring-orange-500/20',
-  slate: 'bg-slate-500/10 text-muted-foreground ring-slate-500/20',
+  rose: 'bg-muted/60 text-muted-foreground ring-border/60',
+  amber: 'bg-muted/60 text-muted-foreground ring-border/60',
+  emerald: 'bg-muted/60 text-muted-foreground ring-border/60',
+  cyan: 'bg-muted/60 text-muted-foreground ring-border/60',
+  sky: 'bg-muted/60 text-muted-foreground ring-border/60',
+  violet: 'bg-muted/60 text-muted-foreground ring-border/60',
+  orange: 'bg-muted/60 text-muted-foreground ring-border/60',
+  slate: 'bg-muted/60 text-muted-foreground ring-border/60',
 })[props.tone])
 </script>
 

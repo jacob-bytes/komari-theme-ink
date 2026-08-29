@@ -10,20 +10,20 @@
 
 /* ===== ink 主题 · light 设计令牌 ===== */
 :root {
-  --background: hsl(220 14% 96%);
-  --foreground: #18181b;
+  --background: hsl(210 40% 98%);
+  --foreground: hsl(222.2 84% 4.9%);
   --card: #ffffff;
-  --card-foreground: #18181b;
+  --card-foreground: hsl(222.2 84% 4.9%);
   --popover: #f6f8fb;
   --popover-foreground: #1d4e89;
-  --primary: #18181b;
-  --primary-foreground: #fafafa;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #18181b;
+  --primary: hsl(222.2 84% 4.9%);
+  --primary-foreground: hsl(210 40% 98%);
+  --secondary: hsl(210 40% 96%);
+  --secondary-foreground: hsl(222.2 84% 4.9%);
+  --muted: hsl(210 40% 96%);
+  --muted-foreground: hsl(215.4 16.3% 46.9%);
+  --accent: hsl(210 40% 96%);
+  --accent-foreground: hsl(222.2 84% 4.9%);
   --destructive: #dc2626;
   --destructive-foreground: #f6f8fb;
   --warning: #a1a1aa;
@@ -38,9 +38,9 @@
   --signal-3: #7ba05b;
   --signal-4: #a86e00;
   --signal-5: #c62f2f;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #18181b;
+  --border: hsl(214.3 31.8% 91.4%);
+  --input: hsl(214.3 31.8% 91.4%);
+  --ring: hsl(222.2 84% 4.9%);
   --chart-1: #18181b;
   --chart-2: #52525b;
   --chart-3: #a1a1aa;
@@ -57,20 +57,20 @@
 
 /* ===== ink 主题 · dark 设计令牌 ===== */
 .dark {
-  --background: #101012;
-  --foreground: #fafafa;
-  --card: #18181b;
-  --card-foreground: #fafafa;
+  --background: hsl(222.2 84% 4.9%);
+  --foreground: hsl(210 40% 98%);
+  --card: hsl(222.2 47.4% 11.2%);
+  --card-foreground: hsl(210 40% 98%);
   --popover: #143d72;
   --popover-foreground: #e9f2ff;
-  --primary: #fafafa;
-  --primary-foreground: #18181b;
-  --secondary: #27272a;
-  --secondary-foreground: #fafafa;
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-  --accent: #27272a;
-  --accent-foreground: #fafafa;
+  --primary: hsl(210 40% 98%);
+  --primary-foreground: hsl(222.2 84% 4.9%);
+  --secondary: hsl(217.2 32.6% 17.5%);
+  --secondary-foreground: hsl(210 40% 98%);
+  --muted: hsl(217.2 32.6% 17.5%);
+  --muted-foreground: hsl(215 20.2% 65.1%);
+  --accent: hsl(217.2 32.6% 17.5%);
+  --accent-foreground: hsl(210 40% 98%);
   --destructive: #ef4444;
   --destructive-foreground: #143d72;
   --warning: #71717a;
@@ -85,8 +85,8 @@
   --signal-3: #d6e08f;
   --signal-4: #ffb000;
   --signal-5: #ff8f86;
-  --border: #27272a;
-  --input: #27272a;
+  --border: hsl(217.2 32.6% 17.5%);
+  --input: hsl(217.2 32.6% 17.5%);
   --ring: rgb(233 242 255 / 0.48);
   --chart-1: #e4e4e7;
   --chart-2: #a1a1aa;
@@ -172,19 +172,19 @@
 /* iOS 15.4-16.3 can run the app but lacks Tailwind v4's modern color stack. */
 html.legacy-webkit {
   --background: #fafafa;
-  --foreground: #18181b;
+  --foreground: hsl(222.2 84% 4.9%);
   --card: #ffffff;
-  --card-foreground: #18181b;
+  --card-foreground: hsl(222.2 84% 4.9%);
   --popover: #f6f8fb;
   --popover-foreground: #1d4e89;
-  --primary: #18181b;
-  --primary-foreground: #fafafa;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #18181b;
+  --primary: hsl(222.2 84% 4.9%);
+  --primary-foreground: hsl(210 40% 98%);
+  --secondary: hsl(210 40% 96%);
+  --secondary-foreground: hsl(222.2 84% 4.9%);
+  --muted: hsl(210 40% 96%);
+  --muted-foreground: hsl(215.4 16.3% 46.9%);
+  --accent: hsl(210 40% 96%);
+  --accent-foreground: hsl(222.2 84% 4.9%);
   --destructive: #dc2626;
   --destructive-foreground: #f6f8fb;
   --border: #c2cfdd;
@@ -193,20 +193,20 @@ html.legacy-webkit {
 }
 
 html.legacy-webkit.dark {
-  --background: #101012;
-  --foreground: #fafafa;
-  --card: #18181b;
-  --card-foreground: #fafafa;
+  --background: hsl(222.2 84% 4.9%);
+  --foreground: hsl(210 40% 98%);
+  --card: hsl(222.2 47.4% 11.2%);
+  --card-foreground: hsl(210 40% 98%);
   --popover: #143d72;
   --popover-foreground: #e9f2ff;
-  --primary: #fafafa;
-  --primary-foreground: #18181b;
-  --secondary: #27272a;
-  --secondary-foreground: #fafafa;
-  --muted: #27272a;
+  --primary: hsl(210 40% 98%);
+  --primary-foreground: hsl(222.2 84% 4.9%);
+  --secondary: hsl(217.2 32.6% 17.5%);
+  --secondary-foreground: hsl(210 40% 98%);
+  --muted: hsl(217.2 32.6% 17.5%);
   --muted-foreground: #a7bcd8;
-  --accent: #27272a;
-  --accent-foreground: #fafafa;
+  --accent: hsl(217.2 32.6% 17.5%);
+  --accent-foreground: hsl(210 40% 98%);
   --destructive: #ef4444;
   --destructive-foreground: #143d72;
   --border: #3a5f92;

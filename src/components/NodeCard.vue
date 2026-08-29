@@ -261,12 +261,12 @@ function hasRegion(region: string | null | undefined): boolean {
       <div class="flex flex-col relative" :class="nodeCardContentClass">
         <!-- 在线天数固定展示，价格独立展示，避免不同主机卡片高度不一致 -->
         <div class="relative z-20 flex items-center gap-1.5 -mt-1 h-[19px] overflow-hidden">
-          <span class="shrink-0 text-[11px] px-2 py-0.5 rounded-full bg-slate-500/10 text-muted-foreground leading-tight">
+          <span class="shrink-0 text-[11px] text-muted-foreground leading-tight">
             {{ uptimeDaysText }}
           </span>
           <span
             v-if="priceText"
-            class="min-w-0 truncate text-[11px] px-2 py-0.5 rounded-full bg-slate-500/10 text-muted-foreground leading-tight"
+            class="min-w-0 truncate text-[11px] text-muted-foreground leading-tight"
           >
             {{ priceText }}
           </span>
@@ -398,11 +398,11 @@ function hasRegion(region: string | null | undefined): boolean {
           <!-- 实时网速 -->
           <div class="flex flex-col gap-0.5 rounded-lg bg-slate-500/5 min-w-0 overflow-hidden" :class="nodeCardMetricBoxClass">
             <div class="text-[11px] text-success flex items-center gap-1">
-              <Icon icon="tabler:chevron-up" width="11" height="11" />
+              <Icon icon="tabler:chevron-up" width="11" height="11" class="text-muted-foreground/70" />
               <span class="truncate min-w-0 overflow-hidden">{{ formatBytesPerSecond(props.node.net_out ?? 0) }}</span>
             </div>
             <div class="text-[11px] text-blue-600 flex items-center gap-1">
-              <Icon icon="tabler:chevron-down" width="11" height="11" />
+              <Icon icon="tabler:chevron-down" width="11" height="11" class="text-muted-foreground/70" />
               <span class="truncate min-w-0 overflow-hidden">{{ formatBytesPerSecond(props.node.net_in ?? 0) }}</span>
             </div>
           </div>
