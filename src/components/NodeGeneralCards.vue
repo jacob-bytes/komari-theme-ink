@@ -775,34 +775,18 @@ const cardGridClass = computed(() => {
 })
 const cardClass = 'group relative z-10 h-full bg-card/75 backdrop-blur-sm md:bg-card md:backdrop-blur-none border-border hover:bg-secondary transition-all'
 const cardPositionClasses = [
-  'col-span-3 row-span-1 col-start-1 row-start-1',
-  'col-span-3 row-span-1 col-start-4 row-start-1',
-  'col-span-3 row-span-1 col-start-7 row-start-1',
-  'col-span-3 row-span-1 col-start-10 row-start-1',
-  'col-span-4 row-span-1 col-start-1 row-start-2',
-  'col-span-4 row-span-1 col-start-5 row-start-2',
-  'col-span-4 row-span-1 col-start-9 row-start-2',
-]
-const tiledCardPositionClasses = [
-  'col-span-6 sm:col-span-3 row-span-1 sm:col-start-1 row-start-1',
-  'col-span-6 sm:col-span-3 row-span-1 sm:col-start-4 row-start-1',
-  'col-span-6 sm:col-span-3 row-span-1 sm:col-start-7 row-start-2 sm:row-start-1',
-  'col-span-6 sm:col-span-3 row-span-1 sm:col-start-10 row-start-2 sm:row-start-1',
-  'col-span-6 sm:col-span-3 row-span-1 sm:col-start-1 row-start-3 sm:row-start-2',
-  'col-span-6 sm:col-span-3 row-span-1 sm:col-start-4 row-start-3 sm:row-start-2',
-  'col-span-6 sm:col-span-3 row-span-1 sm:col-start-7 row-start-4 sm:row-start-2',
-  'col-span-6 sm:col-span-3 row-span-1 sm:col-start-10 row-start-4 sm:row-start-2',
+  'col-span-6 md:col-span-3',
+  'col-span-6 md:col-span-3',
+  'col-span-6 md:col-span-3',
+  'col-span-6 md:col-span-3',
+  'col-span-6 md:col-span-3',
+  'col-span-6 md:col-span-3',
+  'col-span-6 md:col-span-3',
 ]
 const unitClass = 'text-[11px] md:text-xs font-medium text-muted-foreground truncate'
 
 function getCardPositionClass(index: number): string {
-  if (!showEarth.value)
-    return 'col-span-1 min-h-18 md:min-h-28'
-
-  if (isTiledEarth.value)
-    return tiledCardPositionClasses[index] ?? 'col-span-6 sm:col-span-3 row-span-1'
-
-  return cardPositionClasses[index] ?? 'col-span-4 row-span-1'
+  return cardPositionClasses[index] ?? 'col-span-6 md:col-span-3'
 }
 
 function activateCard(card: GeneralMetricCard) {
