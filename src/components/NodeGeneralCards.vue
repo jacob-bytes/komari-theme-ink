@@ -80,13 +80,7 @@ const offlineCount = computed(() => summaryNodes.value.filter(n => !n.online).le
 /** netSpeed 卡迷你趋势采样（每 2s 采一次全域上下行总和，保留 30 点） */
 const netHistory = ref<number[]>([])
 let netTimer: number | undefined
-let trafficTimer: number | undefined
 
-const trafficHistory = ref<number[]>([])
-function sampleTrafficTotal() {
-  const total = summaryNodes.value.reduce((sum, n) => sum + ((n.traffic_up ?? 0) + (n.traffic_down ?? 0)), 0) / 1073741824
-  trafficHistory.value = [...trafficHistory.value, Math.round(total * 100) / 100].slice(-30)
-}
 function sampleNetSpeed() {
   const total = summaryNodes.value.reduce((sum, n) => sum + (n.net_out ?? 0) + (n.net_in ?? 0), 0) / 1024
   netHistory.value = [...netHistory.value, Math.round(total * 10) / 10].slice(-30)
@@ -800,8 +794,6 @@ function resetExchangeRates() {
 onMounted(() => {
   sampleNetSpeed()
   netTimer = window.setInterval(sampleNetSpeed, 2000)
-  sampleTrafficTotal()
-  trafficTimer = window.setInterval(sampleTrafficTotal, 2000)
 })
 
 onMounted(async () => {
@@ -817,7 +809,6 @@ onMounted(async () => {
 onUnmounted(() => {
   if (netTimer !== undefined)
     window.clearInterval(netTimer)
-  window.clearInterval(trafficTimer)
 })
 </script>
 
@@ -838,25 +829,13 @@ onUnmounted(() => {
         @click="activateCard(card)"
         @keydown="handleCardKeydown($event, card)"
       >
-        <div class="flex h-full flex-col justify-between gap-1">
-          <div class="flex items-start justify-between gap-2">
-            <span class="text-xs font-medium tracking-wider text-muted-foreground truncate">{{ card.label }}</span>
+        <div class="flex h-full flex-col gap-1">
+          <div class="flex items-center gap-1.5">
             <Icon
-              :icon="card.icon" :width="20" :height="20"
-              class="shrink-0 text-muted-foreground/20 group-hover:text-muted-foreground transition-colors"
+              :icon="card.icon" :width="14" :height="14"
+              class="shrink-0 text-muted-foreground/60"
             />
-          </div>
-          <div v-if="(card.key === 'netSpeed' && netHistory.length > 1) || (card.key === 'totalTraffic' && trafficHistory.length > 1)" class="mt-2 h-9 w-full text-muted-foreground" aria-hidden="true">
-            <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="h-full w-full">
-              <defs>
-                <linearGradient id="inkSparkGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="currentColor" stop-opacity="0.22" />
-                  <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
-                </linearGradient>
-              </defs>
-              <polygon :points="sparkArea(card.key === 'netSpeed' ? netHistory : trafficHistory)" fill="url(#inkSparkGrad)" />
-              <polyline :points="sparkPoints(card.key === 'netSpeed' ? netHistory : trafficHistory)" fill="none" stroke="currentColor" stroke-width="1.2" />
-            </svg>
+            <span class="text-xs font-medium tracking-wider text-muted-foreground truncate">{{ card.label }}</span>
           </div>
           <DataTooltip
             as="span"
@@ -868,7 +847,7 @@ onUnmounted(() => {
             <Transition v-bind="metricSwitchTransitionProps">
               <div
                 :key="`${card.key}-${summaryTransitionKey}`"
-                class="flex items-baseline gap-1 min-w-0"
+                class="mt-1 flex items-baseline gap-1 min-w-0"
                 :style="getMetricSwitchStyle(index)"
               >
                 <span class="text-[11px] sm:text-md md:text-2xl font-bold leading-none tracking-tight truncate">
@@ -880,6 +859,18 @@ onUnmounted(() => {
               </div>
             </Transition>
           </DataTooltip>
+          <div v-if="card.key === 'netSpeed' && netHistory.length > 1" class="mt-auto h-9 w-full text-muted-foreground" aria-hidden="true">
+            <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="h-full w-full">
+              <defs>
+                <linearGradient id="inkSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="currentColor" stop-opacity="0.22" />
+                  <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+                </linearGradient>
+              </defs>
+              <polygon :points="sparkArea(netHistory)" fill="url(#inkSparkGrad)" />
+              <polyline :points="sparkPoints(netHistory)" fill="none" stroke="currentColor" stroke-width="1.2" />
+            </svg>
+          </div>
         </div>
       </CardX>
     </div>

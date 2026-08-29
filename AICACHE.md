@@ -24,7 +24,6 @@
 - 产物：`ink-build-4a3d842.zip`，manifest `0.1.13`。
 - 下一步：按“详情页改版正式清单”实施 InstanceDetail / LoadChart / PingChart 极简改造。
 
-
 - 状态：done，blueprint 主题彻底改造完成(未发版，待用户确认后再决定是否发版)
 - 目标：把 komari-theme-Glassmorphism 从毛玻璃主题彻底改造成 blueprint（工程蓝图）主题并命名为 blueprint。
 - 里程碑：M4 UI/UX 大改造 + 发布契约改名。
