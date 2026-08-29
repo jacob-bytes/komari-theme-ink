@@ -863,12 +863,12 @@ onUnmounted(() => {
             <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="h-full w-full">
               <defs>
                 <linearGradient id="inkSparkGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="currentColor" stop-opacity="0.22" />
+                  <stop offset="0%" stop-color="currentColor" stop-opacity="0.08" />
                   <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
                 </linearGradient>
               </defs>
               <polygon :points="sparkArea(netHistory)" fill="url(#inkSparkGrad)" />
-              <polyline :points="sparkPoints(netHistory)" fill="none" stroke="currentColor" stroke-width="1.2" />
+              <polyline :points="sparkPoints(netHistory)" fill="none" stroke="currentColor" stroke-width="1" opacity="0.75" />
             </svg>
           </div>
         </div>

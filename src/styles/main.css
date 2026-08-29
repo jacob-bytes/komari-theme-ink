@@ -10,7 +10,7 @@
 
 /* ===== ink 主题 · light 设计令牌 ===== */
 :root {
-  --background: #fafafa;
+  --background: hsl(220 14% 96%);
   --foreground: #18181b;
   --card: #ffffff;
   --card-foreground: #18181b;
@@ -392,4 +392,9 @@ html.legacy-webkit .glass-header {
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* ink：国旗低饱和（减少色彩噪音） */
+img[src*='/images/flags/'] {
+  filter: grayscale(0.9) contrast(0.95);
 }

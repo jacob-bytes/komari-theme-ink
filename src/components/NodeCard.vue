@@ -64,8 +64,6 @@ const nodeCardMetricGridClass = 'grid-cols-3'
 const nodeCardMetricBoxClass = computed(() => isMiniNodeCard.value
   ? 'px-1 py-1'
   : appStore.nodeCardSize === 'compact' ? 'px-1.5 py-1.5' : 'px-2 py-1.5')
-const nodeCardPanelClass = computed(() => appStore.nodeCardSize === 'large' ? 'h-14' : appStore.nodeCardSize === 'comfortable' ? 'h-12' : isMiniNodeCard.value ? 'h-7' : 'h-11')
-const nodeCardPingPanelClass = computed(() => isMiniNodeCard.value ? 'gap-1 p-1' : 'gap-1.5 p-2')
 
 const formatBytes = (bytes: number) => formatBytesWithConfig(bytes, appStore.byteDecimals)
 const formatBytesPerSecond = (bytes: number) => formatBytesPerSecondWithConfig(bytes, appStore.byteDecimals)
@@ -83,14 +81,15 @@ const diskPercentage = computed(() => getDiskPercentage(props.node))
 const diskStatus = computed(() => getStatus(diskPercentage.value))
 
 const {
-  latencyRenderBars,
-  lossRenderBars,
   latencyDisplay,
   lossDisplay,
   latencyPanelTooltip,
-  lossPanelTooltip,
 } = useNodePingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled })
 
+const latencyScorePct = computed(() => {
+  const value = Number.parseFloat(latencyDisplay.value) || 0
+  return `${Math.min(100, Math.max(8, Math.round((value / 500) * 100)))}%`
+})
 const trafficUsedPercentage = computed(() => getTrafficUsedPercentage(props.node))
 const trafficUsed = computed(() => getTrafficUsed(props.node))
 const nodeMessage = computed(() => props.node.message?.trim() ?? '')
@@ -283,7 +282,7 @@ function hasRegion(region: string | null | undefined): boolean {
                 </span>
                 <span class="tabular-nums font-medium">{{ (props.node.cpu ?? 0).toFixed(1) }}%</span>
               </div>
-              <ProgressThin :percentage="props.node.cpu ?? 0" :status="cpuStatus" :height="4" />
+              <ProgressThin :percentage="props.node.cpu ?? 0" :status="cpuStatus" :height="2" />
             </div>
 
             <div class="flex flex-col gap-1" :title="swapTooltip">
@@ -293,7 +292,7 @@ function hasRegion(region: string | null | undefined): boolean {
                 </span>
                 <span class="tabular-nums font-medium">{{ memPercentage.toFixed(1) }}%</span>
               </div>
-              <ProgressThin :percentage="memPercentage" :status="memStatus" :height="4" />
+              <ProgressThin :percentage="memPercentage" :status="memStatus" :height="2" />
             </div>
 
             <div class="col-span-2 text-[11px] text-muted-foreground truncate">
@@ -311,7 +310,7 @@ function hasRegion(region: string | null | undefined): boolean {
                 {{ hasTrafficLimit(props.node) ? `${trafficUsedPercentage.toFixed(1)}%` : '∞' }}
               </span>
             </div>
-            <ProgressThin :percentage="trafficUsedPercentage" :status="trafficStatus" :height="4" />
+            <ProgressThin :percentage="trafficUsedPercentage" :status="trafficStatus" :height="2" />
             <div class="text-[11px] truncate" :class="trafficUsedPercentage >= 95 ? 'text-destructive' : 'text-muted-foreground'">
               {{ formatBytes(trafficUsed) }}
               <template v-if="hasTrafficLimit(props.node)">
@@ -334,7 +333,7 @@ function hasRegion(region: string | null | undefined): boolean {
               </span>
               <span class="tabular-nums font-medium">{{ (props.node.cpu ?? 0).toFixed(1) }}%</span>
             </div>
-            <ProgressThin :percentage="props.node.cpu ?? 0" :status="cpuStatus" :height="4" />
+            <ProgressThin :percentage="props.node.cpu ?? 0" :status="cpuStatus" :height="2" />
             <div class="text-[11px] text-muted-foreground truncate">
               {{ (props.node.load ?? 0).toFixed(2) }}, {{ (props.node.load5 ?? 0).toFixed(2) }}, {{ (props.node.load15 ?? 0).toFixed(2) }}
             </div>
@@ -349,7 +348,7 @@ function hasRegion(region: string | null | undefined): boolean {
               </span>
               <span class="tabular-nums font-medium">{{ memPercentage.toFixed(1) }}%</span>
             </div>
-            <ProgressThin :percentage="memPercentage" :status="memStatus" :height="4" />
+            <ProgressThin :percentage="memPercentage" :status="memStatus" :height="2" />
             <div class="text-[11px] text-muted-foreground truncate">
               {{ formatBytes(props.node.ram ?? 0) }} / {{ formatBytes(props.node.mem_total ?? 0) }}
             </div>
@@ -364,7 +363,7 @@ function hasRegion(region: string | null | undefined): boolean {
               </span>
               <span class="tabular-nums font-medium">{{ diskPercentage.toFixed(1) }}%</span>
             </div>
-            <ProgressThin :percentage="diskPercentage" :status="diskStatus" :height="4" />
+            <ProgressThin :percentage="diskPercentage" :status="diskStatus" :height="2" />
             <div class="text-[11px] text-muted-foreground truncate">
               {{ formatBytes(props.node.disk ?? 0) }} / {{ formatBytes(props.node.disk_total ?? 0) }}
             </div>
@@ -381,7 +380,7 @@ function hasRegion(region: string | null | undefined): boolean {
                 {{ hasTrafficLimit(props.node) ? `${trafficUsedPercentage.toFixed(1)}%` : '∞' }}
               </span>
             </div>
-            <ProgressThin :percentage="trafficUsedPercentage" :status="trafficStatus" :height="4" />
+            <ProgressThin :percentage="trafficUsedPercentage" :status="trafficStatus" :height="2" />
             <div class="text-[11px] truncate" :class="trafficUsedPercentage >= 95 ? 'text-destructive' : 'text-muted-foreground'">
               {{ formatBytes(trafficUsed) }}
               <template v-if="hasTrafficLimit(props.node)">
@@ -448,66 +447,23 @@ function hasRegion(region: string | null | undefined): boolean {
           </div>
         </div>
 
-        <!-- 延迟 + 丢包 -->
-        <div class="grid grid-cols-2 gap-1.5">
-          <button
-            type="button"
-            class="group/panel relative flex flex-col rounded-lg bg-slate-500/5"
-            :class="[nodeCardPingPanelClass, nodeCardPanelClass, !props.node.online ? 'blur-xs opacity-50' : '']"
-            :title="latencyPanelTooltip"
-            :aria-label="`${props.node.name} 延迟监测`"
-            @click.stop="emit('pingClick')"
-          >
-            <div class="flex items-center justify-between text-[11px] leading-none">
-              <span class="text-muted-foreground">延迟</span>
-              <span class="font-medium">{{ latencyDisplay }}</span>
-            </div>
-            <div
-              data-node-ping-bars="latency"
-              class="grid min-h-0 min-w-0 w-full flex-1 items-end gap-[1px] opacity-80 group-hover/panel:opacity-100"
-              :style="{ gridTemplateColumns: `repeat(${latencyRenderBars.length}, minmax(0, 1fr))` }"
-            >
-              <DataTooltip
-                v-for="bar in latencyRenderBars" :key="bar.key"
-                placement="top" :content="bar.tooltip" class="h-full w-full"
-              >
-                <span
-                  class="block h-full w-full rounded-[1px] transition-transform duration-150 group-hover/data-tooltip:scale-y-160 group-hover/panel:opacity-60 group-hover/data-tooltip:!opacity-100"
-                  :class="bar.className"
-                />
-              </DataTooltip>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            class="group/panel relative flex flex-col rounded-lg bg-slate-500/5"
-            :class="[nodeCardPingPanelClass, nodeCardPanelClass, !props.node.online ? 'blur-xs opacity-50' : '']"
-            :title="lossPanelTooltip"
-            :aria-label="`${props.node.name} 丢包监测`"
-            @click.stop="emit('pingClick')"
-          >
-            <div class="flex items-center justify-between text-[11px] leading-none">
-              <span class="text-muted-foreground">丢包</span>
-              <span class="font-medium">{{ lossDisplay }}</span>
-            </div>
-            <div
-              data-node-ping-bars="loss"
-              class="grid min-h-0 min-w-0 w-full flex-1 items-end gap-[1px] opacity-80 group-hover/panel:opacity-100"
-              :style="{ gridTemplateColumns: `repeat(${lossRenderBars.length}, minmax(0, 1fr))` }"
-            >
-              <DataTooltip
-                v-for="bar in lossRenderBars" :key="bar.key"
-                placement="top" :content="bar.tooltip" class="h-full w-full"
-              >
-                <span
-                  class="block h-full w-full rounded-[1px] transition-transform duration-150 group-hover/data-tooltip:scale-y-160 group-hover/panel:opacity-60 group-hover/data-tooltip:!opacity-100"
-                  :class="bar.className"
-                />
-              </DataTooltip>
-            </div>
-          </button>
-        </div>
+        <!-- 延迟 + 丢包（单行简化） -->
+        <button
+          type="button"
+          class="flex items-center justify-between gap-2 rounded-md bg-slate-500/5 px-2 py-1.5 text-[11px]"
+          :class="!props.node.online ? 'blur-xs opacity-50' : ''"
+          :title="latencyPanelTooltip"
+          :aria-label="`${props.node.name} 延迟与丢包监测`"
+          @click.stop="emit('pingClick')"
+        >
+          <span class="truncate text-muted-foreground">
+            延迟 <span class="font-medium text-foreground">{{ latencyDisplay }}</span>
+            <span class="opacity-60">·</span> 丢包 <span class="font-medium text-foreground">{{ lossDisplay }}</span>
+          </span>
+          <span class="h-0.5 w-14 shrink-0 overflow-hidden rounded-full bg-muted-foreground/15" aria-hidden="true">
+            <span class="block h-full rounded-full bg-muted-foreground/50" :style="{ width: latencyScorePct }" />
+          </span>
+        </button>
 
         <!-- 自定义标签 -->
         <div v-if="customTags.length > 0" class="flex flex-wrap gap-1">

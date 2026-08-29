@@ -443,7 +443,7 @@ const nodeCardGridClass = computed(() => {
                   >
                     <Icon :icon="control.icon" :width="12" :height="12" />
                     <span>{{ control.label }}</span>
-                    <span class="rounded-full bg-slate-500/10 px-1 text-[10px] tabular-nums text-foreground/65">
+                    <span class="text-[10px] tabular-nums text-muted-foreground">
                       {{ quickControlCounts[control.key] ?? 0 }}
                     </span>
                   </button>
