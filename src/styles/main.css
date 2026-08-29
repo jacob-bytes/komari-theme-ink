@@ -10,7 +10,7 @@
 
 /* ===== ink 主题 · light 设计令牌 ===== */
 :root {
-  --background: hsl(210 40% 98%);
+  --background: #f8fafc;
   --foreground: hsl(222.2 84% 4.9%);
   --card: #ffffff;
   --card-foreground: hsl(222.2 84% 4.9%);
@@ -38,8 +38,8 @@
   --signal-3: #7ba05b;
   --signal-4: #a86e00;
   --signal-5: #c62f2f;
-  --border: hsl(214.3 31.8% 91.4%);
-  --input: hsl(214.3 31.8% 91.4%);
+  --border: #e2e8f0;
+  --input: #e2e8f0;
   --ring: hsl(222.2 84% 4.9%);
   --chart-1: #18181b;
   --chart-2: #52525b;
@@ -85,8 +85,8 @@
   --signal-3: #d6e08f;
   --signal-4: #ffb000;
   --signal-5: #ff8f86;
-  --border: hsl(217.2 32.6% 17.5%);
-  --input: hsl(217.2 32.6% 17.5%);
+  --border: #1e293b;
+  --input: #1e293b;
   --ring: rgb(233 242 255 / 0.48);
   --chart-1: #e4e4e7;
   --chart-2: #a1a1aa;

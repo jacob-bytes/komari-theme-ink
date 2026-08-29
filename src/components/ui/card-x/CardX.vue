@@ -64,7 +64,7 @@ const segmentedFooter = computed(() => {
   <div
     v-bind="attrs"
     :class="cn(
-      'bg-card text-card-foreground flex flex-col rounded-xl',
+      'bg-card text-card-foreground flex flex-col rounded-lg',
       bordered && 'border',
       hoverable && 'transition-colors hover:border-foreground/30',
       props.class,

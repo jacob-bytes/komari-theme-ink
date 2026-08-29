@@ -2,7 +2,6 @@
 import type { NodeData } from '@/stores/nodes'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
-import { Badge } from '@/components/ui/badge'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
 import { ProgressThin } from '@/components/ui/progress-thin'
@@ -196,7 +195,7 @@ function hasRegion(region: string | null | undefined): boolean {
     hoverable
     :size="nodeCardXSize"
     :content-class="nodeCardContentPaddingClass"
-    class="node-card w-full cursor-pointer border-none shadow-[0_0_0_3px] shadow-transparent transition-all duration-200 rounded-xl"
+    class="node-card w-full cursor-pointer border-none shadow-[0_0_0_3px] shadow-transparent transition-all duration-200 rounded-lg"
     :class="[!props.node.online && '!shadow-destructive/30']"
     role="button"
     tabindex="0"
@@ -328,7 +327,6 @@ function hasRegion(region: string | null | undefined): boolean {
           <div class="flex flex-col gap-1">
             <div class="flex justify-between text-xs">
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
-                <Icon :icon="NODE_METRIC_ICONS.cpu" data-node-metric-icon="cpu" width="13" height="13" class="shrink-0 text-sky-500" aria-hidden="true" />
                 <span>CPU<span v-if="props.node.cpu_cores" class="text-muted-foreground"> {{ props.node.cpu_cores }} 核</span></span>
               </span>
               <span class="tabular-nums font-medium">{{ (props.node.cpu ?? 0).toFixed(1) }}%</span>
@@ -343,7 +341,6 @@ function hasRegion(region: string | null | undefined): boolean {
           <div class="flex flex-col gap-1" :title="swapTooltip">
             <div class="flex justify-between text-xs">
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
-                <Icon :icon="NODE_METRIC_ICONS.memory" data-node-metric-icon="memory" width="13" height="13" class="shrink-0 text-emerald-500" aria-hidden="true" />
                 <span class="truncate">内存</span>
               </span>
               <span class="tabular-nums font-medium">{{ memPercentage.toFixed(1) }}%</span>
@@ -358,7 +355,6 @@ function hasRegion(region: string | null | undefined): boolean {
           <div class="flex flex-col gap-1">
             <div class="flex justify-between text-xs">
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
-                <Icon :icon="NODE_METRIC_ICONS.disk" data-node-metric-icon="disk" width="13" height="13" class="shrink-0 text-[var(--status-load)]" aria-hidden="true" />
                 <span class="truncate">硬盘</span>
               </span>
               <span class="tabular-nums font-medium">{{ diskPercentage.toFixed(1) }}%</span>
@@ -396,7 +392,7 @@ function hasRegion(region: string | null | undefined): boolean {
         <!-- 三列：网速 / 总流量 / 剩余天数+价格或负载 -->
         <div class="grid gap-1.5" :class="nodeCardMetricGridClass">
           <!-- 实时网速 -->
-          <div class="flex flex-col gap-0.5 rounded-lg bg-slate-500/5 min-w-0 overflow-hidden" :class="nodeCardMetricBoxClass">
+          <div class="flex flex-col gap-0.5 rounded-lg bg-transparent min-w-0 overflow-hidden" :class="nodeCardMetricBoxClass">
             <div class="text-[11px] text-success flex items-center gap-1">
               <Icon icon="tabler:chevron-up" width="11" height="11" class="text-muted-foreground/70" />
               <span class="truncate min-w-0 overflow-hidden">{{ formatBytesPerSecond(props.node.net_out ?? 0) }}</span>
@@ -408,7 +404,7 @@ function hasRegion(region: string | null | undefined): boolean {
           </div>
 
           <!-- 总流量 -->
-          <div class="flex flex-col gap-0.5 rounded-lg bg-slate-500/5 min-w-0 overflow-hidden" :class="nodeCardMetricBoxClass">
+          <div class="flex flex-col gap-0.5 rounded-lg bg-transparent min-w-0 overflow-hidden" :class="nodeCardMetricBoxClass">
             <div class="text-[11px] text-muted-foreground flex items-center gap-1">
               <Icon icon="tabler:upload" width="11" height="11" />
               <span class="truncate min-w-0 overflow-hidden">{{ formatBytes(props.node.net_total_up ?? 0) }}</span>
@@ -420,7 +416,7 @@ function hasRegion(region: string | null | undefined): boolean {
           </div>
 
           <!-- 第三列：有价格显示剩余天数+价格，否则显示负载 -->
-          <div class="flex flex-col gap-0.5 rounded-lg bg-slate-500/5 min-w-0 overflow-hidden" :class="nodeCardMetricBoxClass">
+          <div class="flex flex-col gap-0.5 rounded-lg bg-transparent min-w-0 overflow-hidden" :class="nodeCardMetricBoxClass">
             <template v-if="remainingInfoTags.length">
               <div
                 v-for="(item, i) in remainingInfoTags" :key="i"
@@ -450,7 +446,7 @@ function hasRegion(region: string | null | undefined): boolean {
         <!-- 延迟 + 丢包（单行简化） -->
         <button
           type="button"
-          class="flex items-center justify-between gap-2 rounded-md bg-slate-500/5 px-2 py-1.5 text-[11px]"
+          class="flex items-center justify-between gap-2 text-[11px]"
           :class="!props.node.online ? 'blur-xs opacity-50' : ''"
           :title="latencyPanelTooltip"
           :aria-label="`${props.node.name} 延迟与丢包监测`"
@@ -466,14 +462,8 @@ function hasRegion(region: string | null | undefined): boolean {
         </button>
 
         <!-- 自定义标签 -->
-        <div v-if="customTags.length > 0" class="flex flex-wrap gap-1">
-          <Badge
-            v-for="(tag, i) in customTags" :key="i"
-            variant="outline"
-            class="!text-[11px] rounded-full text-muted-foreground border-muted-foreground/15 px-2 py-0"
-          >
-            {{ tag }}
-          </Badge>
+        <div v-if="customTags.length > 0" class="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+          <span v-for="(tag, i) in customTags" :key="i">{{ tag }}</span>
         </div>
 
         <!-- 离线遮罩 -->

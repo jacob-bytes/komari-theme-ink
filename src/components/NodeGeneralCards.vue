@@ -821,7 +821,7 @@ onUnmounted(() => {
         :data-general-card-key="card.key"
         hoverable
         :class="[cardClass, getCardPositionClass(index), card.action && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring']"
-        :style="{ height: '128px' }"
+        :style="{ height: '112px' }"
         content-class="h-full overflow-hidden !p-3 flex flex-col justify-between"
         :role="card.action ? 'button' : undefined"
         :tabindex="card.action ? 0 : undefined"
