@@ -84,6 +84,11 @@ const {
   latencyPanelTooltip,
 } = useNodePingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled })
 
+const latencyAlert = computed(() => {
+  const loss = Number.parseFloat(lossDisplay.value) || 0
+  const ms = Number.parseFloat(latencyDisplay.value) || 0
+  return loss > 0 || ms > 250
+})
 const latencyScorePct = computed(() => {
   const value = Number.parseFloat(latencyDisplay.value) || 0
   return `${Math.min(100, Math.max(8, Math.round((value / 500) * 100)))}%`
@@ -437,14 +442,14 @@ function hasRegion(region: string | null | undefined): boolean {
         <!-- 延迟 + 丢包（单行简化） -->
         <button
           type="button"
-          class="flex items-center justify-between gap-2 text-[11px]"
-          :class="!props.node.online ? 'blur-xs opacity-50' : ''"
+          class="flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-xs"
+          :class="[latencyAlert ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400' : 'bg-slate-100/80 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300', !props.node.online ? 'blur-xs opacity-50' : '']"
           :title="latencyPanelTooltip"
           :aria-label="`${props.node.name} 延迟与丢包监测`"
           @click.stop="emit('pingClick')"
         >
           <span class="truncate text-muted-foreground">
-            延迟 <span class="font-medium text-foreground">{{ latencyDisplay }}</span> · <span class="font-medium text-foreground">{{ lossDisplay }} 丢包</span>
+            延迟 <span class="font-mono font-medium">{{ latencyDisplay }}</span> · <span class="font-mono font-medium">{{ lossDisplay }} 丢包</span>
           </span>
           <span class="h-0.5 w-14 shrink-0 overflow-hidden rounded-full bg-muted-foreground/15" aria-hidden="true">
             <span class="block h-full rounded-full bg-muted-foreground/50" :style="{ width: latencyScorePct }" />

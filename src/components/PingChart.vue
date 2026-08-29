@@ -179,14 +179,6 @@ function setTaskTooltipOpen(taskId: number, open: boolean) {
   activeTaskTooltipId.value = open ? taskId : activeTaskTooltipId.value === taskId ? null : activeTaskTooltipId.value
 }
 
-function toggleTaskTooltip(taskId: number) {
-  if (!isTouchTooltipMode.value)
-    return
-
-  activeTaskTooltipId.value = activeTaskTooltipId.value === taskId ? null : taskId
-  smoothInfoTooltipOpen.value = false
-}
-
 function toggleSmoothInfoTooltip() {
   if (!isTouchTooltipMode.value)
     return
@@ -836,7 +828,7 @@ onBeforeUnmount(() => {
           <div
             v-for="task in latestValues" :key="task.id"
             :data-ping-task-id="task.id"
-            class="p-3 rounded-xl bg-card border border-border hover:bg-secondary hover:shadow-[0_0_0_2px] hover:shadow-primary/10 flex gap-3 cursor-pointer select-none transition-all items-center"
+            class="rounded-md bg-slate-100/80 px-2.5 py-2 hover:bg-slate-200/70 dark:bg-slate-800/60 dark:hover:bg-slate-800 flex gap-2.5 cursor-pointer select-none transition-all items-center"
             :class="[!selectedTaskIds.includes(task.id) && 'opacity-30']"
             :onmouseover="(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.borderColor = task.color)"
             :onmouseout="(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.borderColor = '')"
@@ -845,17 +837,15 @@ onBeforeUnmount(() => {
             <div class="flex-1 min-w-0">
               <TooltipProvider>
                 <div class="flex gap-2 items-center">
-                  <div class="rounded h-4 w-1" :style="{ backgroundColor: task.color }" />
-                  <span class="text-sm font-semibold truncate">{{ task.name }}</span>
+                  <span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: task.color }" />
+                  <span class="text-xs font-medium truncate">{{ task.name }}</span>
                   <div class="flex-1" />
                   <Tooltip
                     :open="isTouchTooltipMode ? activeTaskTooltipId === task.id : undefined"
                     @update:open="(open) => setTaskTooltipOpen(task.id, open)"
                   >
                     <TooltipTrigger as-child>
-                      <Button variant="ghost" size="icon-xs" class="text-muted-foreground" @click.stop="toggleTaskTooltip(task.id)">
-                        <Icon icon="carbon:information" :width="14" :height="14" />
-                      </Button>
+                      <span class="inline-flex size-4 cursor-help items-center justify-center text-[10px] text-muted-foreground/60">ⓘ</span>
                     </TooltipTrigger>
                     <TooltipContent class="!rounded p-3">
                       <div class="text-xs gap-x-4 gap-y-1.5 grid grid-cols-4">
