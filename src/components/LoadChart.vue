@@ -915,6 +915,12 @@ const baseYAxisConfig = computed(() => ({
 // ==================== 图表配置 ====================
 
 // CPU 图表
+const cpuPeak = computed(() => {
+  let peak = 0
+  for (const r of chartData.value)
+    peak = Math.max(peak, r.cpu ?? 0)
+  return peak
+})
 const cpuChartOption = computed(() => ({
   animation: false,
   // 全局颜色配置（确保 Tooltip 圆点颜色与线条一致）
@@ -957,7 +963,7 @@ const cpuChartOption = computed(() => ({
       name: 'CPU %',
       nameTextStyle: { color: chartThemeColors.value.textSecondary, padding: [0, 40, 0, 0] },
       min: 0,
-      max: 100,
+      max: Math.max(10, Math.ceil(cpuPeak.value * 1.5)),
       axisLabel: { ...baseYAxisConfig.value.axisLabel, formatter: '{value}%' },
     },
     {
