@@ -16,21 +16,21 @@
   --card-foreground: hsl(222.2 84% 4.9%);
   --popover: #f6f8fb;
   --popover-foreground: #1d4e89;
-  --primary: hsl(222.2 84% 4.9%);
-  --primary-foreground: hsl(210 40% 98%);
+  --primary: oklch(0.42 0.13 265);
+  --primary-foreground: oklch(0.98 0.005 265);
   --secondary: hsl(210 40% 96%);
   --secondary-foreground: hsl(222.2 84% 4.9%);
   --muted: hsl(210 40% 96%);
   --muted-foreground: hsl(215.4 16.3% 46.9%);
   --accent: hsl(210 40% 96%);
   --accent-foreground: hsl(222.2 84% 4.9%);
-  --destructive: #f43f5e;
+  --destructive: oklch(0.62 0.17 20);
   --destructive-foreground: #f6f8fb;
-  --warning: #f59e0b;
+  --warning: oklch(0.78 0.12 85);
   --warning-foreground: #f6f8fb;
-  --success: #10b981;
+  --success: oklch(0.72 0.11 160);
   --success-foreground: #f6f8fb;
-  --info: #0ea5e9;
+  --info: oklch(0.68 0.1 235);
   --info-foreground: #f6f8fb;
   --selection: #18181b;
   --signal-1: #157a55;
@@ -40,7 +40,7 @@
   --signal-5: #c62f2f;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: hsl(222.2 84% 4.9%);
+  --ring: oklch(0.42 0.13 265);
   --chart-1: #18181b;
   --chart-2: #52525b;
   --chart-3: #a1a1aa;
@@ -57,25 +57,25 @@
 
 /* ===== ink 主题 · dark 设计令牌 ===== */
 .dark {
-  --background: hsl(222.2 84% 4.9%);
+  --background: oklch(0.14 0.022 265);
   --foreground: hsl(210 40% 98%);
-  --card: hsl(222.2 47.4% 11.2%);
+  --card: oklch(0.17 0.028 265);
   --card-foreground: hsl(210 40% 98%);
   --popover: #143d72;
   --popover-foreground: #e9f2ff;
-  --primary: hsl(210 40% 98%);
-  --primary-foreground: hsl(222.2 84% 4.9%);
+  --primary: oklch(0.68 0.12 265);
+  --primary-foreground: oklch(0.14 0.022 265);
   --secondary: hsl(217.2 32.6% 17.5%);
   --secondary-foreground: hsl(210 40% 98%);
   --muted: hsl(217.2 32.6% 17.5%);
   --muted-foreground: hsl(215 20.2% 65.1%);
   --accent: hsl(217.2 32.6% 17.5%);
   --accent-foreground: hsl(210 40% 98%);
-  --destructive: #fb7185;
+  --destructive: oklch(0.65 0.14 20);
   --destructive-foreground: #143d72;
-  --warning: #fbbf24;
+  --warning: oklch(0.74 0.1 85);
   --warning-foreground: #143d72;
-  --success: #34d399;
+  --success: oklch(0.68 0.09 160);
   --success-foreground: #143d72;
   --info: #e9f2ff;
   --info-foreground: #143d72;
@@ -177,15 +177,15 @@ html.legacy-webkit {
   --card-foreground: hsl(222.2 84% 4.9%);
   --popover: #f6f8fb;
   --popover-foreground: #1d4e89;
-  --primary: hsl(222.2 84% 4.9%);
-  --primary-foreground: hsl(210 40% 98%);
+  --primary: oklch(0.42 0.13 265);
+  --primary-foreground: oklch(0.98 0.005 265);
   --secondary: hsl(210 40% 96%);
   --secondary-foreground: hsl(222.2 84% 4.9%);
   --muted: hsl(210 40% 96%);
   --muted-foreground: hsl(215.4 16.3% 46.9%);
   --accent: hsl(210 40% 96%);
   --accent-foreground: hsl(222.2 84% 4.9%);
-  --destructive: #f43f5e;
+  --destructive: oklch(0.62 0.17 20);
   --destructive-foreground: #f6f8fb;
   --border: #c2cfdd;
   --input: #c2cfdd;
@@ -193,21 +193,21 @@ html.legacy-webkit {
 }
 
 html.legacy-webkit.dark {
-  --background: hsl(222.2 84% 4.9%);
+  --background: oklch(0.14 0.022 265);
   --foreground: hsl(210 40% 98%);
-  --card: hsl(222.2 47.4% 11.2%);
+  --card: oklch(0.17 0.028 265);
   --card-foreground: hsl(210 40% 98%);
   --popover: #143d72;
   --popover-foreground: #e9f2ff;
-  --primary: hsl(210 40% 98%);
-  --primary-foreground: hsl(222.2 84% 4.9%);
+  --primary: oklch(0.68 0.12 265);
+  --primary-foreground: oklch(0.14 0.022 265);
   --secondary: hsl(217.2 32.6% 17.5%);
   --secondary-foreground: hsl(210 40% 98%);
   --muted: hsl(217.2 32.6% 17.5%);
   --muted-foreground: #a7bcd8;
   --accent: hsl(217.2 32.6% 17.5%);
   --accent-foreground: hsl(210 40% 98%);
-  --destructive: #fb7185;
+  --destructive: oklch(0.65 0.14 20);
   --destructive-foreground: #143d72;
   --border: #3a5f92;
   --input: #3a5f92;

@@ -24,6 +24,7 @@ const heightStyle = computed(() => ({
 
 const statusClass = computed(() => {
   switch (props.status) {
+    case 'default': return 'bg-muted-foreground/30'
     case 'success': return 'bg-success'
     case 'warning': return 'bg-warning'
     case 'error': return 'bg-destructive'

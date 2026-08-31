@@ -136,6 +136,10 @@ const groups = computed(() => [
 
 const quickControlKeys = computed<HomeQuickControlKey[]>(() => appStore.homeQuickControlOrder)
 const quickControls = computed(() => quickControlKeys.value.map(key => quickControlDefinitions[key]))
+const quickControlsVisible = computed(() =>
+  quickControls.value.filter(control => (quickControlCounts[control.key] ?? 0) > 0),
+)
+
 const showQuickControls = computed(() => appStore.homeQuickControlsEnabled && quickControls.value.length > 0)
 
 watch(
@@ -433,7 +437,7 @@ const nodeCardGridClass = computed(() => {
                   class="flex h-8 w-max items-center gap-1 rounded-md bg-background/50 px-1 backdrop-blur-xl pointer-events-auto"
                 >
                   <button
-                    v-for="control in quickControls" :key="control.key"
+                    v-for="control in quickControlsVisible" :key="control.key"
                     type="button"
                     class="inline-flex h-6.5 flex-none shrink-0 items-center gap-1 rounded-sm px-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
                     :class="activeQuickControl === control.key ? 'bg-background text-selection shadow-sm' : ''"

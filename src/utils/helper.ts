@@ -269,9 +269,9 @@ const STATUS_THRESHOLDS = {
  * @param percentage 百分比
  * @returns 状态类型
  */
-export function getStatus(percentage: number): 'success' | 'warning' | 'error' {
+export function getStatus(percentage: number): 'default' | 'warning' | 'error' {
   if (percentage < STATUS_THRESHOLDS.success)
-    return 'success'
+    return 'default'
   if (percentage < STATUS_THRESHOLDS.warning)
     return 'warning'
   return 'error'
