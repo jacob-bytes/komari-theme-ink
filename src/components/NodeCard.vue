@@ -103,6 +103,27 @@ function lossBarClass(v: number): string {
     return 'bg-[var(--primary)]/60'
   return 'bg-[var(--primary)]/30'
 }
+// 数值文字颜色与柱状图同步：仅在中高严重度提亮，常态仍为默认前景色，避免视觉噪音
+function latencyTextClass(text: string): string {
+  const ms = Number.parseFloat(text)
+  if (!Number.isFinite(ms))
+    return 'text-foreground'
+  if (ms > 220)
+    return 'text-destructive'
+  if (ms >= 150)
+    return 'text-primary'
+  return 'text-foreground'
+}
+function lossTextClass(text: string): string {
+  const pct = Number.parseFloat(text)
+  if (!Number.isFinite(pct))
+    return 'text-foreground'
+  if (pct > 10)
+    return 'text-destructive'
+  if (pct >= 5)
+    return 'text-primary'
+  return 'text-foreground'
+}
 const latencyHistory = ref<number[]>([])
 const lossHistory = ref<number[]>([])
 watch(latencyDisplay, (v) => {
@@ -266,7 +287,7 @@ function hasRegion(region: string | null | undefined): boolean {
         <button
           type="button"
           class="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-[var(--status-warn)]"
-          :class="isFavorite && 'text-[var(--status-warn)]'"
+          :class="isFavorite && 'bg-[var(--status-warn)]/10 text-[var(--status-warn)]'"
           :aria-label="isFavorite ? `取消收藏 ${props.node.name}` : `收藏 ${props.node.name}`"
           :title="isFavorite ? '取消收藏' : '收藏节点'"
           @click.stop="toggleFavorite"
@@ -480,7 +501,7 @@ function hasRegion(region: string | null | undefined): boolean {
           >
             <div class="flex items-center justify-between">
               <span class="text-xs font-normal text-muted-foreground">延迟</span>
-              <span class="font-mono text-xs font-bold text-foreground">{{ latencyDisplay }}</span>
+              <span class="font-mono text-xs font-bold" :class="latencyTextClass(latencyDisplay)">{{ latencyDisplay }}</span>
             </div>
             <div class="mt-1.5 flex h-5 items-end gap-[1.5px] rounded-sm bg-muted/40 p-0.5" aria-hidden="true">
               <div
@@ -501,7 +522,7 @@ function hasRegion(region: string | null | undefined): boolean {
           >
             <div class="flex items-center justify-between">
               <span class="text-xs font-normal text-muted-foreground">丢包</span>
-              <span class="font-mono text-xs font-bold text-foreground">{{ lossDisplay }}</span>
+              <span class="font-mono text-xs font-bold" :class="lossTextClass(lossDisplay)">{{ lossDisplay }}</span>
             </div>
             <div class="mt-1.5 flex h-5 items-end gap-[1.5px] rounded-sm bg-muted/40 p-0.5" aria-hidden="true">
               <div
@@ -518,7 +539,7 @@ function hasRegion(region: string | null | undefined): boolean {
         <div v-if="customTags.length > 0" class="flex flex-wrap gap-1">
           <span
             v-for="(tag, i) in customTags" :key="i"
-            class="rounded-full bg-muted px-2 py-0.5 text-[11px] leading-tight text-muted-foreground ring-1 ring-inset ring-border"
+            class="rounded-full bg-primary/8 px-2 py-0.5 text-[11px] leading-tight text-primary ring-1 ring-inset ring-primary/20"
           >{{ tag }}</span>
         </div>
 

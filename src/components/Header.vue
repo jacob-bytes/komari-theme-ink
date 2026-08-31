@@ -131,7 +131,7 @@ onMounted(() => {
             class="mr-1 hidden sm:flex items-center gap-1.5 text-[10px] text-muted-foreground"
             :title="freshText" aria-label="数据更新时间"
           >
-            <span class="size-1.5 rounded-full bg-success" />
+            <span class="size-1.5 rounded-full bg-primary" />
             {{ freshText }}
           </span>
           <Tooltip v-for="button in actionButtons" :key="button.action">

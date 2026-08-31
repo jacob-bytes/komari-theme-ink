@@ -32,7 +32,7 @@
   --success-foreground: #f6f8fb;
   --info: oklch(0.68 0.1 235);
   --info-foreground: #f6f8fb;
-  --selection: #18181b;
+  --selection: oklch(0.5 0.17 258);
   --signal-1: #157a55;
   --signal-2: #2f9e6b;
   --signal-3: #7ba05b;
@@ -79,7 +79,7 @@
   --success-foreground: #143d72;
   --info: #e9f2ff;
   --info-foreground: #143d72;
-  --selection: #e9f2ff;
+  --selection: oklch(0.75 0.13 245);
   --signal-1: #5fd6a5;
   --signal-2: #8fe0c0;
   --signal-3: #d6e08f;
