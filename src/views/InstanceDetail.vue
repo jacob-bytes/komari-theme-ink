@@ -306,10 +306,10 @@ const detailSummaryFields = computed(() => {
               as="div"
               placement="bottom"
               :content="field.tooltip"
-              class="mt-1 block max-w-full truncate font-mono text-sm font-semibold text-foreground underline decoration-dotted decoration-muted-foreground/50 underline-offset-3 cursor-help"
+              class="mt-1 block max-w-full cursor-help"
               content-class="w-max max-w-72 whitespace-pre-line break-words px-2 py-1.5 text-left leading-relaxed"
             >
-              {{ field.value }}
+              <span class="block max-w-full truncate font-mono text-sm font-semibold text-foreground underline decoration-dotted decoration-muted-foreground/50 underline-offset-3">{{ field.value }}</span>
             </DataTooltip>
             <div v-else class="mt-1 max-w-full truncate font-mono text-sm font-semibold text-foreground">
               <template v-if="field.upValue">
