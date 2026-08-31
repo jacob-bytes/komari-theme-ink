@@ -93,11 +93,26 @@ const overviewAuxLines = computed<Record<string, string>>(() => {
   }
 })
 const netHistory = ref<number[]>([])
+const cpuHistory = ref<number[]>([])
 let netTimer: number | undefined
 
-function sampleNetSpeed() {
+/** 每 2s 采一次全域上下行总速率与在线节点平均 CPU，供迷你趋势图使用，各保留 30 点 */
+function sampleOverviewMetrics() {
+  const onlineNodes = summaryNodes.value.filter(n => n.online)
   const total = summaryNodes.value.reduce((sum, n) => sum + (n.net_out ?? 0) + (n.net_in ?? 0), 0) / 1024
+  const cpuAvg = onlineNodes.length > 0 ? onlineNodes.reduce((sum, n) => sum + (n.cpu ?? 0), 0) / onlineNodes.length : 0
   netHistory.value = [...netHistory.value, Math.round(total * 10) / 10].slice(-30)
+  cpuHistory.value = [...cpuHistory.value, Math.round(cpuAvg * 10) / 10].slice(-30)
+}
+
+/** 支持迷你趋势图的卡片 key 到其历史数据的映射 */
+const SPARKLINE_HISTORIES: Partial<Record<GeneralCardKey, () => number[]>> = {
+  netSpeed: () => netHistory.value,
+  avgCpu: () => cpuHistory.value,
+}
+
+function sparkHistoryFor(key: GeneralCardKey): number[] {
+  return SPARKLINE_HISTORIES[key]?.() ?? []
 }
 function sparkPoints(data: number[]): string {
   if (data.length < 2)
@@ -806,8 +821,8 @@ function resetExchangeRates() {
 }
 
 onMounted(() => {
-  sampleNetSpeed()
-  netTimer = window.setInterval(sampleNetSpeed, 2000)
+  sampleOverviewMetrics()
+  netTimer = window.setInterval(sampleOverviewMetrics, 2000)
 })
 
 onMounted(async () => {
@@ -876,16 +891,16 @@ onUnmounted(() => {
           <div v-if="overviewAuxLines[card.key]" class="mt-auto text-[11px] text-muted-foreground">
             {{ overviewAuxLines[card.key] }}
           </div>
-          <div v-if="card.key === 'netSpeed' && netHistory.length > 1" class="mt-auto h-9 w-full text-muted-foreground" aria-hidden="true">
+          <div v-if="sparkHistoryFor(card.key).length > 1" class="mt-auto h-9 w-full text-muted-foreground" aria-hidden="true">
             <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="h-full w-full">
               <defs>
-                <linearGradient id="inkSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient :id="`inkSparkGrad-${card.key}`" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stop-color="currentColor" stop-opacity="0.08" />
                   <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
                 </linearGradient>
               </defs>
-              <polygon :points="sparkArea(netHistory)" fill="url(#inkSparkGrad)" />
-              <polyline :points="sparkPoints(netHistory)" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7" />
+              <polygon :points="sparkArea(sparkHistoryFor(card.key))" :fill="`url(#inkSparkGrad-${card.key})`" />
+              <polyline :points="sparkPoints(sparkHistoryFor(card.key))" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7" />
             </svg>
           </div>
         </div>

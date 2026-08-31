@@ -180,10 +180,17 @@ function setSort(key: SortKey): void {
   sortDir.value = 1
 }
 
-function sortMark(key: SortKey): string {
+// 表头排序图标：未激活时用中性的双向箭头常驻提示可点击，激活列切换为对应方向的高亮箭头
+function sortIcon(key: SortKey): string {
   if (sortKey.value !== key)
-    return ''
-  return sortDir.value === 1 ? ' ↑' : ' ↓'
+    return 'tabler:arrows-sort'
+  return sortDir.value === 1 ? 'tabler:sort-ascending' : 'tabler:sort-descending'
+}
+
+function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
+  if (sortKey.value !== key)
+    return 'none'
+  return sortDir.value === 1 ? 'ascending' : 'descending'
 }
 </script>
 
@@ -237,7 +244,7 @@ function sortMark(key: SortKey): string {
               {{ row.provider }} · {{ formatRankValue(row, sortKey) }}
             </div>
           </div>
-          <Badge v-if="row.trafficBytes <= 0" variant="outline" class="rounded-md text-[11px] text-[var(--status-load)] border-orange-500/30">
+          <Badge v-if="row.trafficBytes <= 0" variant="outline" class="rounded-md text-[11px] text-[var(--status-load)] border-[var(--status-load)]/30">
             无流量配额
           </Badge>
         </div>
@@ -258,26 +265,44 @@ function sortMark(key: SortKey): string {
       <table class="min-w-[960px] w-full text-left text-sm">
         <thead class="text-xs text-muted-foreground">
           <tr class="border-b border-border/60">
-            <th class="cursor-pointer px-2 py-2 font-medium" @click="setSort('name')">
-              机器{{ sortMark('name') }}
+            <th class="sticky left-0 z-10 bg-background px-2 py-2 font-medium" :aria-sort="ariaSort('name')">
+              <button type="button" class="group inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground" @click="setSort('name')">
+                机器
+                <Icon :icon="sortIcon('name')" :width="13" :height="13" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'name' }" />
+              </button>
             </th>
-            <th class="cursor-pointer px-2 py-2 font-medium" @click="setSort('provider')">
-              服务商{{ sortMark('provider') }}
+            <th class="px-2 py-2 font-medium" :aria-sort="ariaSort('provider')">
+              <button type="button" class="group inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground" @click="setSort('provider')">
+                服务商
+                <Icon :icon="sortIcon('provider')" :width="13" :height="13" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'provider' }" />
+              </button>
             </th>
             <th class="px-2 py-2 font-medium">
               CPU
             </th>
-            <th class="cursor-pointer px-2 py-2 font-medium" @click="setSort('monthlyCostCNY')">
-              月成本{{ sortMark('monthlyCostCNY') }}
+            <th class="px-2 py-2 font-medium" :aria-sort="ariaSort('monthlyCostCNY')">
+              <button type="button" class="group inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground" @click="setSort('monthlyCostCNY')">
+                月成本
+                <Icon :icon="sortIcon('monthlyCostCNY')" :width="13" :height="13" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'monthlyCostCNY' }" />
+              </button>
             </th>
-            <th class="cursor-pointer px-2 py-2 font-medium" @click="setSort('costPerCore')">
-              每核月成本{{ sortMark('costPerCore') }}
+            <th class="px-2 py-2 font-medium" :aria-sort="ariaSort('costPerCore')">
+              <button type="button" class="group inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground" @click="setSort('costPerCore')">
+                每核月成本
+                <Icon :icon="sortIcon('costPerCore')" :width="13" :height="13" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'costPerCore' }" />
+              </button>
             </th>
-            <th class="cursor-pointer px-2 py-2 font-medium" @click="setSort('costPerMemoryGb')">
-              每 GB 内存{{ sortMark('costPerMemoryGb') }}
+            <th class="px-2 py-2 font-medium" :aria-sort="ariaSort('costPerMemoryGb')">
+              <button type="button" class="group inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground" @click="setSort('costPerMemoryGb')">
+                每 GB 内存
+                <Icon :icon="sortIcon('costPerMemoryGb')" :width="13" :height="13" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'costPerMemoryGb' }" />
+              </button>
             </th>
-            <th class="cursor-pointer px-2 py-2 font-medium" @click="setSort('costPerTrafficGb')">
-              每 GB 流量{{ sortMark('costPerTrafficGb') }}
+            <th class="px-2 py-2 font-medium" :aria-sort="ariaSort('costPerTrafficGb')">
+              <button type="button" class="group inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground" @click="setSort('costPerTrafficGb')">
+                每 GB 流量
+                <Icon :icon="sortIcon('costPerTrafficGb')" :width="13" :height="13" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'costPerTrafficGb' }" />
+              </button>
             </th>
             <th class="px-2 py-2 font-medium">
               资源
@@ -286,12 +311,12 @@ function sortMark(key: SortKey): string {
         </thead>
         <tbody>
           <tr v-for="row in sortedRows" :key="row.key" class="border-b border-border/40 last:border-0">
-            <td class="px-2 py-3">
+            <td class="sticky left-0 z-10 bg-background px-2 py-3">
               <div class="font-medium">
                 {{ row.node.name }}
               </div>
               <div class="mt-1 flex flex-wrap gap-1">
-                <Badge v-if="row.trafficBytes <= 0" variant="outline" class="rounded-md text-[11px] text-[var(--status-load)] border-orange-500/30">
+                <Badge v-if="row.trafficBytes <= 0" variant="outline" class="rounded-md text-[11px] text-[var(--status-load)] border-[var(--status-load)]/30">
                   无流量配额
                 </Badge>
               </div>

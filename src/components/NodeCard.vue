@@ -94,7 +94,14 @@ function latencyBarClass(v: number): string {
   return 'bg-[var(--primary)]/30'
 }
 function lossBarClass(v: number): string {
-  return v > 0 ? 'bg-[var(--danger)]' : 'bg-[var(--primary)]/30'
+  // 与延迟柱状图保持同样的四级渐变逻辑：轻微网络抖动不应等同于严重丢包，避免告警疲劳
+  if (v > 10)
+    return 'bg-[var(--danger)]'
+  if (v >= 5)
+    return 'bg-[var(--primary)]'
+  if (v >= 1)
+    return 'bg-[var(--primary)]/60'
+  return 'bg-[var(--primary)]/30'
 }
 const latencyHistory = ref<number[]>([])
 const lossHistory = ref<number[]>([])
