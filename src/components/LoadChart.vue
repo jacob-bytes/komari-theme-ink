@@ -978,7 +978,7 @@ const cpuChartOption = computed(() => ({
     {
       name: 'CPU',
       type: 'line',
-      data: chartData.value.map(r => r.cpu),
+      data: chartData.value.map(r => r.cpu ?? 0),
 
       showSymbol: false,
       yAxisIndex: 0,
@@ -1000,7 +1000,7 @@ const cpuChartOption = computed(() => ({
     {
       name: '负载',
       type: 'line',
-      data: chartData.value.map(r => r.load),
+      data: chartData.value.map(r => r.load ?? 0),
 
       showSymbol: false,
       yAxisIndex: 1,

@@ -5,11 +5,11 @@ import { computed, ref, watch } from 'vue'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
 import { ProgressThin } from '@/components/ui/progress-thin'
-import { getOSImage, getOSName } from '@/utils/osImageHelper'
 import { useNodePingDisplay } from '@/composables/useNodePingDisplay'
 import { useAppStore } from '@/stores/app'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, getStatus, getUptimeDays } from '@/utils/helper'
 import { getDiskPercentage, getMemoryPercentage, getTrafficUsed, getTrafficUsedPercentage, hasTrafficLimit } from '@/utils/nodeMetricsHelper'
+import { getOSImage, getOSName } from '@/utils/osImageHelper'
 import { getRegionCode } from '@/utils/regionHelper'
 import { formatCurrencyValue, formatPriceWithCycle, getDaysUntilExpired, getExpireStatus, getRemainingValue, isFreePrice, parseTags } from '@/utils/tagHelper'
 
@@ -460,7 +460,7 @@ function hasRegion(region: string | null | undefined): boolean {
               <div
                 v-for="(v, vi) in padBars(latencyHistory)" :key="vi"
                 class="min-w-0 flex-1 rounded-[1px]"
-                :class="v > 150 ? 'bg-rose-400/70' : 'bg-muted-foreground/25'"
+                :class="v > 220 ? 'bg-rose-400/70' : 'bg-muted-foreground/25'"
                 :style="{ height: `${Math.max(15, Math.min(100, (v / (Math.max(...latencyHistory, 1))) * 100))}%` }"
               />
             </div>
