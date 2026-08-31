@@ -93,25 +93,12 @@ watch(lossDisplay, (v) => {
   const pct = Number.parseFloat(v) || 0
   lossHistory.value = [...lossHistory.value, pct].slice(-30)
 }, { immediate: true })
-function sparkPoints(data: number[]): string {
-  if (data.length < 2)
-    return ''
-  const min = Math.min(...data)
-  const max = Math.max(...data, min + 1)
-  return data.map((v, i) => {
-    const x = (i / (data.length - 1)) * 100
-    const y = 22 - ((v - min) / (max - min)) * 20
-    return `${x.toFixed(1)},${y.toFixed(1)}`
-  }).join(' ')
+function padBars(data: number[], size = 14): number[] {
+  if (data.length >= size)
+    return data.slice(-size)
+  const last = data.at(-1) ?? 0
+  return [...Array.from({ length: size - data.length }).fill(last), ...data]
 }
-const latencySparkColor = computed(() => {
-  const ms = Number.parseFloat(latencyDisplay.value) || 0
-  return ms < 50 ? '#10b981' : ms < 150 ? '#f59e0b' : '#f87171'
-})
-const lossSparkColor = computed(() => {
-  const pct = Number.parseFloat(lossDisplay.value) || 0
-  return pct > 0 ? '#f87171' : '#10b981'
-})
 const trafficUsedPercentage = computed(() => getTrafficUsedPercentage(props.node))
 const trafficUsed = computed(() => getTrafficUsed(props.node))
 const nodeMessage = computed(() => props.node.message?.trim() ?? '')
@@ -465,18 +452,28 @@ function hasRegion(region: string | null | undefined): boolean {
               <span class="text-xs font-normal text-slate-600 dark:text-slate-400">延迟</span>
               <span class="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{{ latencyDisplay }}</span>
             </div>
-            <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="mt-1 h-6 w-full" aria-hidden="true">
-              <polyline :points="sparkPoints(latencyHistory)" fill="none" :stroke="latencySparkColor" stroke-width="1.2" />
-            </svg>
+            <div class="mt-1.5 flex h-5 items-end gap-[1.5px]" aria-hidden="true">
+              <div
+                v-for="(v, vi) in padBars(latencyHistory)" :key="vi"
+                class="min-w-0 flex-1 rounded-[1px]"
+                :class="v > 150 ? 'bg-rose-400/70' : 'bg-muted-foreground/25'"
+                :style="{ height: `${Math.max(15, Math.min(100, (v / (Math.max(...latencyHistory, 1))) * 100))}%` }"
+              />
+            </div>
           </div>
           <div class="rounded-lg bg-slate-100/70 p-2.5 dark:border dark:border-slate-700/50 dark:bg-slate-800/50" :class="!props.node.online ? 'blur-xs opacity-50' : ''">
             <div class="flex items-center justify-between">
               <span class="text-xs font-normal text-slate-600 dark:text-slate-400">丢包</span>
               <span class="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{{ lossDisplay }}</span>
             </div>
-            <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="mt-1 h-6 w-full" aria-hidden="true">
-              <polyline :points="sparkPoints(lossHistory)" fill="none" :stroke="lossSparkColor" stroke-width="1.2" />
-            </svg>
+            <div class="mt-1.5 flex h-5 items-end gap-[1.5px]" aria-hidden="true">
+              <div
+                v-for="(v, vi) in padBars(lossHistory)" :key="vi"
+                class="min-w-0 flex-1 rounded-[1px]"
+                :class="v > 0 ? 'bg-rose-400/70' : 'bg-muted-foreground/25'"
+                :style="{ height: `${Math.max(15, Math.min(100, (v / (Math.max(...lossHistory, 1))) * 100))}%` }"
+              />
+            </div>
           </div>
         </div>
 
