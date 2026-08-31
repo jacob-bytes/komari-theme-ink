@@ -178,9 +178,9 @@ const detailSummaryFields = computed(() => {
         </Button>
         <div class="min-w-0 text-xl font-bold flex items-center gap-2">
           <span class="truncate">{{ data.name }}</span>
-          <span v-if="hasRegion(data.region)" class="rounded-full bg-[#f3f4f6] px-2 py-0.5 text-[10px] font-mono text-[#6b7280] dark:bg-slate-800/70 dark:text-slate-400">{{ getRegionCode(data.region) }}</span>
+          <span v-if="hasRegion(data.region)" class="rounded-full bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground">{{ getRegionCode(data.region) }}</span>
           <span class="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
-            <span v-if="data.online" class="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)] animate-pulse" />
+            <span class="size-1.5 rounded-full" :class="data.online ? 'bg-success' : 'bg-destructive'" />
             {{ data.online ? `在线 ${formatUptime(data.uptime)}` : '离线' }}
           </span>
           <template v-if="customTags.length">
@@ -196,7 +196,7 @@ const detailSummaryFields = computed(() => {
             class="size-7 rounded-sm shadow-none"
             :class="isFavoriteNode && 'text-[var(--status-warn)]'"
             :aria-label="isFavoriteNode ? '取消收藏当前节点' : '收藏当前节点'"
-            :title="isFavoriteNode ? '取消收藏' : '收藏节点'"
+            :title="isFavoriteNode ? '取消收藏' : '收藏节��'"
             @click="toggleCurrentFavorite"
           >
             <Icon :icon="isFavoriteNode ? 'tabler:star-filled' : 'tabler:star'" :width="14" :height="14" />
@@ -267,7 +267,7 @@ const detailSummaryFields = computed(() => {
       <div class="px-4">
         <div
           data-detail-summary
-          class="detail-summary grid items-center grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-slate-200/60 bg-slate-50/50 px-4 py-5 md:grid-cols-3 xl:grid-cols-5 dark:border-slate-800/60 dark:bg-slate-900/50"
+          class="detail-summary grid items-center grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-border bg-muted/40 px-4 py-5 md:grid-cols-3 xl:grid-cols-5"
         >
           <div v-for="field in detailSummaryFields" :key="field.label" class="detail-summary-field min-w-0">
             <div class="field-label text-[11px] font-medium tracking-wider text-muted-foreground">
@@ -287,7 +287,7 @@ const detailSummaryFields = computed(() => {
               <template v-if="field.label === '续费' && remainingDays !== null">
                 <span
                   class="inline-flex rounded-full px-2 py-0.5 text-[10px] leading-tight"
-                  :class="remainingDays < 7 ? 'bg-[#fee2e2] text-[#dc2626]' : 'bg-[#f3f4f6] text-[#4b5563] dark:bg-slate-800 dark:text-slate-300'"
+                  :class="remainingDays < 7 ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'"
                 >{{ field.sub }}</span>
               </template>
               <template v-else>

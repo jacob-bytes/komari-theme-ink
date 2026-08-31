@@ -11,17 +11,19 @@ export interface LoadChartPalette {
   senary: string
 }
 
+// 与 globals.css 的 --primary: oklch(0.55 0.16 258) 同色相，
+// 保证图表主色与按钮/焦点环等品牌色出自同一套色板，而非 Tailwind 默认蓝(#2563eb, 217°)。
 const DEFAULT_LOAD_CHART_PALETTE: LoadChartPalette = {
-  primary: '#2563eb',
-  primaryAreaStrong: 'rgba(37, 99, 235, 0.12)',
-  primaryAreaFaint: 'rgba(37, 99, 235, 0.04)',
-  secondary: '#93c5fd',
-  tertiary: '#60a5fa',
-  tertiaryAreaStrong: 'rgba(96, 165, 250, 0.1)',
-  tertiaryAreaFaint: 'rgba(96, 165, 250, 0.03)',
-  quaternary: '#60a5fa',
-  quinary: '#93c5fd',
-  senary: '#3b82f6',
+  primary: '#2d6fcd',
+  primaryAreaStrong: 'rgba(45, 111, 205, 0.12)',
+  primaryAreaFaint: 'rgba(45, 111, 205, 0.04)',
+  secondary: '#9cb9e5',
+  tertiary: '#6d9adc',
+  tertiaryAreaStrong: 'rgba(109, 154, 220, 0.1)',
+  tertiaryAreaFaint: 'rgba(109, 154, 220, 0.03)',
+  quaternary: '#6d9adc',
+  quinary: '#9cb9e5',
+  senary: '#3f6fb8',
 }
 
 const ACCESSIBLE_LOAD_CHART_PALETTE: LoadChartPalette = {
@@ -38,14 +40,14 @@ const ACCESSIBLE_LOAD_CHART_PALETTE: LoadChartPalette = {
 }
 
 const DEFAULT_SERIES_PALETTE = [
-  '#2563eb',
-  '#60a5fa',
-  '#93c5fd',
-  '#3b82f6',
-  '#7dd3fc',
-  '#1d4ed8',
-  '#bfdbfe',
-  '#93c5fd',
+  '#2d6fcd',
+  '#6d9adc',
+  '#9cb9e5',
+  '#3f6fb8',
+  '#bccfec',
+  '#06489c',
+  '#d2dff2',
+  '#9cb9e5',
 ]
 
 const ACCESSIBLE_SERIES_PALETTE = [

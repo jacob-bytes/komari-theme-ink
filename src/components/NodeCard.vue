@@ -217,7 +217,7 @@ function hasRegion(region: string | null | undefined): boolean {
     hoverable
     :size="nodeCardXSize"
     :content-class="nodeCardContentPaddingClass"
-    class="node-card w-full cursor-pointer border-none shadow-[0_0_0_3px] shadow-transparent transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 rounded-lg"
+    class="node-card w-full cursor-pointer border-none shadow-[0_0_0_3px] shadow-transparent transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md hover:border-ring/40 rounded-lg"
     :class="[!props.node.online && '!shadow-destructive/30']"
     role="button"
     tabindex="0"
@@ -233,10 +233,10 @@ function hasRegion(region: string | null | undefined): boolean {
             class="size-2.5 rounded-full block"
             :class="props.node.online ? 'bg-success' : 'bg-destructive'"
           />
+          <!-- 呼吸动画仅用于离线告警：健康节点保持静态，避免网格中大量卡片同时闪烁的噪音感 -->
           <span
-            v-if="!props.reduceMotion"
-            class="animate-ping absolute inset-0 rounded-full opacity-60"
-            :class="props.node.online ? 'bg-success' : 'bg-destructive'"
+            v-if="!props.reduceMotion && !props.node.online"
+            class="animate-ping absolute inset-0 rounded-full opacity-60 bg-destructive"
           />
         </div>
         <img :src="getOSImage(props.node.os)" :alt="getOSName(props.node.os)" loading="lazy" class="size-3.5 rounded-sm opacity-80"><span class="text-sm font-bold flex-1 min-w-0 truncate">{{ props.node.name }}</span>
@@ -258,7 +258,7 @@ function hasRegion(region: string | null | undefined): boolean {
       <div class="flex gap-1.5 items-center shrink-0">
         <button
           type="button"
-          class="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-slate-500/10 hover:text-[var(--status-warn)]"
+          class="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-[var(--status-warn)]"
           :class="isFavorite && 'text-[var(--status-warn)]'"
           :aria-label="isFavorite ? `取消收藏 ${props.node.name}` : `收藏 ${props.node.name}`"
           :title="isFavorite ? '取消收藏' : '收藏节点'"
@@ -269,7 +269,7 @@ function hasRegion(region: string | null | undefined): boolean {
         </button>
         <span
           v-if="hasRegion(props.node.region)"
-          class="ml-auto shrink-0 rounded-full bg-[#f3f4f6] px-2 py-0.5 text-[10px] font-mono text-[#6b7280] dark:bg-slate-800/70 dark:text-slate-400"
+          class="ml-auto shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground"
         >{{ getRegionCode(props.node.region) }}</span>
       </div>
     </template>
@@ -464,7 +464,7 @@ function hasRegion(region: string | null | undefined): boolean {
         <!-- 延迟 + 丢包（双卡片 + 像素点阵柱） -->
         <div class="grid grid-cols-2 gap-2">
           <div
-            class="cursor-pointer rounded-lg bg-slate-100/70 p-2.5 transition-colors hover:bg-slate-200/60 dark:border dark:border-slate-700/50 dark:bg-slate-800/50 dark:hover:bg-slate-800/80"
+            class="cursor-pointer rounded-lg bg-muted/50 p-2.5 transition-colors hover:bg-muted"
             :class="!props.node.online ? 'blur-xs opacity-50' : ''"
             role="button" tabindex="0"
             :aria-label="`${props.node.name} 延迟与丢包监测`"
@@ -472,8 +472,8 @@ function hasRegion(region: string | null | undefined): boolean {
             @keydown.enter.stop.prevent="emit('pingClick')"
           >
             <div class="flex items-center justify-between">
-              <span class="text-xs font-normal text-slate-600 dark:text-slate-400">延迟</span>
-              <span class="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{{ latencyDisplay }}</span>
+              <span class="text-xs font-normal text-muted-foreground">延迟</span>
+              <span class="font-mono text-xs font-bold text-foreground">{{ latencyDisplay }}</span>
             </div>
             <div class="mt-1.5 flex h-5 items-end gap-[1.5px] rounded-sm bg-muted/40 p-0.5" aria-hidden="true">
               <div
@@ -485,7 +485,7 @@ function hasRegion(region: string | null | undefined): boolean {
             </div>
           </div>
           <div
-            class="cursor-pointer rounded-lg bg-slate-100/70 p-2.5 transition-colors hover:bg-slate-200/60 dark:border dark:border-slate-700/50 dark:bg-slate-800/50 dark:hover:bg-slate-800/80"
+            class="cursor-pointer rounded-lg bg-muted/50 p-2.5 transition-colors hover:bg-muted"
             :class="!props.node.online ? 'blur-xs opacity-50' : ''"
             role="button" tabindex="0"
             :aria-label="`${props.node.name} 丢包监测`"
@@ -493,8 +493,8 @@ function hasRegion(region: string | null | undefined): boolean {
             @keydown.enter.stop.prevent="emit('pingClick')"
           >
             <div class="flex items-center justify-between">
-              <span class="text-xs font-normal text-slate-600 dark:text-slate-400">丢包</span>
-              <span class="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{{ lossDisplay }}</span>
+              <span class="text-xs font-normal text-muted-foreground">丢包</span>
+              <span class="font-mono text-xs font-bold text-foreground">{{ lossDisplay }}</span>
             </div>
             <div class="mt-1.5 flex h-5 items-end gap-[1.5px] rounded-sm bg-muted/40 p-0.5" aria-hidden="true">
               <div
@@ -511,14 +511,14 @@ function hasRegion(region: string | null | undefined): boolean {
         <div v-if="customTags.length > 0" class="flex flex-wrap gap-1">
           <span
             v-for="(tag, i) in customTags" :key="i"
-            class="rounded-full bg-[#f3f4f6] px-2 py-0.5 text-[11px] leading-tight text-[#4b5563] ring-1 ring-inset ring-[#e5e7eb] dark:bg-slate-800/70 dark:text-slate-300 dark:ring-slate-700"
+            class="rounded-full bg-muted px-2 py-0.5 text-[11px] leading-tight text-muted-foreground ring-1 ring-inset ring-border"
           >{{ tag }}</span>
         </div>
 
         <!-- 离线遮罩 -->
         <div
           v-if="!props.node.online"
-          class="absolute inset-0 flex flex-col items-center justify-center z-10 rounded-xl bg-white/20 dark:bg-black/20 backdrop-blur-[2px]"
+          class="absolute inset-0 flex flex-col items-center justify-center z-10 rounded-xl bg-background/40 backdrop-blur-[2px]"
         >
           <div class="text-sm font-semibold text-destructive">
             离线

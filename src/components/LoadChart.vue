@@ -1094,8 +1094,8 @@ const memoryChartOption = computed(() => ({
       data: chartData.value.map(r => r.ram),
 
       showSymbol: false,
-      lineStyle: { width: 1.5, color: '#2563eb', cap: 'round' as const },
-      areaStyle: { color: 'rgba(37, 99, 235, 0.08)' },
+      lineStyle: { width: 1.5, color: chartColors.primary, cap: 'round' as const },
+      areaStyle: { color: chartColors.primaryAreaStrong },
     },
     {
       name: 'RAM 总量',
@@ -1110,8 +1110,8 @@ const memoryChartOption = computed(() => ({
       data: chartData.value.map(r => r.swap),
 
       showSymbol: false,
-      lineStyle: { width: 1.5, color: '#60a5fa', cap: 'round' as const },
-      areaStyle: { color: 'rgba(96, 165, 250, 0.06)' },
+      lineStyle: { width: 1.5, color: chartColors.tertiary, cap: 'round' as const },
+      areaStyle: { color: chartColors.tertiaryAreaFaint },
     },
     {
       name: 'Swap 总量',
@@ -1529,8 +1529,8 @@ const processChartOption = computed(() => ({
           x2: 0,
           y2: 1,
           colorStops: [
-            { offset: 0, color: 'rgba(37, 99, 235, 0.08)' },
-            { offset: 1, color: 'rgba(37, 99, 235, 0.02)' },
+            { offset: 0, color: chartColors.primaryAreaStrong },
+            { offset: 1, color: chartColors.primaryAreaFaint },
           ],
         },
       },
