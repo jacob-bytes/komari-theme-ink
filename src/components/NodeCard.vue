@@ -484,7 +484,14 @@ function hasRegion(region: string | null | undefined): boolean {
               />
             </div>
           </div>
-          <div class="rounded-lg bg-slate-100/70 p-2.5 dark:border dark:border-slate-700/50 dark:bg-slate-800/50" :class="!props.node.online ? 'blur-xs opacity-50' : ''">
+          <div
+            class="cursor-pointer rounded-lg bg-slate-100/70 p-2.5 transition-colors hover:bg-slate-200/60 dark:border dark:border-slate-700/50 dark:bg-slate-800/50 dark:hover:bg-slate-800/80"
+            :class="!props.node.online ? 'blur-xs opacity-50' : ''"
+            role="button" tabindex="0"
+            :aria-label="`${props.node.name} 丢包监测`"
+            @click.stop="emit('pingClick')"
+            @keydown.enter.stop.prevent="emit('pingClick')"
+          >
             <div class="flex items-center justify-between">
               <span class="text-xs font-normal text-slate-600 dark:text-slate-400">丢包</span>
               <span class="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{{ lossDisplay }}</span>
