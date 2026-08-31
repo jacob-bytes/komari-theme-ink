@@ -5,6 +5,15 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'bun.lock'
+      - 'vite.config.ts'
+      - 'tsconfig*.json'
+      - 'eslint.config.mjs'
+      - 'komari-theme.json'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 permissions:
@@ -32,6 +41,9 @@ jobs:
 
       - name: Lint (check only)
         run: bunx eslint .
+
+      - name: Type-check
+        run: bun run type-check
 
       - name: Build
         run: bun run build
