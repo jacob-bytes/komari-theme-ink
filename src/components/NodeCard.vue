@@ -97,7 +97,9 @@ function padBars(data: number[], size = 14): number[] {
   if (data.length >= size)
     return data.slice(-size)
   const last: number = data.at(-1) ?? 0
-  const fill: number[] = Array.from({ length: size - data.length }).fill(last)
+  const fill: number[] = []
+  for (let i = 0; i < size - data.length; i++)
+    fill.push(last)
   return [...fill, ...data]
 }
 const trafficUsedPercentage = computed(() => getTrafficUsedPercentage(props.node))
