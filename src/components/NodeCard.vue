@@ -84,6 +84,18 @@ const {
   lossDisplay,
 } = useNodePingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled })
 
+function latencyBarClass(v: number): string {
+  if (v > 220)
+    return 'bg-[var(--danger)]'
+  if (v >= 150)
+    return 'bg-[var(--primary)]'
+  if (v >= 80)
+    return 'bg-[var(--primary)]/60'
+  return 'bg-[var(--primary)]/30'
+}
+function lossBarClass(v: number): string {
+  return v > 0 ? 'bg-[var(--danger)]' : 'bg-[var(--primary)]/30'
+}
 const latencyHistory = ref<number[]>([])
 const lossHistory = ref<number[]>([])
 watch(latencyDisplay, (v) => {
@@ -456,12 +468,12 @@ function hasRegion(region: string | null | undefined): boolean {
               <span class="text-xs font-normal text-slate-600 dark:text-slate-400">延迟</span>
               <span class="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{{ latencyDisplay }}</span>
             </div>
-            <div class="mt-1.5 flex h-5 items-end gap-[1.5px]" aria-hidden="true">
+            <div class="mt-1.5 flex h-5 items-end gap-[1.5px] rounded-sm bg-muted/40 p-0.5" aria-hidden="true">
               <div
                 v-for="(v, vi) in padBars(latencyHistory)" :key="vi"
                 class="min-w-0 flex-1 rounded-[1px]"
-                :class="v > 220 || (v < 0) ? 'bg-[var(--danger)]' : 'bg-muted-foreground/20'"
-                :style="{ height: `${Math.max(15, Math.min(100, (v / (Math.max(...latencyHistory, 1))) * 100))}%` }"
+                :class="latencyBarClass(v)"
+                :style="{ height: `${Math.max(25, Math.min(100, (v / (Math.max(...latencyHistory, 1))) * 100))}%` }"
               />
             </div>
           </div>
@@ -470,12 +482,12 @@ function hasRegion(region: string | null | undefined): boolean {
               <span class="text-xs font-normal text-slate-600 dark:text-slate-400">丢包</span>
               <span class="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{{ lossDisplay }}</span>
             </div>
-            <div class="mt-1.5 flex h-5 items-end gap-[1.5px]" aria-hidden="true">
+            <div class="mt-1.5 flex h-5 items-end gap-[1.5px] rounded-sm bg-muted/40 p-0.5" aria-hidden="true">
               <div
                 v-for="(v, vi) in padBars(lossHistory)" :key="vi"
                 class="min-w-0 flex-1 rounded-[1px]"
-                :class="v > 0 ? 'bg-[var(--danger)]' : 'bg-muted-foreground/20'"
-                :style="{ height: `${Math.max(15, Math.min(100, (v / (Math.max(...lossHistory, 1))) * 100))}%` }"
+                :class="lossBarClass(v)"
+                :style="{ height: `${Math.max(25, Math.min(100, (v / (Math.max(...lossHistory, 1))) * 100))}%` }"
               />
             </div>
           </div>
