@@ -1673,15 +1673,6 @@ onMounted(() => {
                 <span>%</span>
               </div>
               <span v-else>-</span>
-              <Button
-                variant="ghost" size="icon-sm"
-                class="mt-0.5"
-                :aria-label="chartPaused ? '继续图表' : '暂停图表'"
-                :title="chartPaused ? '继续图表' : '暂停图表'"
-                @click="chartPaused = !chartPaused"
-              >
-                <Icon :icon="chartPaused ? 'tabler:player-play' : 'tabler:player-pause'" :width="14" :height="14" />
-              </Button>
             </MetricChartHeader>
           </template>
           <div class="h-48">
