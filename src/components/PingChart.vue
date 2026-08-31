@@ -761,14 +761,14 @@ onBeforeUnmount(() => {
         <div class="flex gap-2 items-center">
           <Button
             variant="ghost" size="xs" class="h-7 rounded-sm bg-background/50 hover:bg-background border-none"
-            :class="selectedTaskIds.length === tasks.length ? 'shadow-[0_0_0_2px] shadow-green-600/10 text-[var(--status-ok)]' : ''"
+            :class="selectedTaskIds.length === tasks.length ? 'shadow-[0_0_0_2px] shadow-primary/10 text-primary' : ''"
             @click="showAllTasks"
           >
             全选
           </Button>
           <Button
             variant="ghost" size="xs" class="h-7 rounded-sm bg-background/50 hover:bg-background border-none"
-            :class="!selectedTaskIds.length && 'shadow-[0_0_0_2px] shadow-green-600/10 text-[var(--status-ok)]'"
+            :class="!selectedTaskIds.length && 'shadow-[0_0_0_2px] shadow-primary/10 text-primary'"
             @click="hideAllTasks"
           >
             全不选
@@ -839,7 +839,7 @@ onBeforeUnmount(() => {
                 <div class="flex gap-2 items-center">
                   <span
                     class="mr-1.5 h-3 w-1 shrink-0 rounded-[2px]"
-                    :style="{ backgroundColor: (task.loss ?? 0) > 0 || (task.latest ?? 0) > 220 ? 'var(--destructive)' : 'color-mix(in srgb, var(--primary) 45%, transparent)' }"
+                    :style="{ backgroundColor: (task.loss ?? 0) > 0 || (task.latest ?? 0) > 220 ? 'var(--danger)' : 'var(--border)' }"
                     aria-hidden="true"
                   />
                   <span class="text-xs font-medium truncate">{{ task.name }}</span>
@@ -927,7 +927,7 @@ onBeforeUnmount(() => {
             <div class="flex gap-2 items-center">
               <Button
                 variant="ghost" size="xs" class="h-7 rounded-sm bg-background/50 hover:bg-background border-none"
-                :class="cutPeak && 'shadow-[0_0_0_2px] shadow-green-600/10 text-[var(--status-ok)]'" @click="cutPeak = !cutPeak"
+                :class="cutPeak && 'shadow-[0_0_0_2px] shadow-primary/10 text-primary'" @click="cutPeak = !cutPeak"
               >
                 平滑峰值
               </Button>
