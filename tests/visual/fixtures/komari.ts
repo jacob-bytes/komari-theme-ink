@@ -25,6 +25,8 @@ export interface VisualFixtureOptions {
   missingCpuMetricHistory?: boolean
   pingTaskOrdering?: boolean
   generalCardKeys?: string[]
+  /** 模拟管理员登录态，用于测试仅登录可见的私有工具(性价比/导出/审计日志) */
+  loggedIn?: boolean
 }
 
 function uuidFor(index: number): string {
@@ -319,7 +321,7 @@ async function handleRpc(route: Route, clientFixtures = clients, options: Visual
       result = Object.values(clientFixtures)
       break
     case 'public:getMe':
-      result = { logged_in: false }
+      result = options.loggedIn ? { logged_in: true, username: 'visual-admin' } : { logged_in: false }
       break
     case 'public:getVersion':
     case 'common:getBackendVersion':
@@ -400,7 +402,7 @@ export async function installKomariFixture(page: Page, options: VisualFixtureOpt
   }))
   await page.route('**/api/me', route => route.fulfill({
     contentType: 'application/json',
-    body: JSON.stringify({ logged_in: false, username: 'visual-guest' }),
+    body: JSON.stringify(options.loggedIn ? { logged_in: true, username: 'visual-admin' } : { logged_in: false, username: 'visual-guest' }),
   }))
   await page.route('**/api/version', route => route.fulfill({
     contentType: 'application/json',
