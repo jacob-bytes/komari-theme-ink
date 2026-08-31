@@ -136,9 +136,6 @@ const groups = computed(() => [
 
 const quickControlKeys = computed<HomeQuickControlKey[]>(() => appStore.homeQuickControlOrder)
 const quickControls = computed(() => quickControlKeys.value.map(key => quickControlDefinitions[key]))
-const quickControlsVisible = computed(() =>
-  quickControls.value.filter(control => (quickControlCounts.value[control.key] ?? 0) > 0),
-)
 
 const showQuickControls = computed(() => appStore.homeQuickControlsEnabled && quickControls.value.length > 0)
 
@@ -271,6 +268,10 @@ const quickControlCounts = computed<Record<HomeQuickControlKey, number>>(() => {
     counts[key] = getQuickControlCount(base, key)
   return counts
 })
+
+const quickControlsVisible = computed(() =>
+  quickControls.value.filter(control => (quickControlCounts.value[control.key] ?? 0) > 0),
+)
 
 const emptyDescription = computed(() => {
   if (debouncedSearchText.value.trim())
