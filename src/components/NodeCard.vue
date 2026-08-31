@@ -5,6 +5,7 @@ import { computed, ref, watch } from 'vue'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
 import { ProgressThin } from '@/components/ui/progress-thin'
+import { getOSImage, getOSName } from '@/utils/osImageHelper'
 import { useNodePingDisplay } from '@/composables/useNodePingDisplay'
 import { useAppStore } from '@/stores/app'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, getStatus, getUptimeDays } from '@/utils/helper'
@@ -226,7 +227,7 @@ function hasRegion(region: string | null | undefined): boolean {
             :class="props.node.online ? 'bg-success' : 'bg-destructive'"
           />
         </div>
-        <span class="text-sm font-bold flex-1 min-w-0 truncate">{{ props.node.name }}</span>
+        <img :src="getOSImage(props.node.os)" :alt="getOSName(props.node.os)" loading="lazy" class="size-3.5 rounded-sm opacity-80"><span class="text-sm font-bold flex-1 min-w-0 truncate">{{ props.node.name }}</span>
         <DataTooltip
           v-if="nodeMessage"
           :content="nodeMessageTooltip"

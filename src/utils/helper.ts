@@ -261,7 +261,7 @@ export function calcPercentage(used: number, total: number): number {
 /** 状态阈值配置 */
 const STATUS_THRESHOLDS = {
   success: 60,
-  warning: 80,
+  warning: 85,
 } as const
 
 /**
