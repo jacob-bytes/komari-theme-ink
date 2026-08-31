@@ -275,9 +275,9 @@ const detailSummaryFields = computed(() => {
             </div>
             <div class="mt-1 max-w-full truncate font-mono text-sm font-semibold text-foreground">
               <template v-if="field.upValue">
-                <span class="text-[#8b5cf6]">↑ {{ field.upValue }}</span>
+                <span class="text-foreground">↑ {{ field.upValue }}</span>
                 <span class="text-muted-foreground"> · </span>
-                <span class="text-[#10b981]">↓ {{ field.downValue }}</span>
+                <span class="text-foreground">↓ {{ field.downValue }}</span>
               </template>
               <template v-else>
                 {{ field.value }}

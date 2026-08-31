@@ -751,7 +751,7 @@ onBeforeUnmount(() => {
           <TabsList class="w-max h-8 bg-background/50 backdrop-blur-xl rounded-md">
             <TabsTrigger
               v-for="view in availableViews" :key="view.label" :value="view.label"
-              class="h-6.5 flex-none shrink-0 text-xs border-none data-[state=active]:text-[var(--status-ok)] shadow-none rounded-sm"
+              class="h-6.5 flex-none shrink-0 text-xs border-none data-[state=active]:text-primary shadow-none rounded-sm"
             >
               {{ view.label }}
             </TabsTrigger>
@@ -839,7 +839,7 @@ onBeforeUnmount(() => {
                 <div class="flex gap-2 items-center">
                   <span
                     class="mr-1.5 h-3 w-1 shrink-0 rounded-[2px]"
-                    :style="{ backgroundColor: task.color }"
+                    :style="{ backgroundColor: (task.loss ?? 0) > 0 || (task.latest ?? 0) > 220 ? 'var(--destructive)' : 'color-mix(in srgb, var(--primary) 45%, transparent)' }"
                     aria-hidden="true"
                   />
                   <span class="text-xs font-medium truncate">{{ task.name }}</span>

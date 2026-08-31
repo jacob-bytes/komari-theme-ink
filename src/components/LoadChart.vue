@@ -901,6 +901,7 @@ const baseYAxisConfig = computed(() => ({
   axisLabel: {
     fontSize: 11,
     color: chartThemeColors.value.textSecondary,
+    fontFamily: 'ui-monospace, monospace',
   },
   axisLine: { show: false },
   axisTick: { show: false },
@@ -1113,7 +1114,7 @@ const memoryChartOption = computed(() => ({
       type: 'line',
       data: chartData.value.map(r => r.ram_total ?? nodeInfo.value?.mem_total ?? null),
       showSymbol: false,
-      lineStyle: { width: 1.2, type: 'dashed' as const, color: chartColors.quinary, cap: 'round' as const },
+      lineStyle: { width: 1.2, color: 'rgba(113, 113, 122, 0.35)', cap: 'round' as const },
     },
     {
       name: 'Swap',
@@ -1224,7 +1225,7 @@ const diskChartOption = computed(() => ({
       type: 'line',
       data: chartData.value.map(r => r.disk_total ?? nodeInfo.value?.disk_total ?? null),
       showSymbol: false,
-      lineStyle: { width: 1.2, type: 'dashed' as const, color: chartColors.quinary, cap: 'round' as const },
+      lineStyle: { width: 1.2, color: 'rgba(113, 113, 122, 0.35)', cap: 'round' as const },
     },
   ],
 }))
@@ -1618,7 +1619,7 @@ onMounted(() => {
         <TabsList class="h-8 bg-background/50 backdrop-blur-xl pointer-events-auto rounded-md" data-load-chart-range>
           <TabsTrigger
             v-for="view in availableViews" :key="view.label" :value="view.label"
-            class="h-6.5 text-xs border-none data-[state=active]:text-[var(--status-ok)] shadow-none rounded-sm"
+            class="h-6.5 text-xs border-none data-[state=active]:text-primary shadow-none rounded-sm"
           >
             {{ view.label }}
           </TabsTrigger>
