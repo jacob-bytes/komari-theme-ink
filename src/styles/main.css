@@ -359,16 +359,6 @@ header {
   -webkit-backdrop-filter: none !important;
 }
 
-/* ===== 小组件背景 ===== */
-
-.bg-slate-500\/5 {
-  background-color: var(--secondary) !important;
-}
-
-.dark .bg-slate-500\/5 {
-  background-color: var(--secondary) !important;
-}
-
 /* ===== ink 主题 · 移除毛玻璃 backdrop-filter ===== */
 [class*='backdrop-blur'],
 [class*='backdrop-filter'],
