@@ -483,7 +483,7 @@ const chartData = computed(() => {
   return data
 })
 
-// ==================== 工具函数 ====================
+// ==================== ���具函数 ====================
 
 function formatTime(time: string, showDate: boolean): string {
   const date = dayjs(time)
@@ -828,7 +828,7 @@ onBeforeUnmount(() => {
           <div
             v-for="task in latestValues" :key="task.id"
             :data-ping-task-id="task.id"
-            class="rounded-md bg-slate-100/80 px-2.5 py-2 hover:bg-slate-200/70 dark:bg-slate-800/60 dark:hover:bg-slate-800 flex gap-2.5 cursor-pointer select-none transition-all items-center"
+            class="rounded-md bg-muted/60 px-2.5 py-2 hover:bg-muted flex gap-2.5 cursor-pointer select-none transition-all items-center"
             :class="[!selectedTaskIds.includes(task.id) && 'opacity-30']"
             :onmouseover="(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.borderColor = task.color)"
             :onmouseout="(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.borderColor = '')"

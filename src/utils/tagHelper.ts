@@ -289,9 +289,12 @@ export function parseTagWithColor(tag: string): { text: string, color: TagColor 
   if (colorMatch && colorMatch[1]) {
     const colorCandidate = colorMatch[1].toLowerCase()
     const text = normalizedTag.replace(TAG_COLOR_SUFFIX_REMOVE_REGEX, '').trim()
+    // 即便颜色名不在受支持列表内，仍去除 <xxx> 后缀标记，避免脏数据把 "<invalid>" 原样露出在界面上；
+    // 仅颜色回退到默认轮转色，不影响文本展示。
     if ((TAG_COLORS as readonly string[]).includes(colorCandidate)) {
       return { text, color: colorCandidate as TagColor }
     }
+    return { text, color: null }
   }
   return { text: normalizedTag, color: null }
 }

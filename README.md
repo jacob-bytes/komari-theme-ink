@@ -50,15 +50,15 @@ bun run dev          # 本地开发预览
 
 ## 🧱 技术栈
 
-| 层 | 技术 |
-|---|---|
-| 框架 | Vue 3.5 + Vite 7 |
-| 样式 | Tailwind CSS v4 + CSS Variables（oklch token） |
+| 层   | 技术                                                         |
+| ---- | ------------------------------------------------------------ |
+| 框架 | Vue 3.5 + Vite 7                                             |
+| 样式 | Tailwind CSS v4 + CSS Variables（oklch token）               |
 | 组件 | reka-ui / shadcn 风格组件（Card/Button/Tabs/Badge/Tooltip…） |
-| 图表 | vue-echarts（ECharts 6，按需树摇） |
-| 状态 | Pinia |
-| 语言 | TypeScript |
-| 构建 | Bun |
+| 图表 | vue-echarts（ECharts 6，按需树摇）                           |
+| 状态 | Pinia                                                        |
+| 语言 | TypeScript                                                   |
+| 构建 | Bun                                                          |
 
 ## 🏗️ 架构
 
@@ -72,12 +72,12 @@ Component → Composable → Service → RequestManager / CacheService → API /
 
 ## 🎨 设计 Token（3 语义色）
 
-| Token | 值 | 用途 |
-|---|---|---|
+| Token       | 值                     | 用途                                       |
+| ----------- | ---------------------- | ------------------------------------------ |
 | `--primary` | `oklch(0.55 0.16 258)` | 图表主线 / 选中态 / hover 边框 / sparkline |
-| `--success` | `oklch(0.62 0.13 154)` | **仅**在线/正常状态点 |
-| `--danger` | `oklch(0.58 0.18 25)` | **仅**异常 / 丢包 / 85%+ 负载 |
-| `--warning` | `oklch(0.72 0.14 70)` | 60-85% 负载 / 延迟中间档 |
+| `--success` | `oklch(0.62 0.13 154)` | **仅**在线/正常状态点                      |
+| `--danger`  | `oklch(0.58 0.18 25)`  | **仅**异常 / 丢包 / 85%+ 负载              |
+| `--warning` | `oklch(0.72 0.14 70)`  | 60-85% 负载 / 延迟中间档                   |
 
 > 中性色（background/card/border/muted）为灰阶层，不参与语义。
 

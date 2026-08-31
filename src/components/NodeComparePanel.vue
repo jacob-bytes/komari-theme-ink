@@ -165,7 +165,7 @@ watch(() => props.nodes.map(node => node.uuid), (uuids) => {
             <div class="break-words text-xs tabular-nums" :title="metric.value(node)">
               {{ metric.value(node) }}
             </div>
-            <div v-if="metric.percentage?.(node) != null" class="mt-1.5 h-1 overflow-hidden rounded-full bg-slate-500/10">
+            <div v-if="metric.percentage?.(node) != null" class="mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
               <div
                 class="h-full rounded-full bg-selection/70"
                 :style="{ width: `${clampPercentage(metric.percentage?.(node) ?? 0)}%` }"

@@ -7,12 +7,12 @@ on:
       - main
     paths:
       - 'src/**'
-      - 'package.json'
-      - 'bun.lock'
-      - 'vite.config.ts'
+      - package.json
+      - bun.lock
+      - vite.config.ts
       - 'tsconfig*.json'
-      - 'eslint.config.mjs'
-      - 'komari-theme.json'
+      - eslint.config.mjs
+      - komari-theme.json
       - '.github/workflows/**'
   workflow_dispatch:
 

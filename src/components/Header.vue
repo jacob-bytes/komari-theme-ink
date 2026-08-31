@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -12,8 +12,6 @@ import { useAppStore } from '@/stores/app'
 const router = useRouter()
 const appStore = useAppStore()
 const { record: recordVisitorEvent } = useVisitorAudit()
-
-const isScrolled = inject<ReturnType<typeof ref<boolean>>>('isScrolled', ref(false))
 
 const siteFavicon = ref('/favicon.ico')
 
@@ -114,8 +112,7 @@ onMounted(() => {
   <VisitorInfo v-if="!appStore.loading && appStore.visitorInfoEnabled" />
 
   <div
-    class="glass-header backdrop-blur-xl transition-all duration-200 top-0 sticky z-10 w-full border-b border-border"
-    :class="isScrolled ? 'shadow-sm' : ''"
+    class="bg-card transition-colors duration-200 top-0 sticky z-10 w-full border-b border-border"
     style="padding-top: env(safe-area-inset-top); width: 100%;"
   >
     <div class="px-4 flex-between h-14 max-w-[1280px] mx-auto">
@@ -134,7 +131,7 @@ onMounted(() => {
             class="mr-1 hidden sm:flex items-center gap-1.5 text-[10px] text-muted-foreground"
             :title="freshText" aria-label="数据更新时间"
           >
-            <span class="size-1.5 rounded-full bg-green-600 animate-pulse" />
+            <span class="size-1.5 rounded-full bg-success" />
             {{ freshText }}
           </span>
           <Tooltip v-for="button in actionButtons" :key="button.action">

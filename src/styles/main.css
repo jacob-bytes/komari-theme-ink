@@ -359,33 +359,12 @@ header {
   -webkit-backdrop-filter: none !important;
 }
 
-/* ===== 小组件背景 ===== */
-
-.bg-slate-500\/5 {
-  background-color: var(--secondary) !important;
-}
-
-.dark .bg-slate-500\/5 {
-  background-color: var(--secondary) !important;
-}
-
 /* ===== ink 主题 · 移除毛玻璃 backdrop-filter ===== */
 [class*='backdrop-blur'],
 [class*='backdrop-filter'],
 [class*='backdrop-saturate'] {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-}
-
-/* ===== Header 例外：恢复半透明毛玻璃（桌面 + 移动；-webkit- 兼容 iOS） ===== */
-.glass-header {
-  background-color: color-mix(in srgb, var(--card) 20%, transparent) !important;
-  backdrop-filter: blur(16px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(150%) !important;
-}
-
-html.legacy-webkit .glass-header {
-  background-color: color-mix(in srgb, var(--card) 88%, white) !important;
 }
 
 /* 键盘焦点可见环（无障碍） */

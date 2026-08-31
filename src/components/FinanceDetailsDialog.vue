@@ -406,7 +406,7 @@ function formatTraffic(tib: number): string {
         </TabsContent>
 
         <TabsContent value="metered" class="space-y-3">
-          <div class="rounded-md border border-sky-500/20 bg-sky-500/7 px-3 py-2 text-xs text-muted-foreground">
+          <div class="rounded-md border border-[var(--info)]/25 bg-[var(--info)]/8 px-3 py-2 text-xs text-muted-foreground">
             按量费用估算器仅在当前浏览器计算，不写入 Komari。当前探针累计流量可能因机器重启、Agent 重启或网卡变化而重置，也可能包含安装 Komari 前的流量。1 TiB = 1024⁴ bytes，本结果不是正式账单。
           </div>
 
@@ -485,7 +485,7 @@ function formatTraffic(tib: number): string {
             </Button>
           </div>
 
-          <div v-if="!usageAvailable" class="rounded-md border border-amber-500/25 bg-amber-500/8 px-3 py-5 text-center text-sm text-amber-700 dark:text-amber-300">
+          <div v-if="!usageAvailable" class="rounded-md border border-[var(--status-warn)]/25 bg-[var(--status-warn)]/8 px-3 py-5 text-center text-sm text-[var(--status-warn)]">
             当前节点离线或没有可用的实时累计流量，无法进行本次估算。
           </div>
           <div v-else-if="selectedEstimate" class="grid grid-cols-2 divide-x divide-y divide-border/60 overflow-hidden rounded-md border border-border/60 md:grid-cols-4 md:divide-y-0">

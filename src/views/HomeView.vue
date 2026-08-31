@@ -332,7 +332,7 @@ async function toggleHomeTool(key: HomeToolKey) {
     const granted = await appStore.requireLoginPermission(permission, { force: true })
     if (!granted) {
       activeHomeTool.value = 'nodes'
-      window.$message?.warning('登录状态已过期，请重新登录后使用高级工具。')
+      window.$message?.warning('登录状态已过期，请重新登录后���用高级工具。')
       return
     }
   }
@@ -475,7 +475,7 @@ const nodeCardGridClass = computed(() => {
                   <Input
                     v-model="searchText" placeholder="搜索名称、地区、IP、CPU"
                     aria-label="搜索节点"
-                    class="transition-all border-none shadow-none h-8 bg-background/50 backdrop-blur-xs rounded-md hover:!bg-background/60 focus:!pl-7.5 focus:placeholder:!text-muted-foreground focus:!bg-background/80 focus:!ring-slate-500/10"
+                    class="transition-all border-none shadow-none h-8 bg-background/50 backdrop-blur-xs rounded-md hover:!bg-background/60 focus:!pl-7.5 focus:placeholder:!text-muted-foreground focus:!bg-background/80 focus:!ring-ring/20"
                     :class="searchText ? '!w-full sm:!w-60 !pl-7.5 pr-7 placeholder:!text-muted-foreground' : 'w-8 placeholder:text-transparent focus:!pl-7.5 focus:!w-full'"
                     @keydown.esc.prevent="clearSearch"
                   />

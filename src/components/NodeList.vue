@@ -409,8 +409,8 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
           <div
             v-for="({ data: node, index }) in renderedRows"
             :key="getRowTransitionKey(node)"
-            class="flex flex-col relative h-16 min-h-16 max-h-16 overflow-hidden justify-center px-2.5 cursor-pointer bg-background/40 rounded-lg backdrop-blur-sm shadow-[0_0_0_2px] shadow-transparent hover:shadow-slate-500/10 hover:bg-background/70 transition-all"
-            :class="[!node.online && '!shadow-red-600/10']"
+            class="flex flex-col relative h-16 min-h-16 max-h-16 overflow-hidden justify-center px-2.5 cursor-pointer bg-background/40 rounded-lg backdrop-blur-sm shadow-[0_0_0_2px] shadow-transparent hover:shadow-ring/10 hover:bg-background/70 transition-all"
+            :class="[!node.online && '!shadow-destructive/20']"
             :style="getRowTransitionStyle(index)"
             role="button"
             tabindex="0"
@@ -423,9 +423,10 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
                 <!-- 在线状态指示器 -->
                 <div v-if="col.key === 'status'" class="flex justify-center">
                   <div class="size-2 rounded-full relative" :class="[node.online ? 'bg-success' : 'bg-destructive']">
+                    <!-- 呼吸动画仅用于离线告警：健康节点保持静态，避免列表中大量行同时闪烁的噪音感 -->
                     <div
-                      class="animate-ping absolute inset-0 rounded-full opacity-50"
-                      :class="[node.online ? 'bg-success' : 'bg-destructive']"
+                      v-if="!node.online"
+                      class="animate-ping absolute inset-0 rounded-full opacity-50 bg-destructive"
                     />
                   </div>
                 </div>
@@ -441,7 +442,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
                     <span class="truncate">{{ node.name }}</span>
                     <button
                       type="button"
-                      class="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-slate-500/10 hover:text-[var(--status-warn)]"
+                      class="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-[var(--status-warn)]"
                       :class="appStore.isFavoriteNode(node.uuid) && 'text-[var(--status-warn)]'"
                       :aria-label="appStore.isFavoriteNode(node.uuid) ? `取消收藏 ${node.name}` : `收藏 ${node.name}`"
                       :title="appStore.isFavoriteNode(node.uuid) ? '取消收藏' : '收藏节点'"
@@ -590,7 +591,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
                       <Icon icon="tabler:chevron-up" width="12" height="12" class="shrink-0" />
                       {{ formatBytesPerSecond(node.net_out ?? 0) }}
                     </span>
-                    <span class="text-blue-600 dark:text-blue-400 flex flex-row gap-1 items-center truncate">
+                    <span class="text-primary flex flex-row gap-1 items-center truncate">
                       <Icon icon="tabler:chevron-down" width="12" height="12" class="shrink-0" />
                       {{ formatBytesPerSecond(node.net_in ?? 0) }}
                     </span>

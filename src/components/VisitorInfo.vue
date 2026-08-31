@@ -300,8 +300,7 @@ function formatDate(): string {
     <div
       v-if="show && !mobileScrolling && !hideAll"
       class="fixed bottom-3 left-1/2 z-50 -translate-x-1/2 w-[440px] max-w-[calc(100vw-1.5rem)] md:bottom-4
-             bg-white/55 dark:bg-black/50 backdrop-blur-md
-             border border-white/40 dark:border-white/10
+             bg-card/95 border border-border
              shadow-lg text-[12px] md:text-[13px] select-none transition-all duration-300"
       :class="detailOpen ? 'rounded-2xl px-4 py-3' : 'rounded-full px-3 py-1.5 md:px-4'"
       role="button"
@@ -313,7 +312,7 @@ function formatDate(): string {
     >
       <!-- 折叠态：胶囊单行（内容居中；宽度与展开态恒定一致） -->
       <div v-if="!detailOpen" class="flex items-center justify-center gap-1.5 whitespace-nowrap">
-        <Icon icon="icon-park-outline:earth" :width="14" :height="14" class="text-blue-500 shrink-0" />
+        <Icon icon="icon-park-outline:earth" :width="14" :height="14" class="text-primary shrink-0" />
         <span class="hidden text-muted-foreground sm:inline">Your IP:</span>
         <span class="min-w-0 truncate font-semibold text-foreground">{{ displayIp }}</span>
         <span class="text-muted-foreground/40 shrink-0">|</span>
@@ -327,17 +326,17 @@ function formatDate(): string {
       <div v-else class="flex flex-col gap-2.5">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1.5">
           <div class="flex min-w-0 items-center gap-2">
-            <Icon icon="tabler:world" :width="13" :height="13" class="shrink-0 text-blue-500" />
+            <Icon icon="tabler:world" :width="13" :height="13" class="shrink-0 text-primary" />
             <span class="shrink-0 text-muted-foreground">地区</span>
             <span class="truncate font-medium">{{ compactLocation }}</span>
           </div>
           <div class="flex min-w-0 items-center gap-2">
-            <Icon icon="tabler:device-desktop" :width="13" :height="13" class="shrink-0 text-blue-500" />
+            <Icon icon="tabler:device-desktop" :width="13" :height="13" class="shrink-0 text-primary" />
             <span class="shrink-0 text-muted-foreground">设备</span>
             <span class="truncate font-medium">{{ getOsName() }}</span>
           </div>
           <div class="flex min-w-0 items-center gap-2">
-            <Icon icon="icon-park-outline:local" :width="13" :height="13" class="shrink-0 text-blue-500" />
+            <Icon icon="icon-park-outline:local" :width="13" :height="13" class="shrink-0 text-primary" />
             <span class="shrink-0 text-muted-foreground">IP</span>
             <span class="truncate font-mono font-medium">{{ displayIp }}</span>
           </div>
@@ -357,12 +356,12 @@ function formatDate(): string {
             <span class="truncate font-medium">{{ formatDate() }}</span>
           </div>
         </div>
-        <div class="flex items-center justify-between gap-3 border-t border-black/6 pt-2 dark:border-white/10">
+        <div class="flex items-center justify-between gap-3 border-t border-border pt-2">
           <span class="truncate text-[11px] text-muted-foreground">{{ visitorStatusText }}</span>
           <button
             type="button"
             class="inline-flex size-5 shrink-0 items-center justify-center rounded-full
-                   text-muted-foreground transition-colors hover:bg-black/6 hover:text-foreground dark:hover:bg-white/10"
+                   text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="收起访客详情"
             aria-expanded="true"
             @click.stop="toggleDetail(false)"
