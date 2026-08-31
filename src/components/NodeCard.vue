@@ -96,8 +96,9 @@ watch(lossDisplay, (v) => {
 function padBars(data: number[], size = 14): number[] {
   if (data.length >= size)
     return data.slice(-size)
-  const last = data.at(-1) ?? 0
-  return [...Array.from({ length: size - data.length }).fill(last), ...data]
+  const last: number = data.at(-1) ?? 0
+  const fill: number[] = Array.from({ length: size - data.length }, () => last)
+  return [...fill, ...data]
 }
 const trafficUsedPercentage = computed(() => getTrafficUsedPercentage(props.node))
 const trafficUsed = computed(() => getTrafficUsed(props.node))
