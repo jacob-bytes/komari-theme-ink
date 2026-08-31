@@ -119,6 +119,32 @@ const trafficUsed = computed(() => {
 
 const hasTrafficLimit = computed(() => (data.value?.traffic_limit ?? 0) > 0)
 
+/** 系统字段悬浮提示：内核版本等信息在紧凑视图中被省略，鼠标悬停可查看完整详情 */
+const systemTooltip = computed(() => {
+  const node = data.value
+  if (!node)
+    return ''
+  const lines = [`系统：${[node.os, node.arch].filter(Boolean).join(' · ') || '-'}`]
+  if (node.kernel_version)
+    lines.push(`内核：${node.kernel_version}`)
+  if (node.virtualization)
+    lines.push(`虚拟化：${node.virtualization}`)
+  return lines.join('\n')
+})
+
+/** CPU 字段悬浮提示：型号常被截断，鼠标悬停展示完整型号及物理核心、GPU 等信息 */
+const cpuTooltip = computed(() => {
+  const node = data.value
+  if (!node)
+    return ''
+  const lines = [`${node.cpu_name || '-'}`]
+  lines.push(node.cpu_physical_cores ? `${node.cpu_cores} vCPU（${node.cpu_physical_cores} 物理核心）` : `${node.cpu_cores} vCPU`)
+  if (node.gpu_name) {
+    lines.push(node.online ? `GPU：${node.gpu_name}（${node.gpu.toFixed(1)}%）` : `GPU：${node.gpu_name}`)
+  }
+  return lines.join('\n')
+})
+
 const detailSummaryFields = computed(() => {
   const node = data.value
   if (!node)
@@ -128,10 +154,12 @@ const detailSummaryFields = computed(() => {
     {
       label: '系统',
       value: [node.os, node.arch].filter(Boolean).join(' · '),
+      tooltip: systemTooltip.value,
     },
     {
       label: 'CPU',
       value: `${node.cpu_name} (${node.cpu_cores} vCPU)`,
+      tooltip: cpuTooltip.value,
     },
     {
       label: '内存 / 硬盘',
@@ -157,8 +185,8 @@ const detailSummaryFields = computed(() => {
 </script>
 
 <template>
-  <div class="instance-detail space-y-4">
-    <div v-if="!data" class="p-4">
+  <div class="instance-detail space-y-4 pt-4">
+    <div v-if="!data" class="px-4 pb-4">
       <CardX>
         <Empty description="节点不存在或已被删除">
           <template #extra>
@@ -273,7 +301,17 @@ const detailSummaryFields = computed(() => {
             <div class="field-label text-[11px] font-medium tracking-wider text-muted-foreground">
               {{ field.label }}
             </div>
-            <div class="mt-1 max-w-full truncate font-mono text-sm font-semibold text-foreground">
+            <DataTooltip
+              v-if="field.tooltip"
+              as="div"
+              placement="bottom"
+              :content="field.tooltip"
+              class="mt-1 block max-w-full truncate font-mono text-sm font-semibold text-foreground underline decoration-dotted decoration-muted-foreground/50 underline-offset-3 cursor-help"
+              content-class="w-max max-w-72 whitespace-pre-line break-words px-2 py-1.5 text-left leading-relaxed"
+            >
+              {{ field.value }}
+            </DataTooltip>
+            <div v-else class="mt-1 max-w-full truncate font-mono text-sm font-semibold text-foreground">
               <template v-if="field.upValue">
                 <span class="text-foreground">↑ {{ field.upValue }}</span>
                 <span class="text-muted-foreground"> · </span>
@@ -330,34 +368,8 @@ const detailSummaryFields = computed(() => {
   }
 }
 
-/* ===== 详情页基础信息栏 · Custom CSS（强覆盖） ===== */
+/* ===== 详情页基础信息栏：字段间分隔线，随主题明暗切换 ===== */
 .detail-summary-field:not(:last-child) {
-  border-right: 1px solid rgba(0, 0, 0, 0.06) !important;
-}
-.dark .detail-summary-field:not(:last-child) {
-  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-.detail-summary-field .field-label {
-  font-size: 11px !important;
-  color: #9ca3af !important;
-  font-weight: 500 !important;
-  letter-spacing: 0.02em !important;
-}
-.detail-summary-field .field-value {
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  color: #111827 !important;
-}
-.dark .detail-summary-field .field-value {
-  color: #fafafa !important;
-}
-.detail-summary-field:nth-child(2) .field-value {
-  max-width: 180px !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-  text-decoration: underline dotted rgba(0, 0, 0, 0.25) !important;
-  text-underline-offset: 3px !important;
-  cursor: help !important;
+  border-right: 1px solid var(--border);
 }
 </style>
