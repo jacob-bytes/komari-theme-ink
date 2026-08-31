@@ -282,7 +282,7 @@ function hasRegion(region: string | null | undefined): boolean {
           <div class="grid grid-cols-2 gap-x-3 gap-y-1">
             <div class="flex flex-col gap-1">
               <div class="flex justify-between text-xs">
-                <span class="inline-flex items-center text-sky-500" role="img" title="CPU" aria-label="CPU">
+                <span class="inline-flex items-center text-muted-foreground" role="img" title="CPU" aria-label="CPU">
                   <Icon :icon="NODE_METRIC_ICONS.cpu" data-node-metric-icon="cpu" width="12" height="12" aria-hidden="true" />
                 </span>
                 <span class="font-mono tabular-nums font-medium">{{ (props.node.cpu ?? 0).toFixed(1) }}%</span>
@@ -292,7 +292,7 @@ function hasRegion(region: string | null | undefined): boolean {
 
             <div class="flex flex-col gap-1" :title="swapTooltip">
               <div class="flex justify-between text-xs">
-                <span class="inline-flex items-center text-emerald-500" role="img" title="内存" aria-label="内存">
+                <span class="inline-flex items-center text-muted-foreground" role="img" title="内存" aria-label="内存">
                   <Icon :icon="NODE_METRIC_ICONS.memory" data-node-metric-icon="memory" width="12" height="12" aria-hidden="true" />
                 </span>
                 <span class="font-mono tabular-nums font-medium">{{ memPercentage.toFixed(1) }}%</span>
@@ -308,7 +308,7 @@ function hasRegion(region: string | null | undefined): boolean {
           <div class="flex flex-col gap-1">
             <div class="flex justify-between text-xs">
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
-                <Icon :icon="NODE_METRIC_ICONS.traffic" data-node-metric-icon="traffic" width="12" height="12" class="shrink-0 text-violet-500" aria-hidden="true" />
+                <Icon :icon="NODE_METRIC_ICONS.traffic" data-node-metric-icon="traffic" width="12" height="12" class="shrink-0 text-muted-foreground/70" aria-hidden="true" />
                 <span class="truncate">流量</span>
               </span>
               <span class="font-mono tabular-nums font-medium" :class="trafficPercentageClass">
@@ -375,7 +375,7 @@ function hasRegion(region: string | null | undefined): boolean {
           <div class="flex flex-col gap-1">
             <div class="flex justify-between text-xs">
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
-                <Icon :icon="NODE_METRIC_ICONS.traffic" data-node-metric-icon="traffic" width="13" height="13" class="shrink-0 text-violet-500" aria-hidden="true" />
+                <Icon :icon="NODE_METRIC_ICONS.traffic" data-node-metric-icon="traffic" width="13" height="13" class="shrink-0 text-muted-foreground/70" aria-hidden="true" />
                 <span class="truncate">流量</span>
               </span>
               <span class="font-mono tabular-nums font-medium" :class="trafficPercentageClass">
@@ -399,11 +399,11 @@ function hasRegion(region: string | null | undefined): boolean {
         <div class="grid gap-1.5" :class="nodeCardMetricGridClass">
           <!-- 实时网速 -->
           <div class="flex flex-col gap-0.5 rounded-lg bg-transparent min-w-0 overflow-hidden" :class="nodeCardMetricBoxClass">
-            <div class="text-[11px] text-indigo-500 flex items-center gap-1">
+            <div class="text-[11px] text-foreground flex items-center gap-1">
               <Icon icon="tabler:chevron-up" width="11" height="11" class="text-muted-foreground/70" />
               <span class="truncate min-w-0 overflow-hidden">{{ formatBytesPerSecond(props.node.net_out ?? 0) }}</span>
             </div>
-            <div class="text-[11px] text-emerald-500 flex items-center gap-1">
+            <div class="text-[11px] text-foreground flex items-center gap-1">
               <Icon icon="tabler:chevron-down" width="11" height="11" class="text-muted-foreground/70" />
               <span class="truncate min-w-0 overflow-hidden">{{ formatBytesPerSecond(props.node.net_in ?? 0) }}</span>
             </div>
@@ -460,7 +460,7 @@ function hasRegion(region: string | null | undefined): boolean {
               <div
                 v-for="(v, vi) in padBars(latencyHistory)" :key="vi"
                 class="min-w-0 flex-1 rounded-[1px]"
-                :class="v > 220 ? 'bg-rose-400/70' : 'bg-muted-foreground/25'"
+                :class="v > 220 || (v < 0) ? 'bg-[var(--danger)]' : 'bg-muted-foreground/20'"
                 :style="{ height: `${Math.max(15, Math.min(100, (v / (Math.max(...latencyHistory, 1))) * 100))}%` }"
               />
             </div>
@@ -474,7 +474,7 @@ function hasRegion(region: string | null | undefined): boolean {
               <div
                 v-for="(v, vi) in padBars(lossHistory)" :key="vi"
                 class="min-w-0 flex-1 rounded-[1px]"
-                :class="v > 0 ? 'bg-rose-400/70' : 'bg-muted-foreground/25'"
+                :class="v > 0 ? 'bg-[var(--danger)]' : 'bg-muted-foreground/20'"
                 :style="{ height: `${Math.max(15, Math.min(100, (v / (Math.max(...lossHistory, 1))) * 100))}%` }"
               />
             </div>

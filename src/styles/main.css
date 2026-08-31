@@ -16,7 +16,7 @@
   --card-foreground: hsl(222.2 84% 4.9%);
   --popover: #f6f8fb;
   --popover-foreground: #1d4e89;
-  --primary: oklch(0.42 0.13 265);
+  --primary: oklch(0.55 0.16 258);
   --primary-foreground: oklch(0.98 0.005 265);
   --secondary: hsl(210 40% 96%);
   --secondary-foreground: hsl(222.2 84% 4.9%);
@@ -24,11 +24,11 @@
   --muted-foreground: hsl(215.4 16.3% 46.9%);
   --accent: hsl(210 40% 96%);
   --accent-foreground: hsl(222.2 84% 4.9%);
-  --destructive: oklch(0.62 0.17 20);
+  --destructive: oklch(0.58 0.18 25);
   --destructive-foreground: #f6f8fb;
-  --warning: oklch(0.78 0.12 85);
+  --warning: oklch(0.72 0.14 70);
   --warning-foreground: #f6f8fb;
-  --success: oklch(0.72 0.11 160);
+  --success: oklch(0.62 0.13 154);
   --success-foreground: #f6f8fb;
   --info: oklch(0.68 0.1 235);
   --info-foreground: #f6f8fb;
@@ -63,7 +63,7 @@
   --card-foreground: hsl(210 40% 98%);
   --popover: #143d72;
   --popover-foreground: #e9f2ff;
-  --primary: oklch(0.68 0.12 265);
+  --primary: oklch(0.55 0.16 258);
   --primary-foreground: oklch(0.14 0.022 265);
   --secondary: hsl(217.2 32.6% 17.5%);
   --secondary-foreground: hsl(210 40% 98%);
@@ -71,11 +71,11 @@
   --muted-foreground: hsl(215 20.2% 65.1%);
   --accent: hsl(217.2 32.6% 17.5%);
   --accent-foreground: hsl(210 40% 98%);
-  --destructive: oklch(0.65 0.14 20);
+  --destructive: oklch(0.58 0.18 25);
   --destructive-foreground: #143d72;
-  --warning: oklch(0.74 0.1 85);
+  --warning: oklch(0.72 0.14 70);
   --warning-foreground: #143d72;
-  --success: oklch(0.68 0.09 160);
+  --success: oklch(0.62 0.13 154);
   --success-foreground: #143d72;
   --info: #e9f2ff;
   --info-foreground: #143d72;
@@ -177,7 +177,7 @@ html.legacy-webkit {
   --card-foreground: hsl(222.2 84% 4.9%);
   --popover: #f6f8fb;
   --popover-foreground: #1d4e89;
-  --primary: oklch(0.42 0.13 265);
+  --primary: oklch(0.55 0.16 258);
   --primary-foreground: oklch(0.98 0.005 265);
   --secondary: hsl(210 40% 96%);
   --secondary-foreground: hsl(222.2 84% 4.9%);
@@ -185,7 +185,7 @@ html.legacy-webkit {
   --muted-foreground: hsl(215.4 16.3% 46.9%);
   --accent: hsl(210 40% 96%);
   --accent-foreground: hsl(222.2 84% 4.9%);
-  --destructive: oklch(0.62 0.17 20);
+  --destructive: oklch(0.58 0.18 25);
   --destructive-foreground: #f6f8fb;
   --border: #c2cfdd;
   --input: #c2cfdd;
@@ -199,7 +199,7 @@ html.legacy-webkit.dark {
   --card-foreground: hsl(210 40% 98%);
   --popover: #143d72;
   --popover-foreground: #e9f2ff;
-  --primary: oklch(0.68 0.12 265);
+  --primary: oklch(0.55 0.16 258);
   --primary-foreground: oklch(0.14 0.022 265);
   --secondary: hsl(217.2 32.6% 17.5%);
   --secondary-foreground: hsl(210 40% 98%);
@@ -207,7 +207,7 @@ html.legacy-webkit.dark {
   --muted-foreground: #a7bcd8;
   --accent: hsl(217.2 32.6% 17.5%);
   --accent-foreground: hsl(210 40% 98%);
-  --destructive: oklch(0.65 0.14 20);
+  --destructive: oklch(0.58 0.18 25);
   --destructive-foreground: #143d72;
   --border: #3a5f92;
   --input: #3a5f92;
@@ -216,11 +216,11 @@ html.legacy-webkit.dark {
 
 html.color-vision-friendly {
   --selection: #0072b2;
-  --success: #0072b2;
+  --success: oklch(0.62 0.13 154);
   --success-foreground: #ffffff;
-  --warning: #8a5a00;
+  --warning: oklch(0.72 0.14 70);
   --warning-foreground: #ffffff;
-  --destructive: #b54708;
+  --destructive: oklch(0.58 0.18 25);
   --destructive-foreground: #ffffff;
   --info: #8e477e;
   --info-foreground: #ffffff;
@@ -243,11 +243,11 @@ html.color-vision-friendly {
 
 html.color-vision-friendly.dark {
   --selection: #56b4e9;
-  --success: #56b4e9;
+  --success: oklch(0.62 0.13 154);
   --success-foreground: #07111f;
-  --warning: #e69f00;
+  --warning: oklch(0.72 0.14 70);
   --warning-foreground: #14151a;
-  --destructive: #f28e5b;
+  --destructive: oklch(0.58 0.18 25);
   --destructive-foreground: #14151a;
   --info: #d090c5;
   --info-foreground: #14151a;
@@ -423,4 +423,12 @@ img[src*='/images/flags/'] {
 }
 .px-bg {
   background-color: var(--pixel-bg);
+}
+
+/* ink 语义别名（第二轮规范） */
+:root {
+  --danger: oklch(0.58 0.18 25);
+}
+.dark {
+  --danger: oklch(0.62 0.15 25);
 }
