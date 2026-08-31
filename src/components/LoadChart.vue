@@ -297,7 +297,7 @@ function statusToRecordFormat(records: StatusRecord[]): RecordFormat[] {
     return {
       client: r.client,
       time: r.time,
-      cpu: metricValue(r.cpu),
+      cpu: metricValue((r as any).cpu_usage ?? r.cpu),
       gpu: metricValue(r.gpu_average_usage ?? r.gpu),
       gpu_usage: metricValue(r.gpu_average_usage ?? r.gpu),
       gpu_memory: null,
@@ -306,7 +306,7 @@ function statusToRecordFormat(records: StatusRecord[]): RecordFormat[] {
       ram_total: metricValue(r.ram_total),
       swap: metricValue(r.swap),
       swap_total: metricValue(r.swap_total),
-      load: metricValue(r.load),
+      load: metricValue((r as any).load_average ?? r.load),
       temp: metricValue(r.temp),
       disk: metricValue(r.disk),
       disk_total: metricValue(r.disk_total),
@@ -917,9 +917,12 @@ const baseYAxisConfig = computed(() => ({
 // CPU 图表
 const cpuPeak = computed(() => {
   let peak = 0
-  for (const r of chartData.value)
-    peak = Math.max(peak, r.cpu ?? 0)
-  return peak
+  for (const r of chartData.value) {
+    const v = Number(r.cpu)
+    if (Number.isFinite(v))
+      peak = Math.max(peak, v)
+  }
+  return Number.isFinite(peak) ? peak : 0
 })
 const cpuChartOption = computed(() => ({
   animation: false,
@@ -963,7 +966,7 @@ const cpuChartOption = computed(() => ({
       name: 'CPU %',
       nameTextStyle: { color: chartThemeColors.value.textSecondary, padding: [0, 40, 0, 0] },
       min: 0,
-      max: Math.max(10, Math.ceil(cpuPeak.value * 1.5)),
+      max: Number.isFinite(cpuPeak.value) && cpuPeak.value > 0 ? Math.max(10, Math.ceil(cpuPeak.value * 1.5)) : 100,
       axisLabel: { ...baseYAxisConfig.value.axisLabel, formatter: '{value}%' },
     },
     {
@@ -978,7 +981,7 @@ const cpuChartOption = computed(() => ({
     {
       name: 'CPU',
       type: 'line',
-      data: chartData.value.map(r => r.cpu ?? 0),
+      data: chartData.value.map(r => (Number.isFinite(Number(r.cpu)) ? Number(r.cpu) : null)),
 
       showSymbol: false,
       yAxisIndex: 0,

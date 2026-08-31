@@ -14,7 +14,7 @@ export interface LoadChartPalette {
 const DEFAULT_LOAD_CHART_PALETTE: LoadChartPalette = {
   primary: '#0ea5e9',
   primaryAreaStrong: 'rgba(14, 165, 233, 0.08)',
-  primaryAreaFaint: 'rgba14, 165, 233, 0.02)',
+  primaryAreaFaint: 'rgba(14, 165, 233, 0.02)',
   secondary: '#64748b',
   tertiary: '#10b981',
   tertiaryAreaStrong: 'rgba(16, 185, 129, 0.08)',
