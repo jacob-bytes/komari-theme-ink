@@ -137,7 +137,7 @@ const groups = computed(() => [
 const quickControlKeys = computed<HomeQuickControlKey[]>(() => appStore.homeQuickControlOrder)
 const quickControls = computed(() => quickControlKeys.value.map(key => quickControlDefinitions[key]))
 const quickControlsVisible = computed(() =>
-  quickControls.value.filter(control => (quickControlCounts[control.key] ?? 0) > 0),
+  quickControls.value.filter(control => (quickControlCounts.value[control.key] ?? 0) > 0),
 )
 
 const showQuickControls = computed(() => appStore.homeQuickControlsEnabled && quickControls.value.length > 0)
