@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { NodeData } from '@/stores/nodes'
 import { Icon } from '@iconify/vue'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
 import { ProgressThin } from '@/components/ui/progress-thin'
@@ -83,19 +83,34 @@ const {
   lossDisplay,
 } = useNodePingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled })
 
-const latencyBlocks = computed<string[]>(() => {
+const latencyHistory = ref<number[]>([])
+const lossHistory = ref<number[]>([])
+watch(latencyDisplay, (v) => {
+  const ms = Number.parseFloat(v) || 0
+  latencyHistory.value = [...latencyHistory.value, ms].slice(-30)
+}, { immediate: true })
+watch(lossDisplay, (v) => {
+  const pct = Number.parseFloat(v) || 0
+  lossHistory.value = [...lossHistory.value, pct].slice(-30)
+}, { immediate: true })
+function sparkPoints(data: number[]): string {
+  if (data.length < 2)
+    return ''
+  const min = Math.min(...data)
+  const max = Math.max(...data, min + 1)
+  return data.map((v, i) => {
+    const x = (i / (data.length - 1)) * 100
+    const y = 22 - ((v - min) / (max - min)) * 20
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+}
+const latencySparkColor = computed(() => {
   const ms = Number.parseFloat(latencyDisplay.value) || 0
-  const color = ms < 50
-    ? 'bg-emerald-500'
-    : ms < 150
-      ? 'bg-amber-500'
-      : 'bg-rose-500'
-  return Array.from({ length: 14 }).fill(color) as string[]
+  return ms < 50 ? '#10b981' : ms < 150 ? '#f59e0b' : '#f87171'
 })
-const lossBlocks = computed<string[]>(() => {
-  const loss = Number.parseFloat(lossDisplay.value) || 0
-  const hit = loss > 0 ? Math.max(1, Math.round((loss / 10) * 14)) : 0
-  return Array.from({ length: 14 }, (_, i) => (i < hit ? 'px-rose' : 'px-bg'))
+const lossSparkColor = computed(() => {
+  const pct = Number.parseFloat(lossDisplay.value) || 0
+  return pct > 0 ? '#f87171' : '#10b981'
 })
 const trafficUsedPercentage = computed(() => getTrafficUsedPercentage(props.node))
 const trafficUsed = computed(() => getTrafficUsed(props.node))
@@ -450,18 +465,18 @@ function hasRegion(region: string | null | undefined): boolean {
               <span class="text-xs font-normal text-slate-600 dark:text-slate-400">延迟</span>
               <span class="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{{ latencyDisplay }}</span>
             </div>
-            <div class="mt-1.5 flex gap-0.5" aria-hidden="true">
-              <div v-for="(b, bi) in latencyBlocks" :key="bi" class="h-3 flex-1 rounded-[2px]" :class="b" />
-            </div>
+            <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="mt-1 h-6 w-full" aria-hidden="true">
+              <polyline :points="sparkPoints(latencyHistory)" fill="none" :stroke="latencySparkColor" stroke-width="1.2" />
+            </svg>
           </div>
           <div class="rounded-lg bg-slate-100/70 p-2.5 dark:border dark:border-slate-700/50 dark:bg-slate-800/50" :class="!props.node.online ? 'blur-xs opacity-50' : ''">
             <div class="flex items-center justify-between">
               <span class="text-xs font-normal text-slate-600 dark:text-slate-400">丢包</span>
               <span class="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{{ lossDisplay }}</span>
             </div>
-            <div class="mt-1.5 flex gap-0.5" aria-hidden="true">
-              <div v-for="(b, bi) in lossBlocks" :key="bi" class="h-3 flex-1 rounded-[2px]" :class="b" />
-            </div>
+            <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="mt-1 h-6 w-full" aria-hidden="true">
+              <polyline :points="sparkPoints(lossHistory)" fill="none" :stroke="lossSparkColor" stroke-width="1.2" />
+            </svg>
           </div>
         </div>
 
