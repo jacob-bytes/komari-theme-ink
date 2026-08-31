@@ -6,14 +6,34 @@ import { Button } from '@/components/ui/button'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
 import { Empty } from '@/components/ui/empty'
+import { ProgressThin } from '@/components/ui/progress-thin'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useNodeProviderMetadata } from '@/composables/useNodeProviderMetadata'
 import { useAppStore } from '@/stores/app'
 import { useNodesStore } from '@/stores/nodes'
-import { formatBytesWithConfig, formatUptimeWithFormat } from '@/utils/helper'
+import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, formatUptimeWithFormat, getStatus } from '@/utils/helper'
+import { hasTrafficLimit as checkHasTrafficLimit, getDiskPercentage, getMemoryPercentage, getTrafficUsed, getTrafficUsedPercentage } from '@/utils/nodeMetricsHelper'
+import { getOSImage, getOSName } from '@/utils/osImageHelper'
 import { getRegionCode } from '@/utils/regionHelper'
 
-import { formatPrice, formatPriceWithCycle, getExpireText, parseTags } from '@/utils/tagHelper'
+import { formatPrice, formatPriceWithCycle, getExpireStatus, getExpireStatusColor, getExpireText, parseTags } from '@/utils/tagHelper'
+
+/** 指标图标：与 NodeCard 列表卡片保持一致的视觉语言 */
+const METRIC_ICONS = {
+  cpu: 'tabler:cpu',
+  memory: 'icon-park-outline:memory',
+  disk: 'tabler:server-2',
+  traffic: 'tabler:arrows-transfer-up-down',
+  gpu: 'tabler:brand-nvidia',
+} as const
+
+/** 徽章状态到 Tailwind 语义色类的映射，跟随明暗主题自动切换 */
+const STATUS_BADGE_CLASS: Record<'error' | 'warning' | 'success' | 'default', string> = {
+  error: 'bg-destructive/10 text-destructive',
+  warning: 'bg-warning/10 text-warning',
+  success: 'bg-success/10 text-success',
+  default: 'bg-muted text-muted-foreground',
+}
 
 const LoadChart = defineAsyncComponent(() => import('@/components/LoadChart.vue'))
 const PingChart = defineAsyncComponent(() => import('@/components/PingChart.vue'))
@@ -81,6 +101,7 @@ const showPrice = computed(() => appStore.privateFeaturesAllowed || !appStore.hi
 
 const hasRegion = (region: string) => !!region
 const formatBytes = (bytes: number) => formatBytesWithConfig(bytes, appStore.byteDecimals)
+const formatBytesPerSecond = (bytes: number) => formatBytesPerSecondWithConfig(bytes, appStore.byteDecimals)
 const formatUptime = (seconds: number) => formatUptimeWithFormat(seconds, 'minute')
 
 const nodePriceText = computed(() => {
@@ -97,27 +118,112 @@ const remainingTimeText = computed(() => {
   return getExpireText(data.value.expired_at, appStore.lang)
 })
 
-const remainingDays = computed(() => {
-  const num = Number.parseInt(remainingTimeText.value, 10)
-  return Number.isFinite(num) ? num : null
-})
+const hasTrafficLimit = computed(() => checkHasTrafficLimit(data.value ?? { traffic_limit: 0 }))
 
-const trafficUsed = computed(() => {
+/** 操作系统图标：与首页节点列表使用同一套匹配规则，保证视觉一致 */
+const osIconSrc = computed(() => data.value ? getOSImage(data.value.os) : '')
+const osDisplayName = computed(() => data.value ? getOSName(data.value.os) : '')
+
+/** 在线/离线状态悬浮提示：紧凑徽章省略了精确时间，鼠标悬停展示完整上报/离线时间 */
+const statusTooltip = computed(() => {
   const node = data.value
   if (!node)
-    return 0
-  const { net_total_up = 0, net_total_down = 0, traffic_limit_type } = node
-  switch (traffic_limit_type) {
-    case 'up': return net_total_up
-    case 'down': return net_total_down
-    case 'min': return Math.min(net_total_up, net_total_down)
-    case 'max': return Math.max(net_total_up, net_total_down)
-    case 'sum':
-    default: return net_total_up + net_total_down
-  }
+    return ''
+  const label = node.online ? '最近上报' : '离线时间'
+  return `${label}：${formatDateTime(node.time)}`
 })
 
-const hasTrafficLimit = computed(() => (data.value?.traffic_limit ?? 0) > 0)
+/** 流量状态颜色：无限流量视为健康，超限阶梯与首页节点卡片保持一致（60%/80%/95%） */
+const trafficStatus = computed(() => {
+  const node = data.value
+  if (!node || !hasTrafficLimit.value)
+    return 'default' as const
+  const pct = getTrafficUsedPercentage(node)
+  if (pct >= 95)
+    return 'error' as const
+  if (pct >= 80)
+    return 'warning' as const
+  if (pct >= 60)
+    return 'info' as const
+  return 'default' as const
+})
+
+/** 「资源使用」主视觉行：CPU/内存/硬盘/流量（含 GPU，若节点提供）四到五项指标，进度条颜色跟随健康阈值变化 */
+const resourceMetrics = computed(() => {
+  const node = data.value
+  if (!node)
+    return []
+
+  const memPct = getMemoryPercentage(node)
+  const diskPct = getDiskPercentage(node)
+  const trafficPct = hasTrafficLimit.value ? getTrafficUsedPercentage(node) : 0
+  const trafficUsedBytes = getTrafficUsed(node)
+
+  interface ResourceMetric {
+    key: string
+    label: string
+    icon: string
+    percentage: number
+    status: 'default' | 'info' | 'warning' | 'error'
+    primaryText: string
+    subText: string
+  }
+
+  const metrics: ResourceMetric[] = [
+    {
+      key: 'cpu',
+      label: 'CPU',
+      icon: METRIC_ICONS.cpu,
+      percentage: node.cpu ?? 0,
+      status: getStatus(node.cpu ?? 0),
+      primaryText: `${(node.cpu ?? 0).toFixed(1)}%`,
+      subText: `负载 ${(node.load ?? 0).toFixed(2)} · ${(node.load5 ?? 0).toFixed(2)} · ${(node.load15 ?? 0).toFixed(2)}`,
+    },
+    {
+      key: 'memory',
+      label: '内存',
+      icon: METRIC_ICONS.memory,
+      percentage: memPct,
+      status: getStatus(memPct),
+      primaryText: `${memPct.toFixed(1)}%`,
+      subText: `${formatBytes(node.ram)} / ${formatBytes(node.mem_total)}`,
+    },
+    {
+      key: 'disk',
+      label: '硬盘',
+      icon: METRIC_ICONS.disk,
+      percentage: diskPct,
+      status: getStatus(diskPct),
+      primaryText: `${diskPct.toFixed(1)}%`,
+      subText: `${formatBytes(node.disk)} / ${formatBytes(node.disk_total)}`,
+    },
+    {
+      key: 'traffic',
+      label: '流量',
+      icon: METRIC_ICONS.traffic,
+      percentage: trafficPct,
+      status: trafficStatus.value,
+      primaryText: hasTrafficLimit.value ? `${trafficPct.toFixed(1)}%` : '无限',
+      subText: hasTrafficLimit.value
+        ? `${formatBytes(trafficUsedBytes)} / ${formatBytes(node.traffic_limit)}`
+        : `已用 ${formatBytes(trafficUsedBytes)}`,
+    },
+  ]
+
+  if (node.gpu_name) {
+    metrics.push({
+      key: 'gpu',
+      label: 'GPU',
+      icon: METRIC_ICONS.gpu,
+      percentage: node.gpu ?? 0,
+      status: getStatus(node.gpu ?? 0),
+      primaryText: `${(node.gpu ?? 0).toFixed(1)}%`,
+      subText: node.gpu_name,
+    })
+  }
+
+  return metrics
+})
 
 /** 系统字段悬浮提示：内核版本等信息在紧凑视图中被省略，鼠标悬停可查看完整详情 */
 const systemTooltip = computed(() => {
@@ -145,7 +251,16 @@ const cpuTooltip = computed(() => {
   return lines.join('\n')
 })
 
-const detailSummaryFields = computed(() => {
+/** 到期徽章：复用全站统一的过期阈值（5 天危险 / 10 天警告），替换此前硬编码的 7 天判断 */
+const expireBadgeClass = computed(() => {
+  const node = data.value
+  if (!node?.expired_at)
+    return STATUS_BADGE_CLASS.default
+  return STATUS_BADGE_CLASS[getExpireStatusColor(getExpireStatus(node.expired_at))]
+})
+
+/** 「详情信息」次要行：系统、CPU 型号（悬浮展示完整信息）、实时速率、续费到期状态 */
+const detailInfoFields = computed(() => {
   const node = data.value
   if (!node)
     return []
@@ -162,23 +277,17 @@ const detailSummaryFields = computed(() => {
       tooltip: cpuTooltip.value,
     },
     {
-      label: '内存 / 硬盘',
-      value: `${formatBytes(node.ram)} / ${formatBytes(node.mem_total)}`,
-      sub: `硬盘 ${formatBytes(node.disk)} / ${formatBytes(node.disk_total)}`,
-    },
-    {
-      label: '流量',
+      label: '实时速率',
       value: '',
-      upValue: formatBytes(node.net_total_up),
-      downValue: formatBytes(node.net_total_down),
-      sub: hasTrafficLimit.value
-        ? `已用 ${formatBytes(trafficUsed.value)} / ${formatBytes(node.traffic_limit)}`
-        : '无限流量',
+      upValue: formatBytesPerSecond(node.net_in),
+      downValue: formatBytesPerSecond(node.net_out),
+      sub: `累计 ↑${formatBytes(node.net_total_up)} · ↓${formatBytes(node.net_total_down)}`,
     },
     {
       label: '续费',
       value: showPrice.value ? nodePriceText.value : '***',
       sub: remainingTimeText.value,
+      badgeClass: expireBadgeClass.value,
     },
   ]
 })
@@ -205,12 +314,30 @@ const detailSummaryFields = computed(() => {
           <Icon icon="tabler:arrow-left" :width="16" :height="16" />
         </Button>
         <div class="min-w-0 text-xl font-bold flex items-center gap-2">
+          <img
+            v-if="osIconSrc"
+            :src="osIconSrc"
+            :alt="osDisplayName"
+            width="18"
+            height="18"
+            class="size-4.5 shrink-0 rounded-[3px] object-contain"
+          >
           <span class="truncate">{{ data.name }}</span>
           <span v-if="hasRegion(data.region)" class="rounded-full bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground">{{ getRegionCode(data.region) }}</span>
-          <span class="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
-            <span class="size-1.5 rounded-full" :class="data.online ? 'bg-success' : 'bg-destructive'" />
-            {{ data.online ? `在线 ${formatUptime(data.uptime)}` : '离线' }}
-          </span>
+          <DataTooltip
+            as="div"
+            placement="bottom"
+            :content="statusTooltip"
+            class="cursor-help"
+          >
+            <span
+              class="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-normal"
+              :class="data.online ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'"
+            >
+              <span class="size-1.5 rounded-full" :class="data.online ? 'bg-success' : 'bg-destructive'" />
+              {{ data.online ? `在线 ${formatUptime(data.uptime)}` : '离线' }}
+            </span>
+          </DataTooltip>
           <template v-if="customTags.length">
             <span
               v-for="(tag, i) in customTags" :key="i"
@@ -291,13 +418,47 @@ const detailSummaryFields = computed(() => {
         </Tabs>
       </div>
 
-      <!-- 紧凑详情摘要 -->
+      <!-- 资源使用：主视觉行，进度条颜色跟随健康阈值实时变化 -->
+      <div class="px-4">
+        <div
+          data-resource-metrics
+          class="grid grid-cols-2 gap-3 sm:grid-cols-4"
+          :class="resourceMetrics.length > 4 && 'sm:grid-cols-5'"
+        >
+          <div
+            v-for="metric in resourceMetrics" :key="metric.key"
+            class="min-w-0 rounded-xl border border-border bg-muted/40 px-3.5 py-3"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <span class="flex items-center gap-1.5 text-[11px] font-medium tracking-wider text-muted-foreground">
+                <Icon :icon="metric.icon" :width="13" :height="13" />
+                {{ metric.label }}
+              </span>
+              <span
+                class="font-mono text-sm font-semibold"
+                :class="{
+                  'text-destructive': metric.status === 'error',
+                  'text-warning': metric.status === 'warning',
+                  'text-info': metric.status === 'info',
+                  'text-foreground': metric.status === 'default',
+                }"
+              >{{ metric.primaryText }}</span>
+            </div>
+            <ProgressThin :percentage="metric.percentage" :status="metric.status" :height="4" class="mt-2.5" />
+            <div class="mt-1.5 truncate text-[11px] text-muted-foreground">
+              {{ metric.subText }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 详情信息：系统、CPU 型号、实时速率与续费到期状态 -->
       <div class="px-4">
         <div
           data-detail-summary
-          class="detail-summary grid items-center grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-border bg-muted/40 px-4 py-5 md:grid-cols-3 xl:grid-cols-5"
+          class="detail-summary grid items-center grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-border bg-muted/40 px-4 py-5 md:grid-cols-4"
         >
-          <div v-for="field in detailSummaryFields" :key="field.label" class="detail-summary-field min-w-0">
+          <div v-for="field in detailInfoFields" :key="field.label" class="detail-summary-field min-w-0">
             <div class="field-label text-[11px] font-medium tracking-wider text-muted-foreground">
               {{ field.label }}
             </div>
@@ -322,10 +483,10 @@ const detailSummaryFields = computed(() => {
               </template>
             </div>
             <div v-if="field.sub" class="mt-0.5 truncate text-xs text-muted-foreground">
-              <template v-if="field.label === '续费' && remainingDays !== null">
+              <template v-if="field.label === '续费'">
                 <span
                   class="inline-flex rounded-full px-2 py-0.5 text-[10px] leading-tight"
-                  :class="remainingDays < 7 ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'"
+                  :class="field.badgeClass"
                 >{{ field.sub }}</span>
               </template>
               <template v-else>
