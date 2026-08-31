@@ -2,7 +2,7 @@
   "name": "ink",
   "short": "ink",
   "description": "A minimal ink theme for Komari (deep navy-black, shadcn-inspired)",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "author": "jacob-bytes",
   "url": "https://github.com/jacob-bytes/komari-theme-ink",
   "preview": "preview.png",
@@ -36,14 +36,6 @@
         "default": "http",
         "options": "http,websocket",
         "help": "HTTP 兼容性更好；反代支持时可改 websocket。"
-      },
-      {
-        "key": "defaultViewMode",
-        "name": "默认视图模式",
-        "type": "select",
-        "default": "card",
-        "options": "card,list",
-        "help": "节点列表的默认显示模式"
       },
       {
         "key": "nodeCardSize",
