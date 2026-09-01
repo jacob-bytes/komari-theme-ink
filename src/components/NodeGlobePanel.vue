@@ -245,6 +245,7 @@ function renderFrame(): void {
   // 投影上会扭曲得很奇怪，直接跳过
   if (flylinesEnabled.value && !props.reduceMotion && transitionT < 0.999) {
     const hub = regionGroups.value[0]
+    console.log('[v0] flyline branch', { hub: hub?.code, groups: regionGroups.value.map(g => [g.code, g.onlineCount]) })
     if (hub) {
       for (const group of regionGroups.value) {
         if (group.code === hub.code || group.onlineCount <= 0)
@@ -261,6 +262,7 @@ function renderFrame(): void {
         ctx.lineWidth = 0.8
         ctx.strokeStyle = GLOBE_THEME.flylineColor
         ctx.stroke()
+        console.log('[v0] flyline drawn', group.code, 'sample projected', projection(coordinates[0]), projection(coordinates[20]), projection(coordinates[40]))
 
         const t = (getFlylinePhase(group.code) + flylineGlobalT) % 1
         const dotProjected = projection(interpolate(t))
