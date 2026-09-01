@@ -106,8 +106,9 @@ async function loadLandFeatures(): Promise<void> {
 const graticule = geoGraticule10()
 const markers = shallowRef<MarkerPoint[]>([])
 
+/** alpha 以百分比（0-100）表示，例如 6 表示 6% 不透明度 */
 function withAlpha(color: string, alpha: number): string {
-  return `color-mix(in oklab, ${color} ${Math.round(alpha * 100)}%, transparent)`
+  return `color-mix(in oklab, ${color} ${Math.round(alpha)}%, transparent)`
 }
 
 let rafId = 0
