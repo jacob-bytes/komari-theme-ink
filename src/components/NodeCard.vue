@@ -84,24 +84,29 @@ const {
   lossDisplay,
 } = useNodePingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled })
 
+// 四级状态改用「色相」区分而非同一蓝色的透明度区分：
+// 大多数节点延迟/丢包正常时会长期停留在最低档，若最低档只是 30% 透明度的浅蓝，
+// 整墙卡片会显得大部分「发灰变淡」、只有个别异常节点色块突出，产生割裂感。
+// 改为健康态用 success 绿实色、中/高/危急态依次过渡到 primary 蓝、warning 黄、danger 红，
+// 每一档都是饱和的实色，正常节点也能呈现清晰、有意图的视觉效果，而非「褪色」。
 function latencyBarClass(v: number): string {
   if (v > 220)
-    return 'bg-[var(--danger)]'
+    return 'bg-destructive'
   if (v >= 150)
-    return 'bg-[var(--primary)]'
+    return 'bg-warning'
   if (v >= 80)
-    return 'bg-[var(--primary)]/60'
-  return 'bg-[var(--primary)]/30'
+    return 'bg-primary'
+  return 'bg-success'
 }
 function lossBarClass(v: number): string {
   // 与延迟柱状图保持同样的四级渐变逻辑：轻微网络抖动不应等同于严重丢包，避免告警疲劳
   if (v > 10)
-    return 'bg-[var(--danger)]'
+    return 'bg-destructive'
   if (v >= 5)
-    return 'bg-[var(--primary)]'
+    return 'bg-warning'
   if (v >= 1)
-    return 'bg-[var(--primary)]/60'
-  return 'bg-[var(--primary)]/30'
+    return 'bg-primary'
+  return 'bg-success'
 }
 // 数值文字颜色与柱状图同步：仅在中高严重度提亮，常态仍为默认前景色，避免视觉噪音
 function latencyTextClass(text: string): string {
