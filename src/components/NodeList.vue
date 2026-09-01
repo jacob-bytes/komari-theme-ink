@@ -297,8 +297,8 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
           value: provider.displayName,
           icon: provider.primary.icon,
           title: provider.tooltipLines.length > 0 ? provider.tooltipLines.join('\n') : provider.displayName,
-          variant: 'secondary',
-          class: 'max-w-[9.5rem] bg-secondary/85 text-secondary-foreground border-border/40',
+          variant: 'outline',
+          class: 'max-w-[9.5rem] bg-primary/10 text-primary border-primary/25',
         })
         break
       }
@@ -316,7 +316,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
           flagSrc: getFlagSrc(node.region),
           title: displayName,
           variant: 'outline',
-          class: 'max-w-[8rem] bg-background/45 text-foreground/80 border-border/60',
+          class: 'max-w-[8rem] bg-success/10 text-success border-success/25',
         })
         break
       }
@@ -332,7 +332,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
           icon: 'tabler:map-pin',
           title: [cityName, providerMetadata?.geo?.countryCode].filter(Boolean).join(' · '),
           variant: 'outline',
-          class: 'max-w-[8rem] bg-background/45 text-foreground/80 border-border/60',
+          class: 'max-w-[8rem] bg-success/10 text-success border-success/25',
         })
         break
       }
@@ -362,8 +362,8 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
             title: tag.text,
             icon: 'tabler:tag',
             variant: 'outline',
-            class: 'max-w-[8rem] bg-background/45 text-foreground/80 border-border/60',
-            style: tag.hex ? { borderColor: `${tag.hex}66`, color: tag.hex } : undefined,
+            class: 'max-w-[8rem] bg-primary/8 text-primary border-primary/20',
+            style: tag.hex ? { borderColor: `${tag.hex}66`, color: tag.hex, backgroundColor: `${tag.hex}14` } : undefined,
           })
         })
         break
@@ -376,7 +376,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
             title: group,
             icon: 'tabler:folder',
             variant: 'outline',
-            class: 'max-w-[8rem] bg-background/45 text-foreground/80 border-border/60',
+            class: 'max-w-[8rem] bg-warning/10 text-warning border-warning/25',
           })
         })
         break
