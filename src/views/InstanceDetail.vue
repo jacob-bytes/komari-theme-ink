@@ -27,6 +27,14 @@ const METRIC_ICONS = {
   gpu: 'tabler:brand-nvidia',
 } as const
 
+/** 详情信息卡片图标：与「资源使用」卡片同一套视觉语言，让两行看起来是同一体系 */
+const DETAIL_ICONS = {
+  system: 'tabler:device-desktop',
+  cpu: 'tabler:cpu',
+  rate: 'tabler:gauge',
+  renewal: 'tabler:calendar-time',
+} as const
+
 /** 徽章状态到 Tailwind 语义色类的映射，跟随明暗主题自动切换 */
 const STATUS_BADGE_CLASS: Record<'error' | 'warning' | 'success' | 'default', string> = {
   error: 'bg-destructive/10 text-destructive',
@@ -268,16 +276,19 @@ const detailInfoFields = computed(() => {
   return [
     {
       label: '系统',
+      icon: DETAIL_ICONS.system,
       value: [node.os, node.arch].filter(Boolean).join(' · '),
       tooltip: systemTooltip.value,
     },
     {
       label: 'CPU',
+      icon: DETAIL_ICONS.cpu,
       value: `${node.cpu_name} (${node.cpu_cores} vCPU)`,
       tooltip: cpuTooltip.value,
     },
     {
       label: '实时速率',
+      icon: DETAIL_ICONS.rate,
       value: '',
       upValue: formatBytesPerSecond(node.net_in),
       downValue: formatBytesPerSecond(node.net_out),
@@ -285,6 +296,7 @@ const detailInfoFields = computed(() => {
     },
     {
       label: '续费',
+      icon: DETAIL_ICONS.renewal,
       value: showPrice.value ? nodePriceText.value : '***',
       sub: remainingTimeText.value,
       badgeClass: expireBadgeClass.value,
@@ -452,27 +464,33 @@ const detailInfoFields = computed(() => {
         </div>
       </div>
 
-      <!-- 详情信息：系统、CPU 型号、实时速率与续费到期状态 -->
+      <!-- 详情信息：系统、CPU 型号、实时速率与续费到期状态。
+           与上方「资源使用」行使用同一套卡片语言（独立卡片 + border + bg-muted/40 + 相同断点），
+           而非之前的单个大容器内用竖线分隔字段——两行现在是同一视觉体系的延续，而不是两种风格拼接。 -->
       <div class="px-4">
         <div
           data-detail-summary
-          class="detail-summary grid items-center grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-border bg-muted/40 px-4 py-5 md:grid-cols-4"
+          class="grid grid-cols-2 gap-3 sm:grid-cols-4"
         >
-          <div v-for="field in detailInfoFields" :key="field.label" class="detail-summary-field min-w-0">
-            <div class="field-label text-[11px] font-medium tracking-wider text-muted-foreground">
+          <div
+            v-for="field in detailInfoFields" :key="field.label"
+            class="min-w-0 rounded-xl border border-border bg-muted/40 px-3.5 py-3"
+          >
+            <span class="flex items-center gap-1.5 text-[11px] font-medium tracking-wider text-muted-foreground">
+              <Icon :icon="field.icon" :width="13" :height="13" />
               {{ field.label }}
-            </div>
+            </span>
             <DataTooltip
               v-if="field.tooltip"
               as="div"
               placement="bottom"
               :content="field.tooltip"
-              class="mt-1 block max-w-full cursor-help"
+              class="mt-2 block max-w-full cursor-help"
               content-class="w-max max-w-72 whitespace-pre-line break-words px-2 py-1.5 text-left leading-relaxed"
             >
               <span class="block max-w-full truncate font-mono text-sm font-semibold text-foreground underline decoration-dotted decoration-muted-foreground/50 underline-offset-3">{{ field.value }}</span>
             </DataTooltip>
-            <div v-else class="mt-1 max-w-full truncate font-mono text-sm font-semibold text-foreground">
+            <div v-else class="mt-2 max-w-full truncate font-mono text-sm font-semibold text-foreground">
               <template v-if="field.upValue">
                 <span class="text-foreground">↑ {{ field.upValue }}</span>
                 <span class="text-muted-foreground"> · </span>
@@ -482,7 +500,7 @@ const detailInfoFields = computed(() => {
                 {{ field.value }}
               </template>
             </div>
-            <div v-if="field.sub" class="mt-0.5 truncate text-xs text-muted-foreground">
+            <div v-if="field.sub" class="mt-1.5 truncate text-[11px] text-muted-foreground">
               <template v-if="field.label === '续费'">
                 <span
                   class="inline-flex rounded-full px-2 py-0.5 text-[10px] leading-tight"
@@ -527,10 +545,5 @@ const detailInfoFields = computed(() => {
   .status-pulse {
     animation: none;
   }
-}
-
-/* ===== 详情页基础信息栏：字段间分隔线，随主题明暗切换 ===== */
-.detail-summary-field:not(:last-child) {
-  border-right: 1px solid var(--border);
 }
 </style>
