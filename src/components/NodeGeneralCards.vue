@@ -849,16 +849,29 @@ onUnmounted(() => {
         :key="card.key"
         :data-general-card-key="card.key"
         hoverable
-        :class="[cardClass, getCardPositionClass(index), card.action && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring']"
+        class="group" :class="[cardClass, getCardPositionClass(index), card.action && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring']"
         :style="{ height: '112px' }"
-        content-class="h-full overflow-hidden !p-3 flex flex-col justify-between"
+        content-class="h-full !p-3 flex flex-col justify-between overflow-hidden group-hover:overflow-visible group-focus-within:overflow-visible"
         :role="card.action ? 'button' : undefined"
         :tabindex="card.action ? 0 : undefined"
         :aria-label="card.action ? `查看${card.label}明细` : undefined"
         @click="activateCard(card)"
         @keydown="handleCardKeydown($event, card)"
       >
-        <div class="flex h-full flex-col gap-1">
+        <!-- 悬浮提示的触发区域之前只包住数值这一小行，'top' 方位气泡按数值顶部定位、
+             只留 8px 间距上浮——但数值行离上面的图标+标签行本身只有 4px 的 gap，完全不够
+             气泡容身，于是气泡直接盖住了标签文字（如"累计流量"四个字被压在气泡下面）。
+             现在把 DataTooltip 的触发范围扩大到整个卡片内容（标签+数值+副信息），
+             这样气泡就固定悬浮在"整块卡片"的正上方，而不是卡在卡片内部两行之间；
+             同时给 CardX 内容容器加 group-hover:overflow-visible，允许气泡在悬停时
+             探出卡片边界，悬浮在卡片上方的空白处，不再截断也不再压字。 -->
+        <DataTooltip
+          as="div"
+          placement="top"
+          :content="card.tooltip"
+          class="relative flex h-full min-w-0 flex-col gap-1"
+          content-class="whitespace-pre px-2 py-1 left-0 -translate-x-0 leading-normal"
+        >
           <div class="flex items-center gap-1.5">
             <Icon
               :icon="card.icon" :width="14" :height="14"
@@ -866,33 +879,25 @@ onUnmounted(() => {
             />
             <span class="text-xs font-medium tracking-wider text-muted-foreground truncate">{{ card.label }}</span>
           </div>
-          <DataTooltip
-            as="span"
-            placement="top"
-            :content="card.tooltip"
-            class="min-w-0"
-            content-class="whitespace-pre px-2 py-1 left-0 -translate-x-0 leading-normal"
-          >
-            <Transition v-bind="metricSwitchTransitionProps">
-              <div
-                :key="`${card.key}-${summaryTransitionKey}`"
-                class="mt-1 flex items-baseline gap-1 min-w-0"
-                :style="getMetricSwitchStyle(index)"
-              >
-                <!-- `sm:text-md` 不是 Tailwind 的合法工具类（应为 text-base），之前一直静默失效——
-                     数字字号从手机端的 11px 一路卡到 md 断点才跳到 24px，中间整个 sm~md 区间
-                     （640~768px，横屏手机/小平板正好落在这段）字号完全没有变化。
-                     另外 11px 对手机上"当前节点在线数/流量"这类首屏关键数字来说也偏小，
-                     这里把基准提到 text-base（16px），并补上 sm:text-lg 让断点之间也有过渡。 -->
-                <span class="text-base sm:text-lg md:text-2xl font-mono font-bold leading-none tracking-tight truncate">
-                  {{ card.value }}
-                </span>
-                <span v-if="card.unit" :class="unitClass">
-                  {{ card.unit }}
-                </span>
-              </div>
-            </Transition>
-          </DataTooltip>
+          <Transition v-bind="metricSwitchTransitionProps">
+            <div
+              :key="`${card.key}-${summaryTransitionKey}`"
+              class="mt-1 flex items-baseline gap-1 min-w-0"
+              :style="getMetricSwitchStyle(index)"
+            >
+              <!-- `sm:text-md` 不是 Tailwind 的合法工具类（应为 text-base），之前一直静默失效——
+                   数字字号从手机端的 11px 一路卡到 md 断点才跳到 24px，中间整个 sm~md 区间
+                   （640~768px，横屏手机/小平板正好落在这段）字号完全没有变化。
+                   另外 11px 对手机上"当前节点在线数/流量"这类首屏关键数字来说也偏小，
+                   这里把基准提到 text-base（16px），并补上 sm:text-lg 让断点之间也有过渡。 -->
+              <span class="text-base sm:text-lg md:text-2xl font-mono font-bold leading-none tracking-tight truncate">
+                {{ card.value }}
+              </span>
+              <span v-if="card.unit" :class="unitClass">
+                {{ card.unit }}
+              </span>
+            </div>
+          </Transition>
           <div v-if="overviewAuxLines[card.key]" class="mt-auto text-[11px] text-muted-foreground">
             {{ overviewAuxLines[card.key] }}
           </div>
@@ -908,7 +913,7 @@ onUnmounted(() => {
               <polyline :points="sparkPoints(sparkHistoryFor(card.key))" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7" />
             </svg>
           </div>
-        </div>
+        </DataTooltip>
       </CardX>
     </div>
   </div>
