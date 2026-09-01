@@ -391,8 +391,9 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
 <template>
   <div class="overflow-x-auto overflow-y-hidden min-w-0 p-1 -m-1">
     <div class="min-w-fit w-full flex flex-col gap-1">
-      <!-- 表头 -->
-      <div class="grid px-2.5 py-2 bg-background/70 rounded-lg backdrop-blur-sm gap-2" :style="gridStyle">
+      <!-- 表头：这套多列表头只适合桌面横向排布，窄屏下没有意义（移动端改用堆叠卡片，
+           不再逐列对齐），sm 以下直接隐藏，避免和下面的移动端卡片抢空间 -->
+      <div class="hidden px-2.5 py-2 bg-background/70 rounded-lg backdrop-blur-sm gap-2 sm:grid" :style="gridStyle">
         <div
           v-for="col in columns" :key="col.key"
           :class="[col.sortable ? 'cursor-pointer select-none' : '', ['status', 'os'].includes(col.key) ? 'text-center' : 'text-left']"
@@ -418,7 +419,72 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
             @click="handleClick(node)"
             @keydown="handleRowKeydown($event, node)"
           >
-            <div class="grid gap-2 items-center overflow-hidden" :style="gridStyle">
+            <!-- 移动端紧凑卡片：桌面版的多列表格在窄屏下需要横向滚动才能看到 CPU/内存等关键指标，
+                 这里换成两行信息（名称行 + 指标行），行高与桌面版保持一致（h-16），
+                 避免打乱下方虚拟列表按固定行高计算位置的逻辑。次要信息（硬盘/流量/标签等）
+                 点击进入详情页查看，不在列表里堆砌。 -->
+            <div class="flex flex-col gap-1 sm:hidden">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <div class="size-2 rounded-full relative shrink-0" :class="[node.online ? 'bg-success' : 'bg-destructive']">
+                  <div
+                    v-if="!node.online"
+                    class="animate-ping absolute inset-0 rounded-full opacity-50 bg-destructive"
+                  />
+                </div>
+                <img loading="lazy" :src="getOSImage(node.os)" :alt="getOSName(node.os)" class="size-3.5 shrink-0">
+                <img
+                  v-if="hasRegion(node.region)"
+                  loading="lazy" :src="getFlagSrc(node.region)"
+                  :alt="getRegionAltText(node.region)" class="size-3.5 rounded-sm shrink-0"
+                >
+                <span
+                  class="truncate text-[13px] font-semibold text-foreground min-w-0 flex-1"
+                  :class="[!node.online && 'blur-sm opacity-30']"
+                >{{ node.name }}</span>
+                <DataTooltip
+                  v-if="getNodeMessage(node)"
+                  :content="getNodeMessageTooltip(node)"
+                  placement="top"
+                  as="span"
+                  class="inline-flex shrink-0 text-[var(--status-warn)]"
+                  content-class="w-56 whitespace-pre-line leading-snug text-left"
+                >
+                  <Icon icon="tabler:alert-triangle-filled" width="13" height="13" aria-label="节点消息" />
+                </DataTooltip>
+                <button
+                  type="button"
+                  class="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-[var(--status-warn)]"
+                  :class="appStore.isFavoriteNode(node.uuid) && 'text-[var(--status-warn)]'"
+                  :aria-label="appStore.isFavoriteNode(node.uuid) ? `取消收藏 ${node.name}` : `收藏 ${node.name}`"
+                  :title="appStore.isFavoriteNode(node.uuid) ? '取消收藏' : '收藏节点'"
+                  @click.stop="toggleFavorite(node)"
+                  @keydown.stop
+                >
+                  <Icon :icon="appStore.isFavoriteNode(node.uuid) ? 'tabler:star-filled' : 'tabler:star'" width="13" height="13" />
+                </button>
+              </div>
+
+              <div v-if="!node.online" class="text-[11px] font-medium text-destructive truncate">
+                离线 · {{ formatOfflineTime(node) }}
+              </div>
+              <div v-else class="flex items-center gap-2.5 min-w-0 text-[11px] font-medium">
+                <span class="shrink-0" :class="[getStatus(node.cpu ?? 0) === 'error' ? 'text-destructive' : getStatus(node.cpu ?? 0) === 'warning' ? 'text-warning' : 'text-foreground/70']">
+                  CPU {{ (node.cpu ?? 0).toFixed(0) }}%
+                </span>
+                <span class="shrink-0" :class="[getStatus((node.ram ?? 0) / (node.mem_total || 1) * 100) === 'error' ? 'text-destructive' : getStatus((node.ram ?? 0) / (node.mem_total || 1) * 100) === 'warning' ? 'text-warning' : 'text-foreground/70']">
+                  内存 {{ ((node.ram ?? 0) / (node.mem_total || 1) * 100).toFixed(0) }}%
+                </span>
+                <span class="flex items-center gap-0.5 truncate min-w-0 text-foreground/55">
+                  <Icon icon="tabler:chevron-up" width="10" height="10" class="shrink-0 text-success" />{{ formatBytesPerSecond(node.net_out ?? 0) }}
+                </span>
+                <span class="flex items-center gap-0.5 truncate min-w-0 text-foreground/55">
+                  <Icon icon="tabler:chevron-down" width="10" height="10" class="shrink-0 text-primary" />{{ formatBytesPerSecond(node.net_in ?? 0) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- 桌面表格：sm 及以上保持原有的多列网格布局，逻辑与样式完全不变 -->
+            <div class="hidden gap-2 items-center overflow-hidden sm:grid" :style="gridStyle">
               <template v-for="col in columns" :key="col.key">
                 <!-- 在线状态指示器 -->
                 <div v-if="col.key === 'status'" class="flex justify-center">
@@ -600,8 +666,10 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
               </template>
             </div>
 
+            <!-- 桌面离线遮罩：移动端已经在紧凑卡片里用单独的一行文字展示离线状态，
+                 不需要再叠一层覆盖块，否则会盖住上面刚加的移动端内容 -->
             <div
-              v-if="!node.online" class="absolute inset-0 z-2 p-2 bg-background/10 rounded-lg flex items-center"
+              v-if="!node.online" class="hidden absolute inset-0 z-2 p-2 bg-background/10 rounded-lg items-center sm:flex"
               aria-hidden="true"
             >
               <div class="grid gap-2 items-center justify-center" :style="gridStyle">

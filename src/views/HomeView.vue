@@ -458,6 +458,38 @@ const nodeCardGridClass = computed(() => {
               </div>
             </div>
             <div class="search flex min-w-0 flex-wrap gap-2 items-center justify-end pointer-events-auto max-sm:justify-start xl:ml-auto">
+              <!-- 卡片/列表视图切换：此前只能通过站点主题配置或本地存储间接设置 nodeViewMode，
+                   页面上没有任何可点击的入口，用户完全找不到列表视图。这里补一个和右侧
+                   homeTools 同款样式的二段式分段控件，让切换随时可见、可点击。 -->
+              <div
+                v-if="activeHomeTool === 'nodes'"
+                class="flex h-8 items-center gap-1 rounded-md bg-background/50 p-0.5 backdrop-blur-xs"
+                role="group"
+                aria-label="节点视图"
+              >
+                <Button
+                  variant="ghost" size="icon"
+                  class="size-7 rounded-sm text-muted-foreground shadow-none hover:bg-background/60"
+                  :class="[appStore.nodeViewMode === 'card' ? '!text-selection !bg-background' : '']"
+                  aria-label="卡片视图"
+                  :aria-pressed="appStore.nodeViewMode === 'card'"
+                  title="卡片视图"
+                  @click="appStore.nodeViewMode = 'card'"
+                >
+                  <Icon icon="tabler:grid-dots" :width="14" :height="14" />
+                </Button>
+                <Button
+                  variant="ghost" size="icon"
+                  class="size-7 rounded-sm text-muted-foreground shadow-none hover:bg-background/60"
+                  :class="[appStore.nodeViewMode === 'list' ? '!text-selection !bg-background' : '']"
+                  aria-label="列表视图"
+                  :aria-pressed="appStore.nodeViewMode === 'list'"
+                  title="列表视图"
+                  @click="appStore.nodeViewMode = 'list'"
+                >
+                  <Icon icon="tabler:list" :width="14" :height="14" />
+                </Button>
+              </div>
               <div v-if="homeTools.length && appStore.homeAdvancedToolsVisible" class="flex h-8 items-center gap-1 rounded-md bg-background/50 p-0.5 backdrop-blur-xs">
                 <Button
                   v-for="tool in homeTools" :key="tool.key"

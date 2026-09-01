@@ -398,7 +398,7 @@ watch(() => props.nodes.map(n => n.uuid).join('|'), () => {
       >
         <canvas
           ref="canvasRef"
-          class="absolute inset-0 h-full w-full touch-none"
+          class="absolute inset-0 h-full w-full touch-pan-y"
           :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'"
         />
 

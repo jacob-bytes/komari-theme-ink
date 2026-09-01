@@ -180,6 +180,11 @@ export function useGlobeProjection(options: GlobeProjectionOptions = {}) {
         applyInertia()
       })
     selection.call(behavior)
+    // d3-drag 绑定时会把元素的 touch-action 样式强制改成 "none"（源码里 drag() 函数固定这么做），
+    // 这会让移动端单指纵向滑动也被这块画布"吃掉"、无法滚动页面，卡在地球区域出不去。
+    // 绑定完之后立刻改回 pan-y：交给浏览器原生处理纵向滚动手势，
+    // 只有明显偏水平/斜向的拖动（浏览器判定不是纯纵向 pan）才会继续交给下面的旋转逻辑处理。
+    el.style.touchAction = 'pan-y'
     runAutoRotate()
     return () => {
       selection.on('.drag', null)
@@ -246,7 +251,7 @@ export function useGlobeProjection(options: GlobeProjectionOptions = {}) {
     focusRaf = requestAnimationFrame(step)
   }
 
-  /** 根据当前过渡进度与旋转状态构造投影对象，供 Canvas 绘制与坐标计算复用 */
+  /** 根据当前过渡进度与旋转状态构造投影对象，供 Canvas 绘制与坐标��算复用 */
   function buildProjection(width: number, height: number): GeoProjection {
     const t = transitionProgress.value
     const projection = geoProjection(interpolateRaw(t)) as GeoProjection
