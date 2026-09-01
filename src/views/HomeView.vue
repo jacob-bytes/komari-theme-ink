@@ -32,8 +32,8 @@ interface QuickControlOption {
   icon: string
 }
 
-type HomeToolKey = 'nodes' | 'nodeCompare' | 'providerValue' | 'snapshotExport' | 'auditLog'
-type PrivateHomeToolKey = Exclude<HomeToolKey, 'nodes' | 'nodeCompare'>
+type HomeToolKey = 'nodes' | 'nodeCompare' | 'globe' | 'providerValue' | 'snapshotExport' | 'auditLog'
+type PrivateHomeToolKey = Exclude<HomeToolKey, 'nodes' | 'nodeCompare' | 'globe'>
 
 interface HomeToolOption {
   key: HomeToolKey
@@ -49,6 +49,7 @@ const NodeGeneralCards = defineAsyncComponent(() => import('@/components/NodeGen
 const NodeCard = defineAsyncComponent(() => import('@/components/NodeCard.vue'))
 const NodeList = defineAsyncComponent(() => import('@/components/NodeList.vue'))
 const NodeComparePanel = defineAsyncComponent(() => import('@/components/NodeComparePanel.vue'))
+const NodeGlobePanel = defineAsyncComponent(() => import('@/components/NodeGlobePanel.vue'))
 const PingMonitorDialog = defineAsyncComponent(() => import('@/components/PingMonitorDialog.vue'))
 const ProviderValuePanel = defineAsyncComponent(() => import('@/components/ProviderValuePanel.vue'))
 const SnapshotExportPanel = defineAsyncComponent(() => import('@/components/SnapshotExportPanel.vue'))
@@ -114,6 +115,7 @@ const homeTools = computed<HomeToolOption[]>(() => {
   const tools: HomeToolOption[] = [
     { key: 'nodes', label: '节点', icon: 'tabler:layout-grid', description: '节点卡片与列表视图' },
     { key: 'nodeCompare', label: '对比', icon: 'tabler:columns-3', description: '最多四台节点实时横向对比' },
+    { key: 'globe', label: '地球', icon: 'tabler:globe', description: '按地区分布查看节点，支持地球/地图切换' },
   ]
   if (!appStore.privateFeaturesAllowed)
     return tools
@@ -327,7 +329,7 @@ async function toggleHomeTool(key: HomeToolKey) {
     return
   }
 
-  const permission = (key === 'nodes' || key === 'nodeCompare') ? null : homeToolPermissionMap[key]
+  const permission = (key === 'nodes' || key === 'nodeCompare' || key === 'globe') ? null : homeToolPermissionMap[key]
   if (permission) {
     const granted = await appStore.requireLoginPermission(permission, { force: true })
     if (!granted) {
@@ -501,6 +503,7 @@ const nodeCardGridClass = computed(() => {
               {{ activeToolTitle }} · 当前分组：{{ g.tab }}（{{ groupNodeList.length }} 台）
             </div>
             <NodeComparePanel v-if="activeHomeTool === 'nodeCompare'" :nodes="groupNodeList" />
+            <NodeGlobePanel v-else-if="activeHomeTool === 'globe'" :nodes="groupNodeList" @click="handleNodeClick" />
             <ProviderValuePanel v-else-if="activeHomeTool === 'providerValue'" :nodes="groupNodeList" />
             <SnapshotExportPanel v-else-if="activeHomeTool === 'snapshotExport'" :nodes="groupNodeList" />
             <AuditLogPanel v-else-if="activeHomeTool === 'auditLog'" />
