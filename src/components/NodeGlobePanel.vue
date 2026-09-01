@@ -2,7 +2,7 @@
 import type { Topology } from 'topojson-specification'
 import type { NodeData } from '@/stores/nodes'
 import { Icon } from '@iconify/vue'
-import { geoGraticule10, geoInterpolate, geoPath } from 'd3-geo'
+import { geoGraticule, geoInterpolate, geoPath } from 'd3-geo'
 import { feature } from 'topojson-client'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { Button } from '@/components/ui/button'
@@ -120,7 +120,9 @@ async function loadLandFeatures(): Promise<void> {
   landFeatures.value = feature(topology, countries)
 }
 
-const graticule = geoGraticule10()
+// 网格步长放宽到 20°（默认 10°），线条数量减半，配合下方径向渐变淡出，
+// 缓解"经纬线密不透风、看起来像钢丝球"的问题
+const graticule = geoGraticule().step([20, 20])()
 const markers = shallowRef<MarkerPoint[]>([])
 
 // 扫描线当前经度（度），不需要响应式：只在动画循环内部读写，不驱动任何模板渲染
@@ -215,28 +217,47 @@ function renderFrame(): void {
     ctx.fillRect(0, 0, width, height)
   }
 
+  // 球体主体：从左上"受光角"到轮廓边缘做径向渐变，而不是一块死板的纯色圆，
+  // 制造真实球体应有的明暗过渡，配合下方网格/陆地的中心-边缘渐变共同拉开空间深度
+  const lightX = width / 2 - sphereRadius * 0.32
+  const lightY = height / 2 - sphereRadius * 0.38
+  const sphereGradient = ctx.createRadialGradient(lightX, lightY, sphereRadius * 0.08, width / 2, height / 2, sphereRadius * 1.08)
+  sphereGradient.addColorStop(0, GLOBE_THEME.sphereFillLit)
+  sphereGradient.addColorStop(1, GLOBE_THEME.sphereFill)
   ctx.beginPath()
   path({ type: 'Sphere' })
-  ctx.fillStyle = GLOBE_THEME.sphereFill
+  ctx.fillStyle = sphereGradient
   ctx.fill()
 
+  // 经纬网格线：径向渐变淡出——正面中心稍亮，越靠近轮廓边缘越淡（0.26 -> 0.03），
+  // 替代过去整张网格线不分远近、密度均匀导致的"钢丝球"感
+  const graticuleGradient = ctx.createRadialGradient(width / 2, height / 2, sphereRadius * 0.05, width / 2, height / 2, sphereRadius)
+  graticuleGradient.addColorStop(0, `rgba(${GLOBE_THEME.graticuleRGB}, 0.26)`)
+  graticuleGradient.addColorStop(0.6, `rgba(${GLOBE_THEME.graticuleRGB}, 0.16)`)
+  graticuleGradient.addColorStop(1, `rgba(${GLOBE_THEME.graticuleRGB}, 0.03)`)
   ctx.beginPath()
   path(graticule)
-  ctx.strokeStyle = GLOBE_THEME.graticule
+  ctx.strokeStyle = graticuleGradient
   ctx.lineWidth = 0.5
   ctx.stroke()
 
   if (landFeatures.value) {
     // 陆地改为线框风格：去掉实色填充的单调感，只保留极低填充制造"面板玻璃"质感，
-    // 主视觉是加粗描边 + 发光，在深色背景衬托下形成科技感发光线框世界地图
+    // 主视觉是加粗描边 + 发光，在深色背景衬托下形成科技感发光线框世界地图。
+    // 描边同样按径向渐变淡出：只有正面中心的大陆轮廓保持清晰发光，靠近球体边缘的
+    // 大陆逐渐转暗，模拟"近大远小、越往边缘越虚"的空间纵深，而不是整颗球一样亮
+    const landGradient = ctx.createRadialGradient(width / 2, height / 2, sphereRadius * 0.1, width / 2, height / 2, sphereRadius)
+    landGradient.addColorStop(0, `rgba(${GLOBE_THEME.atmosphereRGB}, 0.95)`)
+    landGradient.addColorStop(0.55, `rgba(${GLOBE_THEME.atmosphereRGB}, 0.7)`)
+    landGradient.addColorStop(1, `rgba(${GLOBE_THEME.atmosphereRGB}, 0.16)`)
     ctx.beginPath()
     path(landFeatures.value)
     ctx.fillStyle = GLOBE_THEME.landFill
     ctx.fill()
     ctx.lineWidth = 0.8
     ctx.shadowColor = GLOBE_THEME.landGlow
-    ctx.shadowBlur = 4
-    ctx.strokeStyle = GLOBE_THEME.landStroke
+    ctx.shadowBlur = 3
+    ctx.strokeStyle = landGradient
     ctx.stroke()
     ctx.shadowBlur = 0
   }
@@ -359,96 +380,117 @@ watch(() => props.nodes.map(n => n.uuid).join('|'), () => {
 
 <template>
   <div class="flex flex-col gap-3 lg:flex-row">
-    <div
-      ref="containerRef"
-      class="group relative h-72 w-full shrink-0 overflow-hidden rounded-lg select-none lg:h-96 lg:w-[60%]"
-      :style="{
-        background: `radial-gradient(circle at 50% 35%, ${GLOBE_THEME.spaceFrom} 0%, ${GLOBE_THEME.spaceTo} 70%)`,
-        boxShadow: `inset 0 0 0 1px ${GLOBE_THEME.panelBorder}`,
-      }"
-    >
-      <canvas
-        ref="canvasRef"
-        class="absolute inset-0 h-full w-full touch-none"
-        :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'"
-      />
+    <!-- 柔和渐变外框：用语义化的 muted 底色包一层"呼吸边"，让深色科技面板不再是
+         直接硬塞进页面的黑块，而是从周围留白自然过渡进去；配合内层柔化阴影+泛光
+         代替原来单一的硬边内描边，边缘不再是一条突兀的分界线 -->
+    <div class="relative shrink-0 rounded-2xl bg-gradient-to-br from-muted/70 via-muted/25 to-transparent p-2.5 lg:w-[60%]">
+      <div
+        ref="containerRef"
+        class="group relative h-72 w-full overflow-hidden rounded-xl select-none lg:h-96"
+        :style="{
+          background: `radial-gradient(circle at 50% 35%, ${GLOBE_THEME.spaceFrom} 0%, ${GLOBE_THEME.spaceTo} 70%)`,
+          boxShadow: `inset 0 0 0 1px ${GLOBE_THEME.panelBorder}, 0 16px 36px -14px rgba(4, 10, 24, 0.5), 0 0 44px -6px rgba(${GLOBE_THEME.atmosphereRGB}, 0.22)`,
+        }"
+      >
+        <canvas
+          ref="canvasRef"
+          class="absolute inset-0 h-full w-full touch-none"
+          :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'"
+        />
 
-      <!-- 节点标记覆盖层：与 canvas 共用同一个投影，每帧同步位置 -->
-      <div class="pointer-events-none absolute inset-0">
-        <button
-          v-for="marker in markers"
-          :key="marker.code"
-          type="button"
-          class="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-[opacity,transform] duration-150 focus-visible:outline-none focus-visible:ring-2"
-          :class="[
-            selectedRegionCode === marker.code && 'ring-2 ring-offset-2',
-          ]"
-          :style="{
-            'left': `${marker.x}px`,
-            'top': `${marker.y}px`,
-            'width': `${markerRadius(marker.group.nodes.length) * 2}px`,
-            'height': `${markerRadius(marker.group.nodes.length) * 2}px`,
-            'opacity': marker.opacity,
-            'backgroundColor': marker.group.onlineCount > 0 ? GLOBE_THEME.markerAccent : GLOBE_THEME.markerOffline,
-            'borderColor': GLOBE_THEME.spaceTo,
-            '--tw-ring-color': GLOBE_THEME.markerAccent,
-            '--tw-ring-offset-color': GLOBE_THEME.spaceTo,
-          }"
-          :aria-label="`${marker.group.name}：${marker.group.nodes.length} 个节点`"
-          :title="`${marker.group.name} · ${marker.group.nodes.length} 个节点`"
-          @click.stop="handleMarkerClick(marker.group)"
+        <!-- 节点标记覆盖层：与 canvas 共用同一个投影，每帧同步位置 -->
+        <div class="pointer-events-none absolute inset-0">
+          <button
+            v-for="marker in markers"
+            :key="marker.code"
+            type="button"
+            class="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-[opacity,transform] duration-150 focus-visible:outline-none focus-visible:ring-2"
+            :class="[
+              selectedRegionCode === marker.code && 'ring-2 ring-offset-2',
+            ]"
+            :style="{
+              'left': `${marker.x}px`,
+              'top': `${marker.y}px`,
+              'width': `${markerRadius(marker.group.nodes.length) * 2}px`,
+              'height': `${markerRadius(marker.group.nodes.length) * 2}px`,
+              'opacity': marker.opacity,
+              'backgroundColor': marker.group.onlineCount > 0 ? GLOBE_THEME.markerAccent : GLOBE_THEME.markerOffline,
+              'borderColor': GLOBE_THEME.spaceTo,
+              '--tw-ring-color': GLOBE_THEME.markerAccent,
+              '--tw-ring-offset-color': GLOBE_THEME.spaceTo,
+            }"
+            :aria-label="`${marker.group.name}：${marker.group.nodes.length} 个节点`"
+            :title="`${marker.group.name} · ${marker.group.nodes.length} 个节点`"
+            @click.stop="handleMarkerClick(marker.group)"
+          >
+            <!-- 在线地区脉冲呼吸圈：仅在线态呼吸，呼应"实时在线"语义；弱化动效时不渲染 -->
+            <span
+              v-if="!props.reduceMotion && marker.group.onlineCount > 0"
+              class="pointer-events-none absolute inset-0 rounded-full animate-ping"
+              :style="{ backgroundColor: GLOBE_THEME.markerAccent, opacity: 0.45 }"
+            />
+            <span class="relative text-[10px] font-bold leading-none tabular-nums" :style="{ color: GLOBE_THEME.spaceTo }">{{ marker.group.nodes.length }}</span>
+          </button>
+        </div>
+
+        <!-- 地球/地图切换 + 飞线开关：深色玻璃质感，与地球场景本身统一为固定深色科技面板，
+           不再套用跟随站点主题的 bg-background 浅色浮层，避免"控件像贴上去的"割裂感 -->
+        <div
+          class="globe-chip absolute right-3 top-3 flex items-center gap-1 rounded-md p-1 backdrop-blur-md"
+          :style="{ backgroundColor: GLOBE_THEME.panelGlassBg, boxShadow: `inset 0 0 0 1px ${GLOBE_THEME.panelBorder}`, color: GLOBE_THEME.panelTextMuted }"
         >
-          <!-- 在线地区脉冲呼吸圈：仅在线态呼吸，呼应"实时在线"语义；弱化动效时不渲染 -->
-          <span
-            v-if="!props.reduceMotion && marker.group.onlineCount > 0"
-            class="pointer-events-none absolute inset-0 rounded-full animate-ping"
-            :style="{ backgroundColor: GLOBE_THEME.markerAccent, opacity: 0.45 }"
-          />
-          <span class="relative text-[10px] font-bold leading-none tabular-nums" :style="{ color: GLOBE_THEME.spaceTo }">{{ marker.group.nodes.length }}</span>
-        </button>
+          <Button
+            variant="ghost" size="sm" class="h-7 px-2 text-xs"
+            data-globe-chip-btn="true"
+            :data-active="mode === 'globe' ? 'true' : 'false'"
+            :style="mode === 'globe' ? { backgroundColor: GLOBE_THEME.activeChipBg, color: GLOBE_THEME.panelTextActive, boxShadow: `inset 0 0 0 1px ${GLOBE_THEME.activeChipRing}` } : undefined"
+            @click="mode !== 'globe' && toggleMode()"
+          >
+            <Icon icon="tabler:globe" width="14" height="14" />
+            地球
+          </Button>
+          <Button
+            variant="ghost" size="sm" class="h-7 px-2 text-xs"
+            data-globe-chip-btn="true"
+            :data-active="mode === 'map' ? 'true' : 'false'"
+            :style="mode === 'map' ? { backgroundColor: GLOBE_THEME.activeChipBg, color: GLOBE_THEME.panelTextActive, boxShadow: `inset 0 0 0 1px ${GLOBE_THEME.activeChipRing}` } : undefined"
+            @click="mode !== 'map' && toggleMode()"
+          >
+            <Icon icon="tabler:map-2" width="14" height="14" />
+            地图
+          </Button>
+          <div class="mx-0.5 h-4 w-px" :style="{ backgroundColor: GLOBE_THEME.panelBorder }" />
+          <Button
+            variant="ghost" size="sm" class="h-7 px-2 text-xs disabled:opacity-40"
+            data-globe-chip-btn="true"
+            :data-active="flylinesEnabled ? 'true' : 'false'"
+            :style="flylinesEnabled ? { backgroundColor: GLOBE_THEME.activeChipBg, color: GLOBE_THEME.panelTextActive, boxShadow: `inset 0 0 0 1px ${GLOBE_THEME.activeChipRing}` } : undefined"
+            :disabled="!canToggleFlylines"
+            :aria-pressed="flylinesEnabled"
+            title="枢纽放射飞线（装饰效果，无真实链路数据）"
+            @click="canToggleFlylines && (flylinesEnabled = !flylinesEnabled)"
+          >
+            <Icon icon="tabler:route-2" width="14" height="14" />
+            飞线
+          </Button>
+        </div>
+
+        <!-- 汇总统计 -->
+        <div
+          class="globe-chip absolute left-3 top-3 rounded-md px-2.5 py-1.5 text-xs backdrop-blur-md"
+          :style="{ backgroundColor: GLOBE_THEME.panelGlassBg, boxShadow: `inset 0 0 0 1px ${GLOBE_THEME.panelBorder}`, color: GLOBE_THEME.panelTextMuted }"
+        >
+          <span class="font-bold tabular-nums" :style="{ color: GLOBE_THEME.panelTextActive }">{{ regionGroups.length }}</span> 个地区 ·
+          <span class="font-bold tabular-nums" :style="{ color: GLOBE_THEME.markerAccent }">{{ totalOnline }}</span> / {{ props.nodes.length }} 在线
+        </div>
+
+        <p
+          class="pointer-events-none absolute bottom-3 left-3 text-[11px] opacity-0 transition-opacity group-hover:opacity-100"
+          :style="{ color: GLOBE_THEME.panelTextMuted }"
+        >
+          拖拽旋转 · 点击标记查看节点
+        </p>
       </div>
-
-      <!-- 地球/地图切换 + 飞线开关 -->
-      <div class="absolute right-3 top-3 flex items-center gap-1 rounded-md bg-background/80 p-1 shadow-sm ring-1 ring-inset ring-border backdrop-blur-sm">
-        <Button
-          variant="ghost" size="sm" class="h-7 px-2 text-xs"
-          :class="mode === 'globe' && 'bg-background text-selection shadow-sm'"
-          @click="mode !== 'globe' && toggleMode()"
-        >
-          <Icon icon="tabler:globe" width="14" height="14" />
-          地球
-        </Button>
-        <Button
-          variant="ghost" size="sm" class="h-7 px-2 text-xs"
-          :class="mode === 'map' && 'bg-background text-selection shadow-sm'"
-          @click="mode !== 'map' && toggleMode()"
-        >
-          <Icon icon="tabler:map-2" width="14" height="14" />
-          地图
-        </Button>
-        <div class="mx-0.5 h-4 w-px bg-border" />
-        <Button
-          variant="ghost" size="sm" class="h-7 px-2 text-xs disabled:opacity-40"
-          :class="flylinesEnabled && 'bg-background text-selection shadow-sm'"
-          :disabled="!canToggleFlylines"
-          :aria-pressed="flylinesEnabled"
-          title="枢纽放射飞线（装饰效果，无真实链路数据）"
-          @click="canToggleFlylines && (flylinesEnabled = !flylinesEnabled)"
-        >
-          <Icon icon="tabler:route-2" width="14" height="14" />
-          飞线
-        </Button>
-      </div>
-
-      <!-- 汇总统计 -->
-      <div class="absolute left-3 top-3 rounded-md bg-background/80 px-2.5 py-1.5 text-xs text-muted-foreground shadow-sm ring-1 ring-inset ring-border backdrop-blur-sm">
-        <span class="font-bold text-foreground tabular-nums">{{ regionGroups.length }}</span> 个地区 ·
-        <span class="font-bold text-primary tabular-nums">{{ totalOnline }}</span> / {{ props.nodes.length }} 在线
-      </div>
-
-      <p class="pointer-events-none absolute bottom-3 left-3 text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-        拖拽旋转 · 点击标记查看节点
-      </p>
     </div>
 
     <!-- 侧边地区/节点列表 -->
@@ -498,3 +540,17 @@ watch(() => props.nodes.map(n => n.uuid).join('|'), () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/*
+ * 地球面板悬浮控件（模式切换/飞线开关/统计角标）固定使用深色玻璃质感，
+ * 覆盖 shadcn Button ghost 变体默认跟随站点浅/深色主题的 hover 配色——
+ * 否则鼠标悬停时会突然冒出站点主题的浅色高亮，与深空地球场景的沉浸感割裂。
+ * 选中态的底色/文字色已经通过内联 style 直接设置（内联样式优先级天然高于类），
+ * 这里只需要处理 :hover 这一无法用内联样式表达的伪类状态。
+ */
+.globe-chip :deep([data-globe-chip-btn='true']:hover:not([data-active='true'])) {
+  background-color: rgba(148, 210, 255, 0.12) !important;
+  color: #eafcff !important;
+}
+</style>

@@ -472,7 +472,7 @@ function hasRegion(region: string | null | undefined): boolean {
               <span class="font-mono text-xs font-bold" :class="latencyTextClass(latencyDisplay)">{{ latencyDisplay }}</span>
             </div>
             <div
-              class="mt-1.5 grid h-5 cursor-auto gap-[1.5px] rounded-sm bg-muted/40 p-0.5"
+              class="mt-1 grid h-2.5 cursor-auto items-end gap-[1.5px] rounded-sm bg-muted/40 p-0.5"
               :style="{ gridTemplateColumns: `repeat(${latencyRenderBars.length}, minmax(0, 1fr))` }"
             >
               <span
@@ -499,7 +499,7 @@ function hasRegion(region: string | null | undefined): boolean {
               <span class="font-mono text-xs font-bold" :class="lossTextClass(lossDisplay)">{{ lossDisplay }}</span>
             </div>
             <div
-              class="mt-1.5 grid h-5 cursor-auto gap-[1.5px] rounded-sm bg-muted/40 p-0.5"
+              class="mt-1 grid h-2.5 cursor-auto items-end gap-[1.5px] rounded-sm bg-muted/40 p-0.5"
               :style="{ gridTemplateColumns: `repeat(${lossRenderBars.length}, minmax(0, 1fr))` }"
             >
               <span
