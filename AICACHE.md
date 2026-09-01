@@ -13,7 +13,22 @@
 
 ## 当前任务
 
-- 状态：done，节点卡片延迟/丢包点阵 + 地球固定深色科技主题/脉冲标记/枢纽飞线/智能聚焦 视觉回归验证完成
+- 状态：done，节点卡片延迟/丢包点阵扁平化 + 地球视觉融合度优化（M4 UI/UX）
+- 目标：1) 卡片延迟/丢包点阵改为竖直方向更扁平的样式（参考用户截图 p2：细线条点阵，而非较高的柱状）；2) 优化三维地球的"割裂感/钢丝球感/控件不融合"三个问题。
+- 实现：
+  - `NodeCard.vue`：延迟/丢包点阵容器 `h-5` → `h-2.5`，`mt-1.5` → `mt-1`，新增 `items-end` 让点阵底部对齐（原来是纯 flex 高度撑满，现在扁平后视觉上更像 p2 的细条）。`NodePingListCell.vue`（列表视图）本身已是细高度，未改动。
+  - `globeTheme.ts`：新增 `sphereFillLit`（球体受光面）、`graticuleRGB`（经纬线改为 rgb 分量以便动态拼渐变，替换原来固定 rgba 的 `graticule`）、`panelGlassBg`/`panelTextMuted`/`panelTextActive`/`activeChipBg`/`activeChipRing`（悬浮控件深色玻璃质感专用色，不再跟随站点 `bg-background` 主题）。
+  - `NodeGlobePanel.vue`：
+    - 外层容器加一层 `bg-gradient-to-br from-muted/70 via-muted/25 to-transparent` 的柔和渐变外框（padding 包裹），内层深空球体加大投影+外发光（`0 16px 36px` 阴影 + `atmosphereRGB` 泛光），消除"纯黑块硬塞进白页面"的割裂感。
+    - 经纬网格线步长从默认 10° 放宽到 20°（`geoGraticule().step([20, 20])`），线条数量减半；网格线、陆地描边都改成以球心为中心的径向渐变（中心亮、边缘淡出到 0.03），球体主体填充也改成受光角渐变，共同制造近大远小的空间纵深，替代之前"整张网格线/线框一样亮"的钢丝球感。
+    - 悬浮控件（地球/地图切换、飞线开关、汇总统计角标）从 `bg-background/80` + `text-selection`（跟随站点主题）改为内联样式引用 `GLOBE_THEME.panelGlassBg` 等固定深色玻璃令牌，新增 scoped `:deep([data-globe-chip-btn='true']:hover...)` 覆盖 shadcn Button ghost 默认 hover 配色，避免控件在深色地球上突然冒出站点主题的浅色高亮。
+  - 未改动：`useGlobeProjection.ts`、投影/旋转/飞线动画逻辑、标记点脉冲逻辑。
+- 验证：临时 Playwright 用例截图核对（节点卡片点阵扁平效果、浅色/暗色站点主题下地球柔和外框+深度渐变+控件 hover 态），四张截图均符合预期；跑完后删除临时测试文件。`bun run lint`、`bun run build` 通过。另跑了现有 `tests/visual/visual.spec.ts` 全量回归，`nodes tool view renders card grid` 一项失败（`data-node-metric-icon="cpu"` 找不到），经 `git stash` 验证为改动前（上次提交 `ab4c9fe`）就已存在的既有问题，与本次修改无关，未处理。
+- 版本：`komari-theme.json` 0.4.3 → 0.4.4。
+- 产物：`ink-build-<commit-sha>.zip`（bun run build 自动按当前 HEAD short sha 命名，提交后 sha 会变化，需要在提交后再跑一次 build 确认 zip 文件名与 HEAD 一致）。
+- 下一步：无遗留工作。若需要进一步验证"割裂感"改善程度，可考虑在真实生产数据/更多地区分布下再看一次实际效果。
+
+- 状态：done（历史记录）节点卡片延迟/丢包点阵 + 地球固定深色科技主题/脉冲标记/枢纽飞线/智能聚焦 视觉回归验证完成
 - 目标：验证近期改造（NodeCard 延迟/丢包复用 flat 点阵、NodeGlobePanel 固定深色科技配色+陆地线框+大气层发光+标记脉冲+枢纽放射飞线开关+点击分区智能聚焦旋转）在浏览器中的真实渲染效果。
 - 验证方式：临时 Playwright 用例（`bunx playwright test`，需先点击 Header「显示首页工具」的 aria-label 按钮，而非 `title` 属性，才能展开首页工具栏再点「地球」）+ 截图核对；确认可视化测试服务器跑的是 `vite preview`（`dist/` 构建产物），修改源码后必须先 `bun run build` 再跑测试，否则调试日志/最新代码不会生效。
 - 结论：卡片延迟/丢包点阵展示正常；地球默认视图、开启飞线（枢纽放射+呼吸光点）、点击分区触发聚焦旋转、以及站点整体切到暗色主题时地球仍保持固定深色科技配色，四种场景截图均符合预期，无需改动实现代码。
@@ -433,7 +448,7 @@
 - 已更新 `index.html`：在首屏前按本机 `themeMode` 或北京日夜 fallback 预设 `.dark` 和 `colorScheme`，异常时默认暗色，避免夜间白屏。
 - 已更新 `src/styles/main.css` 与 `src/components/LoadingCover.vue`：初始文档背景使用 token；加载遮罩使用 `--color-background` + `color-mix` 半透明背景，并保留纯 token fallback。
 - 修复用户反馈的自定义背景图片失效：根因是 `#app` 被首屏防闪屏补丁设置为不透明 `background-color: var(--color-background)`，而 `Background.vue` 的 fixed 背景层在 `z-index: -1`，因此被 `#app` 自身背景盖住；已移除 `#app` 背景，仅保留 `body` 初始 token 背景。
-- 继续修复刷新时仍能看到白雾 Loading 的反馈：`LoadingCover.vue` 现在读取归一化背景配置，自定义背景启用且当前模式有背景 URL 时，加载覆盖层不再铺 `color-mix(... 82%)` 半透明背景，也不再显示 `Loading...` 文案，只保留轻量圆形指示器，避免把背景洗白。随后进一步移除 `App.vue` LoadingCover 外层 Transition 的 `backdrop-blur-sm` enter/leave class，并去掉自定义背景加载指示器自身的小块 `backdrop-filter`；最新调整将自定义背景加载遮罩改为极低透明深色层、普通加载层改为低对比灰蓝/深色层，并让图片背景预加载阶段不显示纯白 token 占位，避免任何 loading 阶段继续出现高亮白雾。
+- 继续修复刷新时仍能看到白雾 Loading 的反馈：`LoadingCover.vue` 现在读取归一化背景配置，自定义背景启用且当前模式有背景 URL 时，加载覆盖层不再铺 `color-mix(... 82%)` 半透明背景，也不再显��� `Loading...` 文案，只保留轻量圆形指示器，避免把背景洗白。随后进一步移除 `App.vue` LoadingCover 外层 Transition 的 `backdrop-blur-sm` enter/leave class，并去掉自定义背景加载指示器自身的小块 `backdrop-filter`；最新调整将自定义背景加载遮罩改为极低透明深色层、普通加载层改为低对比灰蓝/深色层，并让图片背景预加载阶段不显示纯白 token 占位，避免任何 loading 阶段继续出现高亮白雾。
 - 已更新 `src/constants/ui.ts`、`src/views/HomeView.vue`、`src/components/NodeCard.vue`：30+ 卡片节点禁用首轮卡片切换 CSS 动画，60+ 卡片节点禁用在线状态扩散环，普通节点数量仍保留原动画。
 - 修复首页延迟/丢包与详情页不一致：`useNodePingStats.ts` 的 metric series 路径此前把 `queryMetrics(fill_empty: true)` 返回的 `null` 点��成 `-1` 并计入丢包��导致首��卡片显示明显丢包；详情页图表会把同类 null 当断点，所以看不到丢包。现改为 metric series 只用于有效延迟点，丢包摘要优先读取 `public:getPingMetricStats` 的非估算 `loss`，`loss_approximate` 时不参与首页平均��包；详情页 `PingChart.vue` 也同步忽略 metric null 点。
 - 首页小卡延迟/丢包采样显示按用户反馈恢复为等高整条颜色分级，不再按高度变化。旧接口 fallback 仍保留：只有 `public:getPingMetricStats` / `public:queryMetrics` 不可用或无数据时，才走 legacy `common:getRecords`，并继续按旧接口的 `value < 0` 记录计算丢包。
@@ -753,7 +768,7 @@
 - **实现**：
   - `src/data/world-outlines.ts`：移植 79 个多边形海岸线数据（19KB，MIT 注明上游 Komari-line-grid / selkk-lab）。
   - `src/utils/lineGlobe.ts`：纯函数（正交投影 ortho / 海岸线 path / 经纬网格 / 节点投影 / 左右标签堆叠布局）。
-  - `src/components/NodeEarthLineGridGlobe.vue`：SVG 字符串（v-html + esc 转义）、拖拽（pointer 事件）、自动旋转（useRafFn，stopEarth 控制）、地区聚合标签（useNodeGeoClusters）、明暗主题（--globe-* CSS 变量）、移动端自适应（viewBox 缩放）。
+  - `src/components/NodeEarthLineGridGlobe.vue`：SVG 字符串（v-html + esc 转义）、拖拽（pointer 事件）、自动旋转（useRafFn，stopEarth 控制）���地区聚合标签（useNodeGeoClusters）、明暗主题（--globe-* CSS 变量）、移动端自适应（viewBox 缩放）。
   - `NodeGeneralCards.vue`：`earthRenderer !== 'line-grid'` → cobe，否则 line-grid。
   - `app.ts`：EarthRenderer 类型/校验加 'line-grid'。
   - `komari-theme.json`：加回地球样式（cobe/line-grid）、stopEarth、hideEarth 后台配置（02 首页布局）。
@@ -769,7 +784,7 @@
 - 用 Playwright + `installKomariFixture` 补充了地球工具专项截图验收（浅色/深色默认视图、拖拽旋转、地球↔地图切换、移动端堆叠、标记聚合），全部通过后按仓库约定删除了临时 `_debug_globe.spec.ts` / `_verify_globe.spec.ts`（提交 `e79ac0f`），不保留在仓库里。
 - **踩坑记录**：`playwright.config` 的 webServer 跑的是 `vite preview`（serve `dist/`），源码改完必须先 `bun run build` 再跑测试，否则截图仍是旧代码的黑球——本次调试一开始就是被这个坑迷惑了一轮。
 - 验收结论：地球模式（浅/深色）陆地颜色、国��线、经纬网格、球体轮廓均正常显示；拖拽旋转正确重新投影标记点；地球→平面地图（等距矩形）过渡后网格线/陆地/标记全部正确重新计算位置，"地图"分段按钮高亮态正确；移动端纵向堆叠布局无横向溢出。
-- **已知无关问题（未修复，超出本次任务范围）**：`bun run` 全量视觉回归 `tests/visual/visual.spec.ts` 中 `nodes tool view renders card grid` 失败，原因是该测试断言 `[data-node-metric-icon="disk"]` 存在，但 `NodeCard.vue` 从未给磁盘图标打上这个 data 属性（只有 cpu/memory/traffic 三个）。该测试断言是在 `a21c961`（早于本次地球相关提交）引入的，与本次地球改动无关，`git log` 确认 `NodeCard.vue` 最后一次改动（`9e909bb`）也早于本次地球提交。建议后续单独开任务给磁盘图标补 `data-node-metric-icon="disk"` 或修正测试断言。
+- **已知无关问题（未修复，超出本次任务范围）**：`bun run` 全量视觉回归 `tests/visual/visual.spec.ts` 中 `nodes tool view renders card grid` 失败，原因是该测试断言 `[data-node-metric-icon="disk"]` 存在，但 `NodeCard.vue` 从未给磁盘图标打上这个 data 属性（只有 cpu/memory/traffic 三个）。该测试断言是在 `a21c961`（早于本次地球相关提交）引入���，与本次地球改动无关，`git log` 确认 `NodeCard.vue` 最后一次改动（`9e909bb`）也早于本次地球提交。建议后续单独开任务给磁盘图标补 `data-node-metric-icon="disk"` 或修正测试断言。
 - `bun run lint` 通过（无告警）；`bun run build` 通过，`NodeGlobePanel` 独立 chunk 56.93 kB / gzip 21.48 kB，`countries-110m` 独立 chunk 107.88 kB / gzip 38.57 kB，均按需动态加载不影响首屏。
 
 ## 2026-09-01（续）· 地图模式杂散横线修复 + 地球扫描线效果 + 呼吸留白
