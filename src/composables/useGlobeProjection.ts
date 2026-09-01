@@ -201,15 +201,25 @@ export function useGlobeProjection(options: GlobeProjectionOptions = {}) {
   function buildProjection(width: number, height: number): GeoProjection {
     const t = transitionProgress.value
     const projection = geoProjection(interpolateRaw(t)) as GeoProjection
-    const scale = Math.min(width, height) / 2.05
+    // 球面直径占容器较小边的比例调低一些，给外层卡片边框留出呼吸空间，不让地球紧贴边缘
+    const scale = Math.min(width, height) / 2.3
     projection
       .scale(scale)
       .translate([width / 2, height / 2])
       .rotate(rotation.value)
       .precision(0.3)
-    // 球面态裁剪角为 90°（只显示正面半球）；随 t 增大到平面态时放宽到 180°，
-    // 180° 意味着球面上任意点距中心都不超过 180°，等效于完全不裁剪
-    projection.clipAngle(90 + t * 90)
+    if (t >= 0.999) {
+      // 完全进入平面地图态：小圆裁剪角=180° 在数值上是退化情形（裁剪圆退化为一个点），
+      // 会让 d3.geoPath 在计算经纬网格/陆地边界与裁剪圆的交点时产生穿越整张画布的杂散线段
+      // （表现为地图上多条不该出现的水平横线）。此时切换回 d3 默认的"反经线裁剪"，
+      // 行为与标准等距矩形投影一致，从根源上消除这条杂散线，而不是靠隐藏网格来遮掩问题
+      projection.clipAngle(null)
+    }
+    else {
+      // 球面态裁剪角为 90°（只显示正面半球）；随 t 增大朝平面态过渡时逐步放宽，
+      // 制造"背面地区逐渐展开显现"的过渡动画效果
+      projection.clipAngle(90 + t * 90)
+    }
     return projection
   }
 
@@ -218,7 +228,12 @@ export function useGlobeProjection(options: GlobeProjectionOptions = {}) {
    * 但节点标记是单独定位的 DOM 元素，需要手动做同样的可见性判断才能正确隐藏/淡出背面点位
    */
   function isPointVisible(lon: number, lat: number): boolean {
-    const clipDeg = 90 + transitionProgress.value * 90
+    const t = transitionProgress.value
+    // 平面地图态改用反经线裁剪（见 buildProjection），不再按到球心的角距离隐藏点位，
+    // 地图上任意经纬度点都应当可见
+    if (t >= 0.999)
+      return true
+    const clipDeg = 90 + t * 90
     const [rl, rp] = rotation.value
     const centerLon = -rl
     const centerLat = -rp

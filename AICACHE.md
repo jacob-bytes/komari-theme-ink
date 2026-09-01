@@ -51,7 +51,7 @@
 - 状态：in-progress，本地修复与验证完成，正在发布 v3.3.5
 - 目标：修复详情页延迟任务卡片、图例和主页 Ping 指标线与 Komari 后台任务排序不一致的问题。
 - 里程碑：M4 UI/UX 兼容性修复，不修改后端任务权重或接口契约。
-- 已确认缺陷：后端 `GetAllPingTasks()` 明确按 `weight ASC, id ASC` 返回；主页重新计算该规则，详情页新版指标路径却按 `getPingMetricStats` 的无保证数组顺序重建任务，可能与后台错位。
+- 已确认缺陷：后端 `GetAllPingTasks()` 明确按 `weight ASC, id ASC` 返回；主页重新计算该规则，详情页新版指标路径却按 `getPingMetricStats` 的无保证数组顺序重建任务，可能与后台���位。
 - 实现：共享排序工具改为使用 `public:getPublicPingTasks` 返回数组索引；LoadChart 的 Ping 指标线和 PingChart 新指标路径重建��任务卡片、图例、颜色均使用该顺序；指标接口独有的未知任务按数值 ID 稳定追加。
 - 回归：夹具构造后台 `30,10,20`、指标统计 `20,30,10`、ID 自然顺序 `10,20,30` 三套冲突次序；直接排序断言通过，Playwright 能收集到详情页卡片顺序用例。
 - 验证：`bun run type-check`、涉及文件 ESLint、`bun run lint`、`bun run build`、`git diff --check` 均通过；生成 `komari-theme-Glassmorphism-build-e212925.zip`，顶层仍为 `komari-theme.json`、`preview.png`、`dist/`。
@@ -62,7 +62,7 @@
 - 目标：节点卡片剩余 5 天内标红、6–10 天标黄；审计并修复详情页 4 小时 / 1 天历史视图 CPU 空白或异常显示。
 - 里程碑：M4 UI/UX + 兼容性修复，不修改计费计算、实时指标或后端接口契约。
 - 范围：共享到期阈值、NodeCard 到期提示、LoadChart 指标历史回退、确定性 Playwright 回归检查。
-- 已确认缺陷：指标历史当前只检查“任意序列有点”，CPU 序列缺失或全空时仍会压过 `common:getRecords` 兼容数据，导致 CPU 图表无有效数值。
+- 已确认缺陷：指标历史当前只检查“任意序列有点”���CPU 序列缺失或全空时仍会压过 `common:getRecords` 兼容数据，导致 CPU 图表无有效数值。
 - 实现：共享阈值改为 5 天红色、10 天黄色；NodeCard 对到期状态着色并把无效日期显示为 `-`；短时历史缺少有效 CPU 点时回退 `common:getRecords`，同时保留新指标接口返回的 Ping 等独立序列；兼容记录的运行时数值先过滤非有限值再进入图表。
 - 回归：新增固定时钟下的 5/10 天边界颜色检查，以及新指标接口缺少 `cpu.usage` 时 4 小时 / 1 天 CPU 兼容回退检查。
 - 验证：`bun run lint`、`bun run build`、后续 `bun run build-only` 和 `git diff --check` 通过；构建产物 `komari-theme-Glassmorphism-build-b56ef97.zip` 保持 `komari-theme.json`、`preview.png`、`dist/` 顶层契约。
@@ -118,13 +118,13 @@
 
 - 用户反馈 2 项并全部修复（版本 0.0.9→0.0.10）：
   1. 节点卡片跳转/切换瞬间 Ping 数据闪烁清空（延迟/丢包显示 '-'）：`useNodePingDisplay` 增加记忆逻辑——latency/loss 文字与渲染 bar 记忆最后一次有数据的值，enabled 变 false（路由跳转）时保留显示，不再降级为占位符。
-  2. 详情页延迟模块 UI 重构：PingChart 去除外层大卡（根 div 恢复 `flex flex-col gap-4`），指标卡片（任务统计卡）改为 `bg-card border border-border` 独立卡片化，折线图表容器改为 `bg-card border border-border` 独立卡片化��
+  2. 详情页延迟模块 UI 重构：PingChart 去除外层大卡（根 div 恢复 `flex flex-col gap-4`），指标卡片（任务统计卡）改为 `bg-card border border-border` 独立卡片化，折线图表容器改为 `bg-card border border-border` 独立卡片����
 - 验证：type-check、lint、build、视觉回归 11 条全绿（快照更新）；zip 内 version=0.0.10。
 
 ### 2026-08-26 blueprint v0.0.9 两项修复
 
 - 用户反馈 2 项并全部修复（版本 0.0.8→0.0.9）：
-  1. 详情页监控图表无背景框：LoadChart.vue 7 处 CardX 与 PingChart.vue 根容器，`bg-background/50 border-none`（半透明无框）→ `bg-card border-border hover:bg-secondary transition-all rounded-md`（PingChart 根加 `rounded-md border border-border bg-card p-3`），与顶部板块一致。
+  1. 详情页监控图表无背景框：LoadChart.vue 7 处 CardX 与 PingChart.vue 根容���，`bg-background/50 border-none`（半透明无框）→ `bg-card border-border hover:bg-secondary transition-all rounded-md`（PingChart 根加 `rounded-md border border-border bg-card p-3`），与顶部板块一致。
   2. 恢复原始 Glassmorphism 首页数据（概览卡片 + 点阵旋转地球）：从 git 恢复 NodeGeneralCards.vue / NodeEarthCobeGlobe.vue / useNodeGeoClusters.ts；NodeGeneralCards 固定渲染 NodeEarthCobeGlobe（点阵，不再走 realistic/tiled 选择）；package.json 恢复 cobe 依赖（bun install 更新 lock）；HomeView 仅节点视图（activeHomeTool==='nodes'）顶部渲染概览卡片+点阵地球，蓝图图纸视图不变。
 - 注意：恢复地球是用户最新要求（此前要求移除，现已改变主意；只恢复点阵 cobe，不恢复 realistic/tiled/earth 纹理）。
 - 验证：type-check、lint、build、视觉回归 11 条全绿（nodes-card-desktop 快照更新）；zip 内 version=0.0.9。
@@ -284,7 +284,7 @@
 - 已确认 `/admin`、`/terminal`、`/manage/*` 通过独立静态子应用恢复原 URL 的方案可行；公开主题主包不会加载 React 管理端 chunk。
 - 已发现并修复：浏览器禁用 sessionStorage 时入口不跳转；桥接架构下官方 `/admin-app/` Service Worker 无法覆盖恢复后的真实路由却可能保留旧后台资源；同步脚本缺少上游 HTML 结构断言。
 - 真实后端联调发现 Vite 代理只改 Host、未改 HTTP Origin，Komari 默认来源校验会拒绝本地 RPC；开发代理现统一把 `/api`、`/themes` Origin 设为 `VITE_API_TARGET`，WebSocket 继续使用 `rewriteWsOrigin`。
-- 访客审计补强：详情限额改按 UTF-8 字节计算，超限优���保留会话、站点指纹和 WebRTC 摘要；审计面板增加 `visitor_audit_enabled` 管理员开关，复用 `admin:editSettings` 的部分更新契约。
+- 访客审计补强：详情限额改按 UTF-8 字节计算，超���优���保留会话、站点指纹和 WebRTC 摘要；审计面板增加 `visitor_audit_enabled` 管理员开关，复用 `admin:editSettings` 的部分更新契约。
 
 ### 2026-07-15 complete default-theme admin integration
 
@@ -426,7 +426,7 @@
 - 修复用户反馈的自定义背景图片失效：根因是 `#app` 被首屏防闪屏补丁设置为不透明 `background-color: var(--color-background)`，而 `Background.vue` 的 fixed 背景层在 `z-index: -1`，因此被 `#app` 自身背景盖住；已移除 `#app` 背景，仅保留 `body` 初始 token 背景。
 - 继续修复刷新时仍能看到白雾 Loading 的反馈：`LoadingCover.vue` 现在读取归一化背景配置，自定义背景启用且当前模式有背景 URL 时，加载覆盖层不再铺 `color-mix(... 82%)` 半透明背景，也不再显示 `Loading...` 文案，只保留轻量圆形指示器，避免把背景洗白。随后进一步移除 `App.vue` LoadingCover 外层 Transition 的 `backdrop-blur-sm` enter/leave class，并去掉自定义背景加载指示器自身的小块 `backdrop-filter`；最新调整将自定义背景加载遮罩改为极低透明深色层、普通加载层改为低对比灰蓝/深色层，并让图片背景预加载阶段不显示纯白 token 占位，避免任何 loading 阶段继续出现高亮白雾。
 - 已更新 `src/constants/ui.ts`、`src/views/HomeView.vue`、`src/components/NodeCard.vue`：30+ 卡片节点禁用首轮卡片切换 CSS 动画，60+ 卡片节点禁用在线状态扩散环，普通节点数量仍保留原动画。
-- 修复首页延迟/丢包与详情页不一致：`useNodePingStats.ts` 的 metric series 路径此前把 `queryMetrics(fill_empty: true)` 返回的 `null` 点转成 `-1` 并计入丢包，导致首��卡片显示明显丢包；详情页图表会把同类 null 当断点，所以看不到丢包。现改为 metric series 只用于有效延迟点，丢包摘要优先读取 `public:getPingMetricStats` 的非估算 `loss`，`loss_approximate` 时不参与首页平均丢包；详情页 `PingChart.vue` 也同步忽略 metric null 点。
+- 修复首页延迟/丢包与详情页不一致：`useNodePingStats.ts` 的 metric series 路径此前把 `queryMetrics(fill_empty: true)` 返回的 `null` 点转成 `-1` 并计入丢包��导致首��卡片显示明显丢包；详情页图表会把同类 null 当断点，所以看不到丢包。现改为 metric series 只用于有效延迟点，丢包摘要优先读取 `public:getPingMetricStats` 的非估算 `loss`，`loss_approximate` 时不参与首页平均丢包；详情页 `PingChart.vue` 也同步忽略 metric null 点。
 - 首页小卡延迟/丢包采样显示按用户反馈恢复为等高整条颜色分级，不再按高度变化。旧接口 fallback 仍保留：只有 `public:getPingMetricStats` / `public:queryMetrics` 不可用或无数据时，才走 legacy `common:getRecords`，并继续按旧接口的 `value < 0` 记录计算丢包。
 
 ### 2026-07-13 chunk/request pressure follow-up
@@ -477,7 +477,7 @@
 
 ## 验证记录
 
-- 2026-07-14 v3.1.4 Issue #18 release：`bun run lint`、`bun run build`、`git diff --check` 通过；发布提交 `91c9b06` 已推送 `main`，Actions run `#29312369165`（#49）成功，tag / Release target 均为完整提交 `91c9b06fc5c4b5ee2636dc18779861186806abd7`，Issue #18 已关闭。线上 zip `komari-theme-Glassmorphism-build-91c9b06.zip` 大小 5,114,852 bytes，SHA-256 `f8b4c9b6f61cc66d755d7a612357d16d1d2774f9494b9b0c3ce87e572ee5da9b`，下载复核顶层结构 `komari-theme.json`、`preview.png`、`dist/`，包内版本 `3.1.4`。构建仍只有既有 `@vueuse/core` PURE 注释与 `globe` 大 chunk 警告。
+- 2026-07-14 v3.1.4 Issue #18 release：`bun run lint`、`bun run build`、`git diff --check` 通过；发布提交 `91c9b06` 已推送 `main`，Actions run `#29312369165`（#49）成功，tag / Release target 均为完整提交 `91c9b06fc5c4b5ee2636dc18779861186806abd7`，Issue #18 已关闭。线上 zip `komari-theme-Glassmorphism-build-91c9b06.zip` 大小 5,114,852 bytes，SHA-256 `f8b4c9b6f61cc66d755d7a612357d16d1d2774f9494b9b0c3ce87e572ee5da9b`，下载��核顶层结构 `komari-theme.json`、`preview.png`、`dist/`，包内版本 `3.1.4`。构建仍只有既有 `@vueuse/core` PURE 注释与 `globe` 大 chunk 警告。
 - 2026-07-14 v3.1.3 release：发布提交 `4f37416` 已推送 `main`；GitHub Actions run `#29311122789` 成功。Release `v3.1.3` 为正式发布（非 draft / prerelease），target 为完整提交 `4f3741692bd81141ed542614d5b31a01ff0dc0fc`，zip 资产 `komari-theme-Glassmorphism-build-4f37416.zip` 上传状态为 `uploaded`。下载复核：大小 5,120,783 bytes，SHA-256 `f4d5f1be0c769ffc5372ab6a9b780042768f82529827b7222a843ef642605bee`，顶层结构 `komari-theme.json`、`preview.png`、`dist/`，包内版本 `3.1.3`。
 - 2026-07-14 v3.1.0 release：发布提交 `14dac71` 已推送 `main`；GitHub Actions run `#42` 成功。Release `v3.1.0` 为正式发布（非 draft / prerelease），target 为完整提交 `14dac711d3e1ad1e7963c6dc2609ab6d1921f82d`，zip 资产上传状态为 `uploaded`。
 - 2026-07-14 official detail metric dashboard / Ping custom range：`komari-theme.json` 解析通过，共 56 个表单行、48 个唯一 key、无重复；12 个图表族使用的 Tabler 图标均存在。最终 `bun run lint` 与 `bun run build` 通过，生成 `dist/` 和 `komari-theme-Glassmorphism-build-4e9ae53.zip`，zip 顶层保持 `komari-theme.json`、`preview.png`、`dist/`。本地 `http://127.0.0.1:5174/` 页面非空且桌面布局无重叠；本地无 Komari 后端，未完成真实节点数据下的移动端详情页、新旧 Ping 接口和 GPU 多设备实测。构建仍只有既有 `@vueuse/core` PURE 注释与 `globe` chunk 体积警告。
@@ -496,8 +496,8 @@
 - 2026-07-13 v3.0.0 release prep：README 已删除预览图并重写为实用功能介绍，`komari-theme.json.version` 已更新为 `3.0.0`；`bun run lint && bun run build` 通过，生成 `dist/` 与 `komari-theme-Glassmorphism-build-881385d.zip`。构建仍有既有 `@vueuse/core` PURE 注释警告与 `globe` chunk 超过 600 kB 警告。
 - v3.0.0 已提交并推送 main：commit `c50f6ed`；GitHub release workflow #34 已成功；Release `v3.0.0` 已发布，资产为 `komari-theme-Glassmorphism-build-c50f6ed.zip`。
 - 2026-07-13 v3.0.0 frontend follow-up / AuditLogPanel：`bun run lint` 通过；`bun run build` 通过，生成 `dist/` 与 `komari-theme-Glassmorphism-build-6ccc9d7.zip`。构建仍有既有 `@vueuse/core` PURE 注释警告与 `globe` chunk 超过 600 kB 警告。
-- 2026-07-13 v3.0.2 home card cleanup：按用户反馈移除首页 NodeCard 的物理核心���案和磁盘“数据积累中”提示，HealthSummaryPanel 也不再输出该提示；详情页 LoadChart 磁盘模块继续显示磁盘预测和样本不足原因；`bun run lint && bun run build` 通过，生成 `dist/` 与本地 `komari-theme-Glassmorphism-build-7be6c21.zip`（提交前短 SHA）。构建仍有既有 `@vueuse/core` PURE 注释警告与 `globe` chunk 超过 600 kB 警告。
-- 2026-07-13 chunk/request pressure follow-up：同步 `origin/main` 后首次 `bun run lint && bun run build` 因远端 README 标题从 H1 跳到 H3 触发 `markdown/heading-increment` 失败；已将副标题改为 H2 并同步 README 当前版本为 v3.0.3。重跑 `bun run lint && bun run build` 通过；构建输出新增 `assets/v3-services-*.js`（约 54.67 kB / gzip 18.22 kB），用于合并 v3 共享���务/工具模块；生成 `dist/` 与 `komari-theme-Glassmorphism-build-94691f1.zip`（提交前短 SHA）。构建仍有既有 `@vueuse/core` PURE 注释警告与 `globe` chunk 超过 600 kB 警告。已提交并推送 main：commit `8b40b59`；GitHub release workflow #29231673966 成功；Release `v3.0.3` 已发布，资产为 `komari-theme-Glassmorphism-build-8b40b59.zip`。
+- 2026-07-13 v3.0.2 home card cleanup：按用户反馈移除首页 NodeCard ���物理核心���案和磁盘“数据积累中”提示，HealthSummaryPanel 也不再输出该提示；详情页 LoadChart 磁盘模块继续显示磁盘预测和样本不足原因；`bun run lint && bun run build` 通过，生成 `dist/` 与本地 `komari-theme-Glassmorphism-build-7be6c21.zip`（提交前短 SHA）。构建仍有既有 `@vueuse/core` PURE 注释警告与 `globe` chunk 超过 600 kB 警告。
+- 2026-07-13 chunk/request pressure follow-up：同步 `origin/main` 后首次 `bun run lint && bun run build` 因远端 README 标题从 H1 跳到 H3 触发 `markdown/heading-increment` 失败；已将副标题改为 H2 并同步 README 当前版本为 v3.0.3。重跑 `bun run lint && bun run build` 通过；构建输出新增 `assets/v3-services-*.js`（约 54.67 kB / gzip 18.22 kB），���于合并 v3 共享���务/工具模块；生成 `dist/` 与 `komari-theme-Glassmorphism-build-94691f1.zip`（提交前短 SHA）。构建仍有既有 `@vueuse/core` PURE 注释警告与 `globe` chunk 超过 600 kB 警告。已提交并推送 main：commit `8b40b59`；GitHub release workflow #29231673966 成功；Release `v3.0.3` 已发布，资产为 `komari-theme-Glassmorphism-build-8b40b59.zip`。
 
 ## 风险点
 
@@ -508,7 +508,7 @@
 - 自定义 LoadChart 时间范围在 metric API 可用时精确传 `start` / `end`；旧后端 fallback 仍只能近似为“最近 N 小时”。
 - `traffic_up` / `traffic_down` 当前只做字段接收与历史 normalize，不替换现有流量 UI 语义。
 - `message` 已在 NodeCard / NodeList 以纯文本 tooltip 展示，禁止 `v-html` 的约束仍需保持。
-- JSON 导出已经分片构建节点字符串，但最终字符串拼接和 Blob 创建仍是浏览器同步边界；相比原先整棵大对象 `JSON.stringify` 已降低主线程尖峰。
+- JSON 导出已经分片构建节点字符串��但最终字符串拼接和 Blob 创建仍是浏览器同步边界；相比原先整棵大对象 `JSON.stringify` 已降低主线程尖峰。
 - 不应对整个 `NodeData` 使用 `markRaw`，否则会破坏实时 CPU、内存、网络和在线状态响应式刷新。
 
 ## 交接说明
@@ -756,9 +756,17 @@
 ## 2026-09-01 · 首页"地球"工具（d3-geo 点阵地球 + 投影插值变形）验收与修复
 
 - 该功能（`NodeGlobePanel.vue` + `useGlobeProjection.ts` + `regionCoordinates.ts` + `HomeView.vue` 集成）已在此前会话实现并提交（`403b98b`），本次会话专做浏览器可视化验收。
-- **发现并修复一个渲染 bug**：`NodeGlobePanel.vue` 的 `withAlpha(color, alpha)` helper 对已经是百分比整数（6/16/38/55/80）的 `alpha` 参数又做了 `alpha * 100`，拼出 `color-mix(in oklab, ... 600% ...)` 之类的非法百分比值。浏览器静默拒绝这个非法 `fillStyle`/`strokeStyle` 赋值并回退成 canvas 默认的不透明黑色，导致地球在浅/深色模式下都渲染成纯黑球体（陆地、经纬网格、球体轮廓全部看不见，只剩标记点）。修复：`withAlpha` 直接用 `Math.round(alpha)`，不再二次乘 100（提交 `f273a8a`）。
+- **发现并修复一个渲染 bug**：`NodeGlobePanel.vue` 的 `withAlpha(color, alpha)` helper 对已经是百分比整数（6/16/38/55/80）的 `alpha` 参数又做了 `alpha * 100`，拼出 `color-mix(in oklab, ... 600% ...)` 之类的非法百分比值。浏览器静默拒绝这个非法 `fillStyle`/`strokeStyle` 赋值并回退成 canvas 默认的不透明黑色，导致地球在浅/深色模式下都渲染成纯黑球体（陆地、经纬网���、球体轮廓全部看不见，只剩标记点）。修复：`withAlpha` 直接用 `Math.round(alpha)`，不再二次乘 100（提交 `f273a8a`）。
 - 用 Playwright + `installKomariFixture` 补充了地球工具专项截图验收（浅色/深色默认视图、拖拽旋转、地球↔地图切换、移动端堆叠、标记聚合），全部通过后按仓库约定删除了临时 `_debug_globe.spec.ts` / `_verify_globe.spec.ts`（提交 `e79ac0f`），不保留在仓库里。
 - **踩坑记录**：`playwright.config` 的 webServer 跑的是 `vite preview`（serve `dist/`），源码改完必须先 `bun run build` 再跑测试，否则截图仍是旧代码的黑球——本次调试一开始就是被这个坑迷惑了一轮。
-- 验收结论：地球模式（浅/深色）陆地颜色、国界线、经纬网格、球体轮廓均正常显示；拖拽旋转正确重新投影标记点；地球→平面地图（等距矩形）过渡后网格线/陆地/标记全部正确重新计算位置，"地图"分段按钮高亮态正确；移动端纵向堆叠布局无横向溢出。
+- 验收结论：地球模式（浅/深色）陆地颜色、国��线、经纬网格、球体轮廓均正常显示；拖拽旋转正确重新投影标记点；地球→平面地图（等距矩形）过渡后网格线/陆地/标记全部正确重新计算位置，"地图"分段按钮高亮态正确；移动端纵向堆叠布局无横向溢出。
 - **已知无关问题（未修复，超出本次任务范围）**：`bun run` 全量视觉回归 `tests/visual/visual.spec.ts` 中 `nodes tool view renders card grid` 失败，原因是该测试断言 `[data-node-metric-icon="disk"]` 存在，但 `NodeCard.vue` 从未给磁盘图标打上这个 data 属性（只有 cpu/memory/traffic 三个）。该测试断言是在 `a21c961`（早于本次地球相关提交）引入的，与本次地球改动无关，`git log` 确认 `NodeCard.vue` 最后一次改动（`9e909bb`）也早于本次地球提交。建议后续单独开任务给磁盘图标补 `data-node-metric-icon="disk"` 或修正测试断言。
 - `bun run lint` 通过（无告警）；`bun run build` 通过，`NodeGlobePanel` 独立 chunk 56.93 kB / gzip 21.48 kB，`countries-110m` 独立 chunk 107.88 kB / gzip 38.57 kB，均按需动态加载不影响首屏。
+
+## 2026-09-01（续）· 地图模式杂散横线修复 + 地球扫描线效果 + 呼吸留白
+
+- **地图模式杂散横线根因与修复**（用户反馈截图：切换到"地图"后画面上出现多条横穿全宽的半透明蓝线）：`useGlobeProjection.ts` 的 `buildProjection` 始终用 `projection.clipAngle(90 + t * 90)`（小圆裁剪），过渡到纯平面地图态时 `t=1` 令裁剪角=180°。180° 小圆裁剪在数值上是退化情形（裁剪圆退化为一个点），d3.geoPath 用小圆裁剪算法给经纬网格/陆地边界求交时在这个退化边界上产生穿越整张画布的杂散线段——这不是"网格层没隐藏"，而是自定义 `interpolateRaw` 插值投影 + 小圆裁剪在 180° 时的算法退化 bug。修复：`t >= 0.999`（完全进入平面地图态，过渡动画已结束）时改调 `projection.clipAngle(null)`，切换回 d3 默认的"反经线裁剪"，与标准 `d3.geoEquirectangular()` 行为一致，从根源消除杂线；`0<t<1` 过渡中间态仍用小圆裁剪从 90°→180° 渐变以保留"背面地区逐渐展开"的过渡视觉。同步修正 `isPointVisible`：`t>=0.999` 时直接返回 `true`（平面地图上任意经纬度点都应可见，不再按到球心角距离判断）。
+- **地球扫描线效果**（对标用户提供的参考图：球面上一条竖直经线弧持续扫描）：`NodeGlobePanel.vue` 新增非响应式的 `scanLambda` 状态，在 `renderFrame` 每帧递增 `SCAN_SPEED_DEG=0.35`，用 `buildScanMeridian(lambda)` 生成一条纵贯南北极的经线弧（纬度 -90→90，步长 2°，固定经度），叠加 `ctx.shadowBlur=8` 发光效果后用比经纬网格更高的不透明度（75%）描边。扫描线透明度按 `1 - transitionProgress.value` 线性衰减，过渡到平面地图态时完全淡出，不会与地图内容混淆。裁剪逻辑与陆地/网格共用同一个 `path()`，球面态下扫描线走到背面会被小圆裁剪自然隐藏，效果符合参考图。
+- **地球呼吸留白**：`buildProjection` 的球体直径缩放系数由 `Math.min(width, height) / 2.05` 调整为 `/ 2.3`，球体半径整体缩小约 11%，外层卡片边框到球体轮廓之间留出更明显的空白边距，不再贴边。此调整同时影响地图态缩放（共用同一个 `scale`），但平面地图本身因宽高比差异已有留白，缩小无副作用。
+- 用 Playwright 截图（684×719，浅色）分别验证：① 地球默认视图——扫描线可见且随帧推进移动、球体与卡片边缘留白明显增加；② 地图视图——原先的多条横向杂线已完全消失，世界地图/网格/国界线/标记点清晰无遮挡。
+- `bun run lint`、`bun run build`（含 `vue-tsc --build` 类型检查）均通过；`tests/visual/visual.spec.ts` 全量回归 8 项中仅 1 项失败，且是上一条记录里提到的既有 `disk` 图标 data 属性缺口（`NodeCard.vue` 未改动，与本次 globe 修复无关），其余 7 项全部通过，未引入新回归。

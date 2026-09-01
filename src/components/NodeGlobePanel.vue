@@ -43,6 +43,7 @@ const themeVars = useThemeVars()
 
 const {
   mode,
+  transitionProgress,
   isDragging,
   toggleMode,
   bindDrag,
@@ -111,6 +112,19 @@ function withAlpha(color: string, alpha: number): string {
   return `color-mix(in oklab, ${color} ${Math.round(alpha)}%, transparent)`
 }
 
+// 扫描线当前经度（度），不需要响应式：只在动画循环内部读写，不驱动任何模板渲染
+let scanLambda = 0
+/** 扫描线每帧推进的经度（度），决定扫描一圈的速度 */
+const SCAN_SPEED_DEG = 0.35
+
+/** 构造一条贯穿南北极的经线弧，作为持续扫描的视觉元素 */
+function buildScanMeridian(lambda: number): { type: 'LineString', coordinates: [number, number][] } {
+  const coordinates: [number, number][] = []
+  for (let lat = -90; lat <= 90; lat += 2)
+    coordinates.push([lambda, lat])
+  return { type: 'LineString', coordinates }
+}
+
 let rafId = 0
 function renderFrame(): void {
   const canvas = canvasRef.value
@@ -163,6 +177,21 @@ function renderFrame(): void {
   ctx.strokeStyle = withAlpha(vars.borderColor, 80)
   ctx.lineWidth = 1
   ctx.stroke()
+
+  // 持续扫描的经线弧：只在球面态有意义，随着过渡到平面地图态线性淡出，
+  // 平面地图上不保留这条"环绕扫描"视觉，避免与地图内容混淆
+  const scanOpacity = 1 - transitionProgress.value
+  if (scanOpacity > 0.02) {
+    ctx.beginPath()
+    path(buildScanMeridian(scanLambda))
+    ctx.lineWidth = 1.4
+    ctx.shadowColor = withAlpha(vars.primaryColor, 90 * scanOpacity)
+    ctx.shadowBlur = 8
+    ctx.strokeStyle = withAlpha(vars.primaryColor, 75 * scanOpacity)
+    ctx.stroke()
+    ctx.shadowBlur = 0
+  }
+  scanLambda = (scanLambda + SCAN_SPEED_DEG) % 360
 
   ctx.restore()
 
