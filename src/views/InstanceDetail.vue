@@ -11,12 +11,10 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useNodeProviderMetadata } from '@/composables/useNodeProviderMetadata'
 import { useAppStore } from '@/stores/app'
 import { useNodesStore } from '@/stores/nodes'
-import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, formatUptimeWithFormat, getStatus } from '@/utils/helper'
+import { formatBytesWithConfig, formatDateTime, formatUptimeWithFormat, getStatus } from '@/utils/helper'
 import { hasTrafficLimit as checkHasTrafficLimit, getDiskPercentage, getMemoryPercentage, getTrafficUsed, getTrafficUsedPercentage } from '@/utils/nodeMetricsHelper'
 import { getOSImage, getOSName } from '@/utils/osImageHelper'
 import { getRegionCode } from '@/utils/regionHelper'
-
-import { formatPrice, formatPriceWithCycle, getExpireStatus, getExpireStatusColor, getExpireText, parseTags } from '@/utils/tagHelper'
 
 /** 指标图标：与 NodeCard 列表卡片保持一致的视觉语言 */
 const METRIC_ICONS = {
@@ -37,17 +35,7 @@ const DETAIL_ICONS = {
   kernel: 'tabler:code',
   uptime: 'tabler:stopwatch',
   lastReport: 'tabler:clock',
-  rate: 'tabler:gauge',
-  renewal: 'tabler:calendar-time',
 } as const
-
-/** 徽章状态到 Tailwind 语义色类的映射，跟随明暗主题自动切换 */
-const STATUS_BADGE_CLASS: Record<'error' | 'warning' | 'success' | 'default', string> = {
-  error: 'bg-destructive/10 text-destructive',
-  warning: 'bg-warning/10 text-warning',
-  success: 'bg-success/10 text-success',
-  default: 'bg-muted text-muted-foreground',
-}
 
 const LoadChart = defineAsyncComponent(() => import('@/components/LoadChart.vue'))
 const PingChart = defineAsyncComponent(() => import('@/components/PingChart.vue'))
@@ -107,45 +95,15 @@ function toggleCurrentFavorite(): void {
 const providerMetadata = computed(() => data.value ? getNodeProviderMetadata(data.value) : null)
 const vpsProvider = computed(() => providerMetadata.value?.provider ?? null)
 
-// 节点自定义标签
-const customTags = computed(() => parseTags(data.value?.tags).map(t => t.text))
-
-// 未登录且开启「未登录隐藏价格」时，屏蔽金额类指标（剩余时间为天数，仍显示）
-const showPrice = computed(() => appStore.privateFeaturesAllowed || !appStore.hidePriceWhenLoggedOut)
-
 const hasRegion = (region: string) => !!region
 const formatBytes = (bytes: number) => formatBytesWithConfig(bytes, appStore.byteDecimals)
-const formatBytesPerSecond = (bytes: number) => formatBytesPerSecondWithConfig(bytes, appStore.byteDecimals)
 const formatUptime = (seconds: number) => formatUptimeWithFormat(seconds, 'minute')
-
-const nodePriceText = computed(() => {
-  if (!data.value)
-    return '-'
-  if (Number(data.value.price) <= 0)
-    return formatPrice(0, data.value.currency, appStore.lang)
-  return formatPriceWithCycle(data.value.price, data.value.billing_cycle, data.value.currency, appStore.lang)
-})
-
-const remainingTimeText = computed(() => {
-  if (!data.value?.expired_at)
-    return '-'
-  return getExpireText(data.value.expired_at, appStore.lang)
-})
 
 const hasTrafficLimit = computed(() => checkHasTrafficLimit(data.value ?? { traffic_limit: 0 }))
 
 /** 操作系统图标：与首页节点列表使用同一套匹配规则，保证视觉一致 */
 const osIconSrc = computed(() => data.value ? getOSImage(data.value.os) : '')
 const osDisplayName = computed(() => data.value ? getOSName(data.value.os) : '')
-
-/** 在线/离线状态悬浮提示：紧凑徽章省略了精确时间，鼠标悬停展示完整上报/离线时间 */
-const statusTooltip = computed(() => {
-  const node = data.value
-  if (!node)
-    return ''
-  const label = node.online ? '最近上报' : '离线时间'
-  return `${label}：${formatDateTime(node.time)}`
-})
 
 /** 流量状态颜色：无限流量视为健康，超限阶梯与首页节点卡片保持一致（60%/80%/95%） */
 const trafficStatus = computed(() => {
@@ -237,14 +195,6 @@ const cpuTooltip = computed(() => {
   return lines.join('\n')
 })
 
-/** 到期徽章：复用全站统一的过期阈值（5 天危险 / 10 天警告），替换此前硬编码的 7 天判断 */
-const expireBadgeClass = computed(() => {
-  const node = data.value
-  if (!node?.expired_at)
-    return STATUS_BADGE_CLASS.default
-  return STATUS_BADGE_CLASS[getExpireStatusColor(getExpireStatus(node.expired_at))]
-})
-
 interface DeviceInfoField {
   key: string
   label: string
@@ -255,7 +205,7 @@ interface DeviceInfoField {
   span: 1 | 2
 }
 
-/** 「设备信息」统一网格：CPU / 架构 / 虚拟化 / 操作系统 / 内核版本 / 运行时间 / 最后上报——全部是低频、
+/** 「设备信息」统一网格：CPU / 架构 / 虚拟化 / 操作系统 / 内核版��� / 运行时间 / 最后上报——全部是低频、
  *  基本不变的静态身份数据，因此合并到同一张卡片、同一套网格中展示，不再拆成左右两张高度不对称的卡片。
  *  网格采用与上方「资源使用」行相同的 2/4 列断点，保证两行在宽度和分栏边界上严格对齐。
  *  GPU 只有节点确实配备时才追加一格；没有 GPU 的机器不再固定留出一格「无」造成空白噪音。 */
@@ -331,28 +281,6 @@ const deviceInfoFields = computed(() => {
 
   return fields
 })
-
-/** 「实时速率」「续费」：高频变动或需要用户关注的动态数据，独立成卡并与「资源使用」行使用完全相同的
- *  直接卡片语言（而非嵌套小方块），在视觉上与上方主指标行同级并列——不再与设备身份信息混在一张卡片里，
- *  避免动态数据被静态字段稀释、难以第一时间定位。 */
-const dynamicInfoCards = computed(() => {
-  const node = data.value
-  if (!node)
-    return null
-
-  return {
-    rate: {
-      upValue: formatBytesPerSecond(node.net_in),
-      downValue: formatBytesPerSecond(node.net_out),
-      sub: `累计 ↑${formatBytes(node.net_total_up)} · ↓${formatBytes(node.net_total_down)}`,
-    },
-    renewal: {
-      value: showPrice.value ? nodePriceText.value : '***',
-      sub: remainingTimeText.value,
-      badgeClass: expireBadgeClass.value,
-    },
-  }
-})
 </script>
 
 <template>
@@ -386,26 +314,6 @@ const dynamicInfoCards = computed(() => {
           >
           <span class="truncate">{{ data.name }}</span>
           <span v-if="hasRegion(data.region)" class="rounded-full bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground">{{ getRegionCode(data.region) }}</span>
-          <DataTooltip
-            as="div"
-            placement="bottom"
-            :content="statusTooltip"
-            class="cursor-help"
-          >
-            <span
-              class="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-normal"
-              :class="data.online ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'"
-            >
-              <span class="size-1.5 rounded-full" :class="data.online ? 'bg-success' : 'bg-destructive'" />
-              {{ data.online ? `在线 ${formatUptime(data.uptime)}` : '离线' }}
-            </span>
-          </DataTooltip>
-          <template v-if="customTags.length">
-            <span
-              v-for="(tag, i) in customTags" :key="i"
-              class="rounded-xl bg-muted/60 px-2 py-0.5 text-[11px] font-normal leading-tight text-muted-foreground ring-1 ring-inset ring-border/60 backdrop-blur-xs"
-            >{{ tag }}</span>
-          </template>
         </div>
         <div class="ml-auto flex h-8 shrink-0 items-center gap-1 rounded-md bg-background/50 p-0.5 backdrop-blur-xs">
           <Button
@@ -552,43 +460,6 @@ const dynamicInfoCards = computed(() => {
                 </span>
               </div>
             </template>
-          </div>
-        </div>
-      </div>
-
-      <!-- 实时速率 / 续费：高频动态数据，与「资源使用」行使用完全相同的直接卡片语言（非嵌套小方块），
-           独立成行、并列展示，与静态设备信息分离，方便第一时间定位。 -->
-      <div v-if="dynamicInfoCards" class="px-4">
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div class="min-w-0 rounded-xl border border-border bg-muted/40 px-3.5 py-3">
-            <span class="flex items-center gap-1.5 text-[11px] font-medium tracking-wider text-muted-foreground">
-              <Icon :icon="DETAIL_ICONS.rate" :width="13" :height="13" />
-              实时速率
-            </span>
-            <div class="mt-2.5 max-w-full truncate font-mono text-sm font-semibold">
-              <span class="text-foreground">↑ {{ dynamicInfoCards.rate.upValue }}</span>
-              <span class="text-muted-foreground"> · </span>
-              <span class="text-foreground">↓ {{ dynamicInfoCards.rate.downValue }}</span>
-            </div>
-            <div class="mt-1.5 truncate text-[11px] text-muted-foreground">
-              {{ dynamicInfoCards.rate.sub }}
-            </div>
-          </div>
-
-          <div class="min-w-0 rounded-xl border border-border bg-muted/40 px-3.5 py-3">
-            <div class="flex items-center justify-between gap-2">
-              <span class="flex items-center gap-1.5 text-[11px] font-medium tracking-wider text-muted-foreground">
-                <Icon :icon="DETAIL_ICONS.renewal" :width="13" :height="13" />
-                续费
-              </span>
-              <span
-                class="inline-flex rounded-full px-2 py-0.5 text-[10px] leading-tight"
-                :class="dynamicInfoCards.renewal.badgeClass"
-              >{{ dynamicInfoCards.renewal.sub }}</span>
-            </div>
-            <div class="mt-2.5 max-w-full truncate font-mono text-sm font-semibold text-foreground">
-              {{ dynamicInfoCards.renewal.value }}
-            </div>
           </div>
         </div>
       </div>
