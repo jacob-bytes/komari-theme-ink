@@ -373,11 +373,6 @@ header {
   outline-offset: 2px;
 }
 
-/* ink：国旗低饱和（减少色彩噪音） */
-img[src*='/images/flags/'] {
-  filter: grayscale(0.9) contrast(0.95);
-}
-
 /* ===== ink · 延迟/丢包像素块（莫兰迪低饱和 · 暗色自适应） ===== */
 :root {
   --pixel-green: #34d399;
