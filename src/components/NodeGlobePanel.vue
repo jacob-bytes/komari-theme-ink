@@ -380,16 +380,20 @@ watch(() => props.nodes.map(n => n.uuid).join('|'), () => {
 
 <template>
   <div class="flex flex-col gap-3 lg:flex-row">
-    <!-- 柔和渐变外框：用语义化的 muted 底色包一层"呼吸边"，让深色科技面板不再是
-         直接硬塞进页面的黑块，而是从周围留白自然过渡进去；配合内层柔化阴影+泛光
-         代替原来单一的硬边内描边，边缘不再是一条突兀的分界线 -->
-    <div class="relative shrink-0 rounded-2xl bg-gradient-to-br from-muted/70 via-muted/25 to-transparent p-2.5 lg:w-[60%]">
+    <!-- "设备屏幕"外壳：用跟随站点主题的 bg-card + ring-border 包一层实体边框（浅色站点下是
+         普通白色卡片边框，深色站点下自动变成深色卡片边框），把深空科技面板当成"镶在浅色/深色
+         卡片壳里的一块屏幕"，而不是直接把一块纯黑矩形凌空摆在页面留白上——
+         同一层级的"按地区分布"面板也是用 ring-border 卡片语言，两者边框粗细/圆角保持一致，
+         视觉上才会读作"一组卡片"而非"一个突兀的黑块 + 一个普通白卡片"。
+         壳体内侧再叠一圈更深的内阴影，模拟屏幕嵌入边框缝隙的凹陷质感，让深浅两色之间
+         有一层过渡阴影而非直接拼接。 -->
+    <div class="relative shrink-0 rounded-lg bg-card p-2 shadow-sm ring-1 ring-inset ring-border lg:w-[60%]">
       <div
         ref="containerRef"
-        class="group relative h-72 w-full overflow-hidden rounded-xl select-none lg:h-96"
+        class="group relative h-72 w-full overflow-hidden rounded-md select-none lg:h-96"
         :style="{
           background: `radial-gradient(circle at 50% 35%, ${GLOBE_THEME.spaceFrom} 0%, ${GLOBE_THEME.spaceTo} 70%)`,
-          boxShadow: `inset 0 0 0 1px ${GLOBE_THEME.panelBorder}, 0 16px 36px -14px rgba(4, 10, 24, 0.5), 0 0 44px -6px rgba(${GLOBE_THEME.atmosphereRGB}, 0.22)`,
+          boxShadow: `inset 0 0 0 1px ${GLOBE_THEME.panelBorder}, inset 0 1px 10px 2px rgba(4, 10, 24, 0.45), 0 0 40px -8px rgba(${GLOBE_THEME.atmosphereRGB}, 0.35)`,
         }"
       >
         <canvas
