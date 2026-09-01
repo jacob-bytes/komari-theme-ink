@@ -27,13 +27,13 @@ const METRIC_ICONS = {
   gpu: 'tabler:brand-nvidia',
 } as const
 
-/** 「硬件信息」/「系统信息」卡片图标：与「资源使用」卡片同一套视觉语言，让两行看起来是同一体系 */
+/** 「设备信息」卡片图标：与「资源使用」卡片同一套视觉语言，让两行看起来是同一体系 */
 const DETAIL_ICONS = {
-  hardware: 'tabler:cpu',
-  system: 'tabler:device-desktop',
+  device: 'tabler:server',
   cpu: 'tabler:cpu',
   arch: 'tabler:binary',
   virtualization: 'tabler:box-multiple',
+  os: 'tabler:device-desktop',
   kernel: 'tabler:code',
   uptime: 'tabler:stopwatch',
   lastReport: 'tabler:clock',
@@ -245,40 +245,102 @@ const expireBadgeClass = computed(() => {
   return STATUS_BADGE_CLASS[getExpireStatusColor(getExpireStatus(node.expired_at))]
 })
 
-/** 「硬件信息」卡片：CPU 型号（悬浮展示完整信息）+ 架构 / 虚拟化 / GPU。
- *  GPU 字段无论后端返回空字符串还是字面 "None"，统一归一化显示为「无」，避免歧义。 */
-const hardwareInfo = computed(() => {
+interface DeviceInfoField {
+  key: string
+  label: string
+  icon: string
+  value: string
+  tooltip?: string
+  iconSrc?: string
+  span: 1 | 2
+}
+
+/** 「设备信息」统一网格：CPU / 架构 / 虚拟化 / 操作系统 / 内核版本 / 运行时间 / 最后上报——全部是低频、
+ *  基本不变的静态身份数据，因此合并到同一张卡片、同一套网格中展示，不再拆成左右两张高度不对称的卡片。
+ *  网格采用与上方「资源使用」行相同的 2/4 列断点，保证两行在宽度和分栏边界上严格对齐。
+ *  GPU 只有节点确实配备时才追加一格；没有 GPU 的机器不再固定留出一格「无」造成空白噪音。 */
+const deviceInfoFields = computed(() => {
   const node = data.value
   if (!node)
-    return null
+    return []
+
+  const fields: DeviceInfoField[] = [
+    {
+      key: 'cpu',
+      label: 'CPU',
+      icon: DETAIL_ICONS.cpu,
+      value: node.cpu_name || '-',
+      tooltip: cpuTooltip.value,
+      span: 2,
+    },
+    {
+      key: 'arch',
+      label: '架构',
+      icon: DETAIL_ICONS.arch,
+      value: node.arch || '-',
+      span: 1,
+    },
+    {
+      key: 'virtualization',
+      label: '虚拟化',
+      icon: DETAIL_ICONS.virtualization,
+      value: node.virtualization || '-',
+      span: 1,
+    },
+    {
+      key: 'os',
+      label: '操作系统',
+      icon: DETAIL_ICONS.os,
+      value: osDisplayName.value || node.os || '-',
+      iconSrc: osIconSrc.value,
+      span: 1,
+    },
+    {
+      key: 'kernel',
+      label: '内核版本',
+      icon: DETAIL_ICONS.kernel,
+      value: node.kernel_version || '-',
+      span: 1,
+    },
+    {
+      key: 'uptime',
+      label: '运行时间',
+      icon: DETAIL_ICONS.uptime,
+      value: formatUptime(node.uptime ?? 0),
+      span: 1,
+    },
+    {
+      key: 'lastReport',
+      label: '最后上报',
+      icon: DETAIL_ICONS.lastReport,
+      value: formatDateTime(node.time),
+      span: 1,
+    },
+  ]
 
   const gpuName = node.gpu_name && node.gpu_name.toLowerCase() !== 'none' ? node.gpu_name : ''
-
-  return {
-    cpu: {
-      value: node.cpu_name || '-',
-      sub: node.cpu_physical_cores ? `${node.cpu_cores} vCPU（${node.cpu_physical_cores} 物理核心）` : `${node.cpu_cores} vCPU`,
-    },
-    arch: node.arch || '-',
-    virtualization: node.virtualization || '-',
-    gpu: gpuName ? (node.online ? `${gpuName} · ${(node.gpu ?? 0).toFixed(1)}%` : gpuName) : '无',
+  if (gpuName) {
+    fields.push({
+      key: 'gpu',
+      label: 'GPU',
+      icon: METRIC_ICONS.gpu,
+      value: node.online ? `${gpuName} · ${(node.gpu ?? 0).toFixed(1)}%` : gpuName,
+      span: 1,
+    })
   }
+
+  return fields
 })
 
-/** 「系统信息」卡片：操作系统 / 内核版本 / 运行时间 / 最后上报 / 实时速率 / 续费到期状态 */
-const systemInfo = computed(() => {
+/** 「实时速率」「续费」：高频变动或需要用户关注的动态数据，独立成卡并与「资源使用」行使用完全相同的
+ *  直接卡片语言（而非嵌套小方块），在视觉上与上方主指标行同级并列——不再与设备身份信息混在一张卡片里，
+ *  避免动态数据被静态字段稀释、难以第一时间定位。 */
+const dynamicInfoCards = computed(() => {
   const node = data.value
   if (!node)
     return null
 
   return {
-    os: {
-      icon: osIconSrc.value,
-      name: osDisplayName.value || node.os || '-',
-    },
-    kernel: node.kernel_version || '-',
-    uptime: formatUptime(node.uptime ?? 0),
-    lastReport: formatDateTime(node.time),
     rate: {
       upValue: formatBytesPerSecond(node.net_in),
       downValue: formatBytesPerSecond(node.net_out),
@@ -419,7 +481,7 @@ const systemInfo = computed(() => {
       </div>
 
       <!-- 资源使用：主视觉行，固定 4 项（CPU/内存/硬盘/流量），进度条颜色跟随健康阈值实时变化。
-           GPU 大多数节点用不上，不再作为第 5 项占用这一行，改在下方「硬件信息」卡片中展示。 -->
+           GPU 大多数节点用不上，不再作为第 5 项占用这一行，改在下方「设备信息」卡片中按需展示。 -->
       <div class="px-4">
         <div data-resource-metrics class="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div
@@ -449,121 +511,83 @@ const systemInfo = computed(() => {
         </div>
       </div>
 
-      <!-- 详情信息：拆分为「硬件信息」「系统信息」两个信息卡片，每个卡片内部再用次级小方块承载更丰富的字段，
-           外层卡片语言（border + bg-muted/40 + rounded-xl）与上方「资源使用」行保持一致。 -->
-      <div v-if="hardwareInfo && systemInfo" class="px-4">
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <!-- 硬件信息 -->
-          <div data-hardware-info class="min-w-0 rounded-xl border border-border bg-muted/40 p-3.5">
-            <div class="flex items-center gap-1.5 text-[11px] font-medium tracking-wider text-muted-foreground">
-              <Icon :icon="DETAIL_ICONS.hardware" :width="13" :height="13" />
-              硬件信息
-            </div>
-            <div class="mt-2.5 space-y-2">
+      <!-- 设备信息：CPU / 架构 / 虚拟化 / 操作系统 / 内核版本 / 运行时间 / 最后上报等静态身份字段统一放入
+           同一张卡片，网格断点（grid-cols-2 sm:grid-cols-4）与上方「资源使用」行完全一致，两行严格对齐，
+           不再出现左右两张卡片高度不对称、栅格错位的问题。 -->
+      <div v-if="deviceInfoFields.length" class="px-4">
+        <div data-device-info class="rounded-xl border border-border bg-muted/40 p-3.5">
+          <div class="flex items-center gap-1.5 text-[11px] font-medium tracking-wider text-muted-foreground">
+            <Icon :icon="DETAIL_ICONS.device" :width="13" :height="13" />
+            设备信息
+          </div>
+          <div class="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <template v-for="field in deviceInfoFields" :key="field.key">
               <DataTooltip
+                v-if="field.tooltip"
                 as="div"
                 placement="bottom"
-                :content="cpuTooltip"
+                :content="field.tooltip"
                 class="block max-w-full cursor-help rounded-lg bg-background/60 px-3 py-2.5"
+                :class="field.span === 2 ? 'col-span-2' : 'col-span-1'"
                 content-class="w-max max-w-72 whitespace-pre-line break-words px-2 py-1.5 text-left leading-relaxed"
               >
                 <span class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <Icon :icon="DETAIL_ICONS.cpu" :width="12" :height="12" />
-                  CPU
+                  <Icon :icon="field.icon" :width="12" :height="12" />
+                  {{ field.label }}
                 </span>
-                <span class="mt-1 block max-w-full truncate font-mono text-sm font-semibold text-foreground underline decoration-dotted decoration-muted-foreground/50 underline-offset-3">{{ hardwareInfo.cpu.value }}</span>
+                <span class="mt-1 block max-w-full truncate font-mono text-sm font-semibold text-foreground underline decoration-dotted decoration-muted-foreground/50 underline-offset-3">{{ field.value }}</span>
               </DataTooltip>
-              <div class="grid grid-cols-3 gap-2">
-                <div class="min-w-0 rounded-lg bg-background/60 px-3 py-2.5">
-                  <span class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <Icon :icon="DETAIL_ICONS.arch" :width="12" :height="12" />
-                    架构
-                  </span>
-                  <span class="mt-1 block truncate font-mono text-sm font-semibold text-foreground">{{ hardwareInfo.arch }}</span>
-                </div>
-                <div class="min-w-0 rounded-lg bg-background/60 px-3 py-2.5">
-                  <span class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <Icon :icon="DETAIL_ICONS.virtualization" :width="12" :height="12" />
-                    虚拟化
-                  </span>
-                  <span class="mt-1 block truncate font-mono text-sm font-semibold text-foreground">{{ hardwareInfo.virtualization }}</span>
-                </div>
-                <div class="min-w-0 rounded-lg bg-background/60 px-3 py-2.5">
-                  <span class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <Icon :icon="METRIC_ICONS.gpu" :width="12" :height="12" />
-                    GPU
-                  </span>
-                  <span class="mt-1 block truncate font-mono text-sm font-semibold text-foreground">{{ hardwareInfo.gpu }}</span>
-                </div>
+              <div
+                v-else
+                class="min-w-0 rounded-lg bg-background/60 px-3 py-2.5"
+                :class="field.span === 2 ? 'col-span-2' : 'col-span-1'"
+              >
+                <span class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <Icon :icon="field.icon" :width="12" :height="12" />
+                  {{ field.label }}
+                </span>
+                <span class="mt-1 flex items-center gap-1.5 truncate font-mono text-sm font-semibold text-foreground">
+                  <img v-if="field.iconSrc" loading="lazy" :src="field.iconSrc" :alt="field.value" class="size-3.5 shrink-0">
+                  <span class="truncate">{{ field.value }}</span>
+                </span>
               </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- 实时速率 / 续费：高频动态数据，与「资源使用」行使用完全相同的直接卡片语言（非嵌套小方块），
+           独立成行、并列展示，与静态设备信息分离，方便第一时间定位。 -->
+      <div v-if="dynamicInfoCards" class="px-4">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div class="min-w-0 rounded-xl border border-border bg-muted/40 px-3.5 py-3">
+            <span class="flex items-center gap-1.5 text-[11px] font-medium tracking-wider text-muted-foreground">
+              <Icon :icon="DETAIL_ICONS.rate" :width="13" :height="13" />
+              实时速率
+            </span>
+            <div class="mt-2.5 max-w-full truncate font-mono text-sm font-semibold">
+              <span class="text-foreground">↑ {{ dynamicInfoCards.rate.upValue }}</span>
+              <span class="text-muted-foreground"> · </span>
+              <span class="text-foreground">↓ {{ dynamicInfoCards.rate.downValue }}</span>
+            </div>
+            <div class="mt-1.5 truncate text-[11px] text-muted-foreground">
+              {{ dynamicInfoCards.rate.sub }}
             </div>
           </div>
 
-          <!-- 系统信息 -->
-          <div data-system-info class="min-w-0 rounded-xl border border-border bg-muted/40 p-3.5">
-            <div class="flex items-center gap-1.5 text-[11px] font-medium tracking-wider text-muted-foreground">
-              <Icon :icon="DETAIL_ICONS.system" :width="13" :height="13" />
-              系统信息
+          <div class="min-w-0 rounded-xl border border-border bg-muted/40 px-3.5 py-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="flex items-center gap-1.5 text-[11px] font-medium tracking-wider text-muted-foreground">
+                <Icon :icon="DETAIL_ICONS.renewal" :width="13" :height="13" />
+                续费
+              </span>
+              <span
+                class="inline-flex rounded-full px-2 py-0.5 text-[10px] leading-tight"
+                :class="dynamicInfoCards.renewal.badgeClass"
+              >{{ dynamicInfoCards.renewal.sub }}</span>
             </div>
-            <div class="mt-2.5 grid grid-cols-2 gap-2">
-              <div class="min-w-0 rounded-lg bg-background/60 px-3 py-2.5">
-                <span class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <Icon :icon="DETAIL_ICONS.system" :width="12" :height="12" />
-                  操作系统
-                </span>
-                <span class="mt-1 flex items-center gap-1.5 truncate font-mono text-sm font-semibold text-foreground">
-                  <img v-if="systemInfo.os.icon" loading="lazy" :src="systemInfo.os.icon" :alt="systemInfo.os.name" class="size-3.5 shrink-0">
-                  <span class="truncate">{{ systemInfo.os.name }}</span>
-                </span>
-              </div>
-              <div class="min-w-0 rounded-lg bg-background/60 px-3 py-2.5">
-                <span class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <Icon :icon="DETAIL_ICONS.kernel" :width="12" :height="12" />
-                  内核版本
-                </span>
-                <span class="mt-1 block truncate font-mono text-sm font-semibold text-foreground">{{ systemInfo.kernel }}</span>
-              </div>
-              <div class="min-w-0 rounded-lg bg-background/60 px-3 py-2.5">
-                <span class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <Icon :icon="DETAIL_ICONS.uptime" :width="12" :height="12" />
-                  运行时间
-                </span>
-                <span class="mt-1 block truncate font-mono text-sm font-semibold text-foreground">{{ systemInfo.uptime }}</span>
-              </div>
-              <div class="min-w-0 rounded-lg bg-background/60 px-3 py-2.5">
-                <span class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <Icon :icon="DETAIL_ICONS.lastReport" :width="12" :height="12" />
-                  最后上报
-                </span>
-                <span class="mt-1 block truncate font-mono text-sm font-semibold text-foreground">{{ systemInfo.lastReport }}</span>
-              </div>
-              <div class="col-span-2 min-w-0 rounded-lg bg-background/60 px-3 py-2.5">
-                <span class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <Icon :icon="DETAIL_ICONS.rate" :width="12" :height="12" />
-                  实时速率
-                </span>
-                <span class="mt-1 block max-w-full truncate font-mono text-sm font-semibold">
-                  <span class="text-foreground">↑ {{ systemInfo.rate.upValue }}</span>
-                  <span class="text-muted-foreground"> · </span>
-                  <span class="text-foreground">↓ {{ systemInfo.rate.downValue }}</span>
-                </span>
-                <div class="mt-1 truncate text-[11px] text-muted-foreground">
-                  {{ systemInfo.rate.sub }}
-                </div>
-              </div>
-              <div class="col-span-2 min-w-0 rounded-lg bg-background/60 px-3 py-2.5">
-                <span class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <Icon :icon="DETAIL_ICONS.renewal" :width="12" :height="12" />
-                  续费
-                </span>
-                <span class="mt-1 block max-w-full truncate font-mono text-sm font-semibold text-foreground">{{ systemInfo.renewal.value }}</span>
-                <div class="mt-1 truncate text-[11px] text-muted-foreground">
-                  <span
-                    class="inline-flex rounded-full px-2 py-0.5 text-[10px] leading-tight"
-                    :class="systemInfo.renewal.badgeClass"
-                  >{{ systemInfo.renewal.sub }}</span>
-                </div>
-              </div>
+            <div class="mt-2.5 max-w-full truncate font-mono text-sm font-semibold text-foreground">
+              {{ dynamicInfoCards.renewal.value }}
             </div>
           </div>
         </div>
