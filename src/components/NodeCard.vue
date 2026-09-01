@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { NodeData } from '@/stores/nodes'
 import { Icon } from '@iconify/vue'
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
 import { ProgressThin } from '@/components/ui/progress-thin'
@@ -79,74 +79,37 @@ const swapTooltip = computed(() => {
 const diskPercentage = computed(() => getDiskPercentage(props.node))
 const diskStatus = computed(() => getStatus(diskPercentage.value))
 
+// 直接复用 useNodePingDisplay 已有的真实历史采样点阵（latencyRenderBars/lossRenderBars）：
+// 每个色块对应一次真实 ping 采样，自带精确到秒的时间戳 + 数值 tooltip，5 档 signal 色阶
+// 已经过深浅色/色觉友好适配。避免另起一套「客户端累积近似历史 + 4 档色相」的展示，
+// 后者既没有真实时间戳，档位又粗，与列表视图（NodePingListCell）的展示语义不一致。
 const {
   latencyDisplay,
   lossDisplay,
+  latencyRenderBars,
+  lossRenderBars,
 } = useNodePingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled })
 
-// 四级状态改用「色相」区分而非同一蓝色的透明度区分：
-// 大多数节点延迟/丢包正常时会长期停留在最低档，若最低档只是 30% 透明度的浅蓝，
-// 整墙卡片会显得大部分「发灰变淡」、只有个别异常节点色块突出，产生割裂感。
-// 改为健康态用 success 绿实色、中/高/危急态依次过渡到 primary 蓝、warning 黄、danger 红，
-// 每一档都是饱和的实色，正常节点也能呈现清晰、有意图的视觉效果，而非「褪色」。
-function latencyBarClass(v: number): string {
-  if (v > 220)
-    return 'bg-destructive'
-  if (v >= 150)
-    return 'bg-warning'
-  if (v >= 80)
-    return 'bg-primary'
-  return 'bg-success'
-}
-function lossBarClass(v: number): string {
-  // 与延迟柱状图保持同样的四级渐变逻辑：轻微网络抖动不应等同于严重丢包，避免告警疲劳
-  if (v > 10)
-    return 'bg-destructive'
-  if (v >= 5)
-    return 'bg-warning'
-  if (v >= 1)
-    return 'bg-primary'
-  return 'bg-success'
-}
-// 数值文字颜色与柱状图同步：仅在中高严重度提亮，常态仍为默认前景色，避免视觉噪音
+// 数值文字颜色与色块色阶保持同一套严重度阈值，仅在中高严重度提亮，常态仍为默认前景色
 function latencyTextClass(text: string): string {
   const ms = Number.parseFloat(text)
   if (!Number.isFinite(ms))
     return 'text-foreground'
-  if (ms > 220)
+  if (ms > 200)
     return 'text-destructive'
-  if (ms >= 150)
-    return 'text-primary'
+  if (ms > 160)
+    return 'text-warning'
   return 'text-foreground'
 }
 function lossTextClass(text: string): string {
   const pct = Number.parseFloat(text)
   if (!Number.isFinite(pct))
     return 'text-foreground'
-  if (pct > 10)
+  if (pct > 9)
     return 'text-destructive'
-  if (pct >= 5)
-    return 'text-primary'
+  if (pct > 6)
+    return 'text-warning'
   return 'text-foreground'
-}
-const latencyHistory = ref<number[]>([])
-const lossHistory = ref<number[]>([])
-watch(latencyDisplay, (v) => {
-  const ms = Number.parseFloat(v) || 0
-  latencyHistory.value = [...latencyHistory.value, ms].slice(-30)
-}, { immediate: true })
-watch(lossDisplay, (v) => {
-  const pct = Number.parseFloat(v) || 0
-  lossHistory.value = [...lossHistory.value, pct].slice(-30)
-}, { immediate: true })
-function padBars(data: number[], size = 14): number[] {
-  if (data.length >= size)
-    return data.slice(-size)
-  const last: number = data.at(-1) ?? 0
-  const fill: number[] = []
-  for (let i = 0; i < size - data.length; i++)
-    fill.push(last)
-  return [...fill, ...data]
 }
 const trafficUsedPercentage = computed(() => getTrafficUsedPercentage(props.node))
 const trafficUsed = computed(() => getTrafficUsed(props.node))
@@ -494,10 +457,10 @@ function hasRegion(region: string | null | undefined): boolean {
           </div>
         </div>
 
-        <!-- 延迟 + 丢包（双卡片 + 像素点阵柱） -->
+        <!-- 延迟 + 丢包（真实历史采样点阵，与列表视图共用同一套展示逻辑，悬浮单格查看时间+数值） -->
         <div class="grid grid-cols-2 gap-2">
           <div
-            class="cursor-pointer rounded-lg bg-muted/50 p-2.5 transition-colors hover:bg-muted"
+            class="group cursor-pointer rounded-lg bg-muted/50 p-2.5 transition-colors hover:bg-muted"
             :class="!props.node.online ? 'blur-xs opacity-50' : ''"
             role="button" tabindex="0"
             :aria-label="`${props.node.name} 延迟与丢包监测`"
@@ -508,17 +471,23 @@ function hasRegion(region: string | null | undefined): boolean {
               <span class="text-xs font-normal text-muted-foreground">延迟</span>
               <span class="font-mono text-xs font-bold" :class="latencyTextClass(latencyDisplay)">{{ latencyDisplay }}</span>
             </div>
-            <div class="mt-1.5 flex h-5 items-end gap-[1.5px] rounded-sm bg-muted/40 p-0.5" aria-hidden="true">
-              <div
-                v-for="(v, vi) in padBars(latencyHistory)" :key="vi"
-                class="min-w-0 flex-1 rounded-[1px]"
-                :class="latencyBarClass(v)"
-                :style="{ height: `${Math.max(25, Math.min(100, (v / (Math.max(...latencyHistory, 1))) * 100))}%` }"
-              />
+            <div
+              class="mt-1.5 grid h-5 cursor-auto gap-[1.5px] rounded-sm bg-muted/40 p-0.5"
+              :style="{ gridTemplateColumns: `repeat(${latencyRenderBars.length}, minmax(0, 1fr))` }"
+            >
+              <span
+                v-for="bar in latencyRenderBars"
+                :key="bar.key"
+                :title="bar.tooltip"
+                :aria-label="bar.tooltip"
+                class="h-full w-full"
+              >
+                <span class="block h-full w-full rounded-[1px] transition-all group-hover:opacity-50 hover:scale-y-125 hover:opacity-100" :class="bar.className" />
+              </span>
             </div>
           </div>
           <div
-            class="cursor-pointer rounded-lg bg-muted/50 p-2.5 transition-colors hover:bg-muted"
+            class="group cursor-pointer rounded-lg bg-muted/50 p-2.5 transition-colors hover:bg-muted"
             :class="!props.node.online ? 'blur-xs opacity-50' : ''"
             role="button" tabindex="0"
             :aria-label="`${props.node.name} 丢包监测`"
@@ -529,13 +498,19 @@ function hasRegion(region: string | null | undefined): boolean {
               <span class="text-xs font-normal text-muted-foreground">丢包</span>
               <span class="font-mono text-xs font-bold" :class="lossTextClass(lossDisplay)">{{ lossDisplay }}</span>
             </div>
-            <div class="mt-1.5 flex h-5 items-end gap-[1.5px] rounded-sm bg-muted/40 p-0.5" aria-hidden="true">
-              <div
-                v-for="(v, vi) in padBars(lossHistory)" :key="vi"
-                class="min-w-0 flex-1 rounded-[1px]"
-                :class="lossBarClass(v)"
-                :style="{ height: `${Math.max(25, Math.min(100, (v / (Math.max(...lossHistory, 1))) * 100))}%` }"
-              />
+            <div
+              class="mt-1.5 grid h-5 cursor-auto gap-[1.5px] rounded-sm bg-muted/40 p-0.5"
+              :style="{ gridTemplateColumns: `repeat(${lossRenderBars.length}, minmax(0, 1fr))` }"
+            >
+              <span
+                v-for="bar in lossRenderBars"
+                :key="bar.key"
+                :title="bar.tooltip"
+                :aria-label="bar.tooltip"
+                class="h-full w-full"
+              >
+                <span class="block h-full w-full rounded-[1px] transition-all group-hover:opacity-50 hover:scale-y-125 hover:opacity-100" :class="bar.className" />
+              </span>
             </div>
           </div>
         </div>

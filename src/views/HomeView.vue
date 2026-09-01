@@ -503,7 +503,7 @@ const nodeCardGridClass = computed(() => {
               {{ activeToolTitle }} · 当前分组：{{ g.tab }}（{{ groupNodeList.length }} 台）
             </div>
             <NodeComparePanel v-if="activeHomeTool === 'nodeCompare'" :nodes="groupNodeList" />
-            <NodeGlobePanel v-else-if="activeHomeTool === 'globe'" :nodes="groupNodeList" @click="handleNodeClick" />
+            <NodeGlobePanel v-else-if="activeHomeTool === 'globe'" :nodes="groupNodeList" :reduce-motion="reduceDenseNodeEffects" @click="handleNodeClick" />
             <ProviderValuePanel v-else-if="activeHomeTool === 'providerValue'" :nodes="groupNodeList" />
             <SnapshotExportPanel v-else-if="activeHomeTool === 'snapshotExport'" :nodes="groupNodeList" />
             <AuditLogPanel v-else-if="activeHomeTool === 'auditLog'" />

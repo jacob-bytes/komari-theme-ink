@@ -45,6 +45,7 @@ export function useGlobeProjection(options: GlobeProjectionOptions = {}) {
   let transitionRaf = 0
   let inertiaRaf = 0
   let autoRotateRaf = 0
+  let focusRaf = 0
   let lastPointer: { x: number, y: number } | null = null
   let velocity = { x: 0, y: 0 }
   let resumeAutoRotateTimer: ReturnType<typeof setTimeout> | null = null
@@ -197,6 +198,54 @@ export function useGlobeProjection(options: GlobeProjectionOptions = {}) {
       stopAutoRotate()
   }
 
+  function stopFocusAnimation(): void {
+    if (focusRaf) {
+      cancelAnimationFrame(focusRaf)
+      focusRaf = 0
+    }
+  }
+
+  /** 将经度差归一化到 [-180, 180]，保证旋转走最短路径而不是绕远路 */
+  function normalizeLambdaDelta(delta: number): number {
+    let d = delta % 360
+    if (d > 180)
+      d -= 360
+    if (d < -180)
+      d += 360
+    return d
+  }
+
+  /** 平滑旋转地球，使指定经纬度的地区转到正面中心。仅用于球面态，地图态旋转没有意义 */
+  function focusOn(lon: number, lat: number, durationMs = 700): void {
+    stopInertia()
+    stopAutoRotate()
+    stopFocusAnimation()
+    if (resumeAutoRotateTimer)
+      clearTimeout(resumeAutoRotateTimer)
+
+    const [startLambda, startPhi, startGamma] = rotation.value
+    const targetLambda = startLambda + normalizeLambdaDelta(-lon - startLambda)
+    const targetPhi = clampPhi(-lat)
+    const deltaLambda = targetLambda - startLambda
+    const deltaPhi = targetPhi - startPhi
+    const startTime = performance.now()
+
+    const step = (now: number) => {
+      const elapsed = now - startTime
+      const rawT = Math.min(1, elapsed / durationMs)
+      const eased = easeCubicInOut(rawT)
+      rotation.value = [startLambda + deltaLambda * eased, startPhi + deltaPhi * eased, startGamma]
+      if (rawT < 1) {
+        focusRaf = requestAnimationFrame(step)
+      }
+      else {
+        focusRaf = 0
+        scheduleAutoRotateResume()
+      }
+    }
+    focusRaf = requestAnimationFrame(step)
+  }
+
   /** 根据当前过渡进度与旋转状态构造投影对象，供 Canvas 绘制与坐标计算复用 */
   function buildProjection(width: number, height: number): GeoProjection {
     const t = transitionProgress.value
@@ -225,7 +274,7 @@ export function useGlobeProjection(options: GlobeProjectionOptions = {}) {
 
   /**
    * 判断经纬度点是否在当前裁剪角范围内可见。Canvas 绘制的陆地/网格由 d3.geoPath 自动裁剪，
-   * 但节点标记是单独定位的 DOM 元素，需要手动做同样的可见性判断才能正确隐藏/淡出背面点位
+   * 但节点标记是单独定位的 DOM 元素，需要手动做同样的可见性��断才能正确隐藏/淡出背面点位
    */
   function isPointVisible(lon: number, lat: number): boolean {
     const t = transitionProgress.value
@@ -250,6 +299,7 @@ export function useGlobeProjection(options: GlobeProjectionOptions = {}) {
     stopTransitionAnimation()
     stopInertia()
     stopAutoRotate()
+    stopFocusAnimation()
     if (resumeAutoRotateTimer)
       clearTimeout(resumeAutoRotateTimer)
   })
@@ -266,5 +316,6 @@ export function useGlobeProjection(options: GlobeProjectionOptions = {}) {
     setAutoRotate,
     buildProjection,
     isPointVisible,
+    focusOn,
   }
 }

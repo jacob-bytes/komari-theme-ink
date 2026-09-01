@@ -2,18 +2,21 @@
 import type { Topology } from 'topojson-specification'
 import type { NodeData } from '@/stores/nodes'
 import { Icon } from '@iconify/vue'
-import { geoGraticule10, geoPath } from 'd3-geo'
+import { geoGraticule10, geoInterpolate, geoPath } from 'd3-geo'
 import { feature } from 'topojson-client'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import { useGlobeProjection } from '@/composables/useGlobeProjection'
-import { useThemeVars } from '@/composables/useThemeVars'
+import { GLOBE_THEME } from '@/constants/globeTheme'
 import { REGION_COORDINATES } from '@/utils/regionCoordinates'
 import { getRegionCode, getRegionDisplayName } from '@/utils/regionHelper'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   nodes: NodeData[]
-}>()
+  reduceMotion?: boolean
+}>(), {
+  reduceMotion: false,
+})
 
 const emit = defineEmits<{
   click: [node: NodeData]
@@ -32,23 +35,28 @@ interface MarkerPoint {
   code: string
   x: number
   y: number
-  visible: boolean
+  /** 0~1：背面/边缘的可见度系数，用于替代过去只有 1/0.15 两档的硬切换 */
+  opacity: number
   group: RegionGroup
 }
 
 const containerRef = ref<HTMLDivElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const size = ref({ width: 0, height: 0 })
-const themeVars = useThemeVars()
+// 飞线默认关闭：没有真实节点间链路数据，枢纽放射式连线只是装饰性效果，交给用户按需开启
+const flylinesEnabled = ref(false)
+const canToggleFlylines = computed(() => !props.reduceMotion)
 
 const {
   mode,
   transitionProgress,
+  rotation,
   isDragging,
   toggleMode,
   bindDrag,
   buildProjection,
   isPointVisible,
+  focusOn,
 } = useGlobeProjection()
 
 const regionGroups = computed<RegionGroup[]>(() => {
@@ -77,7 +85,15 @@ const selectedRegionCode = ref<string | null>(null)
 const selectedRegion = computed(() => regionGroups.value.find(g => g.code === selectedRegionCode.value) ?? null)
 
 function selectRegion(code: string): void {
-  selectedRegionCode.value = selectedRegionCode.value === code ? null : code
+  const nextCode = selectedRegionCode.value === code ? null : code
+  selectedRegionCode.value = nextCode
+  // 仅球面模式下旋转聚焦：地图模式是等距矩形投影，旋转会让整张地图错位，体验反而更差，
+  // 地图模式下点击列表只做高亮/筛选即可
+  if (nextCode && mode.value === 'globe') {
+    const group = regionGroups.value.find(g => g.code === nextCode)
+    if (group)
+      focusOn(group.lon, group.lat)
+  }
 }
 
 function handleMarkerClick(group: RegionGroup): void {
@@ -107,11 +123,6 @@ async function loadLandFeatures(): Promise<void> {
 const graticule = geoGraticule10()
 const markers = shallowRef<MarkerPoint[]>([])
 
-/** alpha 以百分比（0-100）表示，例如 6 表示 6% 不透明度 */
-function withAlpha(color: string, alpha: number): string {
-  return `color-mix(in oklab, ${color} ${Math.round(alpha)}%, transparent)`
-}
-
 // 扫描线当前经度（度），不需要响应式：只在动画循环内部读写，不驱动任何模板渲染
 let scanLambda = 0
 /** 扫描线每帧推进的经度（度），决定扫描一圈的速度 */
@@ -123,6 +134,40 @@ function buildScanMeridian(lambda: number): { type: 'LineString', coordinates: [
   for (let lat = -90; lat <= 90; lat += 2)
     coordinates.push([lambda, lat])
   return { type: 'LineString', coordinates }
+}
+
+// 飞线流动光点的全局进度（0~1 循环）与各条线的初始相位，只在动画循环内部读写
+let flylineGlobalT = 0
+const FLYLINE_SPEED = 0.006
+const flylinePhaseByCode = new Map<string, number>()
+function getFlylinePhase(code: string): number {
+  let phase = flylinePhaseByCode.get(code)
+  if (phase === undefined) {
+    phase = Math.random()
+    flylinePhaseByCode.set(code, phase)
+  }
+  return phase
+}
+
+/** 边缘可见度系数：正面中心=1，越靠近裁剪边缘越淡，完全背面进一步降到更低的固定值 */
+function edgeOpacity(lon: number, lat: number): number {
+  const t = transitionProgress.value
+  if (t >= 0.999)
+    return 1
+  const clipDeg = 90 + t * 90
+  const [rl, rp] = rotation.value
+  const centerLon = -rl
+  const centerLat = -rp
+  const toRad = Math.PI / 180
+  const phi1 = lat * toRad
+  const phi2 = centerLat * toRad
+  const dLambda = (lon - centerLon) * toRad
+  const cosc = Math.sin(phi1) * Math.sin(phi2) + Math.cos(phi1) * Math.cos(phi2) * Math.cos(dLambda)
+  const distDeg = Math.acos(Math.max(-1, Math.min(1, cosc))) * (180 / Math.PI)
+  if (distDeg > clipDeg)
+    return 0.12
+  const ratio = distDeg / clipDeg
+  return 1 - ratio * 0.65
 }
 
 let rafId = 0
@@ -149,49 +194,111 @@ function renderFrame(): void {
 
   const projection = buildProjection(width, height)
   const path = geoPath(projection, ctx)
-  const vars = themeVars.value
+  // 球面半径与 buildProjection 内部的 scale() 保持同一计算方式，用于绘制大气层光晕
+  const sphereRadius = Math.min(width, height) / 2.3
+  const transitionT = transitionProgress.value
+  const atmosphereOpacity = 1 - transitionT
+
+  // 大气层发光：画在球体主体之前的最底层，仅球面态明显，过渡到平面地图态时线性淡出
+  if (atmosphereOpacity > 0.02) {
+    const gradient = ctx.createRadialGradient(
+      width / 2,
+      height / 2,
+      sphereRadius,
+      width / 2,
+      height / 2,
+      sphereRadius * 1.15,
+    )
+    gradient.addColorStop(0, `rgba(${GLOBE_THEME.atmosphereRGB}, ${0.28 * atmosphereOpacity})`)
+    gradient.addColorStop(1, `rgba(${GLOBE_THEME.atmosphereRGB}, 0)`)
+    ctx.fillStyle = gradient
+    ctx.fillRect(0, 0, width, height)
+  }
 
   ctx.beginPath()
   path({ type: 'Sphere' })
-  ctx.fillStyle = withAlpha(vars.primaryColor, 6)
+  ctx.fillStyle = GLOBE_THEME.sphereFill
   ctx.fill()
 
   ctx.beginPath()
   path(graticule)
-  ctx.strokeStyle = withAlpha(vars.borderColor, 55)
+  ctx.strokeStyle = GLOBE_THEME.graticule
   ctx.lineWidth = 0.5
   ctx.stroke()
 
   if (landFeatures.value) {
+    // 陆地改为线框风格：去掉实色填充的单调感，只保留极低填充制造"面板玻璃"质感，
+    // 主视觉是加粗描边 + 发光，在深色背景衬托下形成科技感发光线框世界地图
     ctx.beginPath()
     path(landFeatures.value)
-    ctx.fillStyle = withAlpha(vars.primaryColor, 16)
+    ctx.fillStyle = GLOBE_THEME.landFill
     ctx.fill()
-    ctx.strokeStyle = withAlpha(vars.primaryColor, 38)
-    ctx.lineWidth = 0.6
+    ctx.lineWidth = 0.8
+    ctx.shadowColor = GLOBE_THEME.landGlow
+    ctx.shadowBlur = 4
+    ctx.strokeStyle = GLOBE_THEME.landStroke
     ctx.stroke()
+    ctx.shadowBlur = 0
+  }
+
+  // 枢纽放射式飞线：仅球面态、用户开启且非弱化动效时绘制，地图模式下大圆弧在等距矩形
+  // 投影上会扭曲得很奇怪，直接跳过
+  if (flylinesEnabled.value && !props.reduceMotion && transitionT < 0.999) {
+    const hub = regionGroups.value[0]
+    if (hub) {
+      for (const group of regionGroups.value) {
+        if (group.code === hub.code || group.onlineCount <= 0)
+          continue
+        const interpolate = geoInterpolate([hub.lon, hub.lat], [group.lon, group.lat])
+        const steps = 40
+        const coordinates: [number, number][] = []
+        for (let i = 0; i <= steps; i++)
+          coordinates.push(interpolate(i / steps))
+        const line = { type: 'LineString' as const, coordinates }
+
+        ctx.beginPath()
+        path(line)
+        ctx.lineWidth = 0.8
+        ctx.strokeStyle = GLOBE_THEME.flylineColor
+        ctx.stroke()
+
+        const t = (getFlylinePhase(group.code) + flylineGlobalT) % 1
+        const dotProjected = projection(interpolate(t))
+        if (dotProjected) {
+          ctx.beginPath()
+          ctx.shadowColor = GLOBE_THEME.flylineGlow
+          ctx.shadowBlur = 6
+          ctx.fillStyle = GLOBE_THEME.flylineGlow
+          ctx.arc(dotProjected[0], dotProjected[1], 1.6, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.shadowBlur = 0
+        }
+      }
+      flylineGlobalT = (flylineGlobalT + FLYLINE_SPEED) % 1
+    }
   }
 
   ctx.beginPath()
   path({ type: 'Sphere' })
-  ctx.strokeStyle = withAlpha(vars.borderColor, 80)
+  ctx.strokeStyle = GLOBE_THEME.sphereRim
   ctx.lineWidth = 1
   ctx.stroke()
 
   // 持续扫描的经线弧：只在球面态有意义，随着过渡到平面地图态线性淡出，
-  // 平面地图上不保留这条"环绕扫描"视觉，避免与地图内容混淆
-  const scanOpacity = 1 - transitionProgress.value
+  // 平面地图上不保留这条"环绕扫描"视觉，避免与地图内容混淆；弱化动效时不绘制
+  const scanOpacity = props.reduceMotion ? 0 : atmosphereOpacity
   if (scanOpacity > 0.02) {
     ctx.beginPath()
     path(buildScanMeridian(scanLambda))
     ctx.lineWidth = 1.4
-    ctx.shadowColor = withAlpha(vars.primaryColor, 90 * scanOpacity)
+    ctx.shadowColor = `rgba(${GLOBE_THEME.scanRGB}, ${0.9 * scanOpacity})`
     ctx.shadowBlur = 8
-    ctx.strokeStyle = withAlpha(vars.primaryColor, 75 * scanOpacity)
+    ctx.strokeStyle = `rgba(${GLOBE_THEME.scanRGB}, ${0.75 * scanOpacity})`
     ctx.stroke()
     ctx.shadowBlur = 0
   }
-  scanLambda = (scanLambda + SCAN_SPEED_DEG) % 360
+  if (!props.reduceMotion)
+    scanLambda = (scanLambda + SCAN_SPEED_DEG) % 360
 
   ctx.restore()
 
@@ -204,7 +311,7 @@ function renderFrame(): void {
       code: group.code,
       x: projected[0],
       y: projected[1],
-      visible: isPointVisible(group.lon, group.lat),
+      opacity: isPointVisible(group.lon, group.lat) ? edgeOpacity(group.lon, group.lat) : 0.12,
       group,
     })
   }
@@ -254,7 +361,11 @@ watch(() => props.nodes.map(n => n.uuid).join('|'), () => {
   <div class="flex flex-col gap-3 lg:flex-row">
     <div
       ref="containerRef"
-      class="group relative h-72 w-full shrink-0 overflow-hidden rounded-lg bg-muted/30 ring-1 ring-inset ring-border select-none lg:h-96 lg:w-[60%]"
+      class="group relative h-72 w-full shrink-0 overflow-hidden rounded-lg select-none lg:h-96 lg:w-[60%]"
+      :style="{
+        background: `radial-gradient(circle at 50% 35%, ${GLOBE_THEME.spaceFrom} 0%, ${GLOBE_THEME.spaceTo} 70%)`,
+        boxShadow: `inset 0 0 0 1px ${GLOBE_THEME.panelBorder}`,
+      }"
     >
       <canvas
         ref="canvasRef"
@@ -268,27 +379,36 @@ watch(() => props.nodes.map(n => n.uuid).join('|'), () => {
           v-for="marker in markers"
           :key="marker.code"
           type="button"
-          class="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background transition-[opacity,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          class="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-[opacity,transform] duration-150 focus-visible:outline-none focus-visible:ring-2"
           :class="[
-            marker.group.onlineCount > 0 ? 'bg-primary' : 'bg-muted-foreground/60',
-            selectedRegionCode === marker.code && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
+            selectedRegionCode === marker.code && 'ring-2 ring-offset-2',
           ]"
           :style="{
-            left: `${marker.x}px`,
-            top: `${marker.y}px`,
-            width: `${markerRadius(marker.group.nodes.length) * 2}px`,
-            height: `${markerRadius(marker.group.nodes.length) * 2}px`,
-            opacity: marker.visible ? 1 : 0.15,
+            'left': `${marker.x}px`,
+            'top': `${marker.y}px`,
+            'width': `${markerRadius(marker.group.nodes.length) * 2}px`,
+            'height': `${markerRadius(marker.group.nodes.length) * 2}px`,
+            'opacity': marker.opacity,
+            'backgroundColor': marker.group.onlineCount > 0 ? GLOBE_THEME.markerAccent : GLOBE_THEME.markerOffline,
+            'borderColor': GLOBE_THEME.spaceTo,
+            '--tw-ring-color': GLOBE_THEME.markerAccent,
+            '--tw-ring-offset-color': GLOBE_THEME.spaceTo,
           }"
           :aria-label="`${marker.group.name}：${marker.group.nodes.length} 个节点`"
           :title="`${marker.group.name} · ${marker.group.nodes.length} 个节点`"
           @click.stop="handleMarkerClick(marker.group)"
         >
-          <span class="text-[10px] font-bold leading-none text-primary-foreground tabular-nums">{{ marker.group.nodes.length }}</span>
+          <!-- 在线地区脉冲呼吸圈：仅在线态呼吸，呼应"实时在线"语义；弱化动效时不渲染 -->
+          <span
+            v-if="!props.reduceMotion && marker.group.onlineCount > 0"
+            class="pointer-events-none absolute inset-0 rounded-full animate-ping"
+            :style="{ backgroundColor: GLOBE_THEME.markerAccent, opacity: 0.45 }"
+          />
+          <span class="relative text-[10px] font-bold leading-none tabular-nums" :style="{ color: GLOBE_THEME.spaceTo }">{{ marker.group.nodes.length }}</span>
         </button>
       </div>
 
-      <!-- 地球/地图切换 -->
+      <!-- 地球/地图切换 + 飞线开关 -->
       <div class="absolute right-3 top-3 flex items-center gap-1 rounded-md bg-background/80 p-1 shadow-sm ring-1 ring-inset ring-border backdrop-blur-sm">
         <Button
           variant="ghost" size="sm" class="h-7 px-2 text-xs"
@@ -305,6 +425,18 @@ watch(() => props.nodes.map(n => n.uuid).join('|'), () => {
         >
           <Icon icon="tabler:map-2" width="14" height="14" />
           地图
+        </Button>
+        <div class="mx-0.5 h-4 w-px bg-border" />
+        <Button
+          variant="ghost" size="sm" class="h-7 px-2 text-xs disabled:opacity-40"
+          :class="flylinesEnabled && 'bg-background text-selection shadow-sm'"
+          :disabled="!canToggleFlylines"
+          :aria-pressed="flylinesEnabled"
+          title="枢纽放射飞线（装饰效果，无真实链路数据）"
+          @click="canToggleFlylines && (flylinesEnabled = !flylinesEnabled)"
+        >
+          <Icon icon="tabler:route-2" width="14" height="14" />
+          飞线
         </Button>
       </div>
 
