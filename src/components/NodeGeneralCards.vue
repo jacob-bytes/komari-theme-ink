@@ -879,7 +879,12 @@ onUnmounted(() => {
                 class="mt-1 flex items-baseline gap-1 min-w-0"
                 :style="getMetricSwitchStyle(index)"
               >
-                <span class="text-[11px] sm:text-md md:text-2xl font-mono font-bold leading-none tracking-tight truncate">
+                <!-- `sm:text-md` 不是 Tailwind 的合法工具类（应为 text-base），之前一直静默失效——
+                     数字字号从手机端的 11px 一路卡到 md 断点才跳到 24px，中间整个 sm~md 区间
+                     （640~768px，横屏手机/小平板正好落在这段）字号完全没有变化。
+                     另外 11px 对手机上"当前节点在线数/流量"这类首屏关键数字来说也偏小，
+                     这里把基准提到 text-base（16px），并补上 sm:text-lg 让断点之间也有过渡。 -->
+                <span class="text-base sm:text-lg md:text-2xl font-mono font-bold leading-none tracking-tight truncate">
                   {{ card.value }}
                 </span>
                 <span v-if="card.unit" :class="unitClass">
