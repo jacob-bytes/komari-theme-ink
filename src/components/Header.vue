@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -94,16 +94,27 @@ const sitename = computed(() => {
   return cached || appStore.publicSettings?.sitename || 'Komari Monitor'
 })
 
-/** 数据新鲜度指示（本地心跳——每 2s 刷新相对时间） */
-const freshAt = ref(Date.now())
+/**
+ * 数据新鲜度指示：freshAt 是锚点（进入页面的时间），只设置一次；now 每 2s 更新一次
+ * 仅用于触发 freshText 重新计算，让"Ns 前更新"随时间递增。之前的实现每次 tick 都把
+ * freshAt 本身重置为当前时间，导致 seconds 永远接近 0、文案永远卡在"实时"，且定时器
+ * 从未清理。
+ */
+const freshAt = Date.now()
+const now = ref(Date.now())
 const freshText = computed(() => {
-  const seconds = Math.max(0, Math.round((Date.now() - freshAt.value) / 1000))
+  const seconds = Math.max(0, Math.round((now.value - freshAt) / 1000))
   return seconds <= 1 ? '实时' : `${seconds}s 前更新`
 })
+let freshTimer: ReturnType<typeof window.setInterval> | undefined
 onMounted(() => {
-  window.setInterval(() => {
-    freshAt.value = Date.now()
+  freshTimer = window.setInterval(() => {
+    now.value = Date.now()
   }, 2000)
+})
+onUnmounted(() => {
+  if (freshTimer !== undefined)
+    window.clearInterval(freshTimer)
 })
 </script>
 
