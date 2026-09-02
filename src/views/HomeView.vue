@@ -283,6 +283,12 @@ const emptyDescription = computed(() => {
   return '暂无节点'
 })
 
+const emptyIcon = computed(() => {
+  if (debouncedSearchText.value.trim() || activeQuickControl.value)
+    return 'tabler:search-off'
+  return 'tabler:server-off'
+})
+
 function clearSearch() {
   searchText.value = ''
   debouncedSearchText.value = ''
@@ -578,7 +584,7 @@ const nodeCardGridClass = computed(() => {
               @ping-click="openPingDialog"
             />
             <div v-else class="text-muted-foreground text-center py-8">
-              <Empty :description="emptyDescription">
+              <Empty :icon="emptyIcon" :description="emptyDescription">
                 <template v-if="debouncedSearchText.trim() || activeQuickControl" #extra>
                   <Button variant="ghost" size="sm" class="text-xs" @click="resetHomeFilters">
                     清除搜索与筛选

@@ -287,7 +287,7 @@ const deviceInfoFields = computed(() => {
   <div class="instance-detail space-y-4 pt-4">
     <div v-if="!data" class="px-4 pb-4">
       <CardX>
-        <Empty description="节点不存在或已被删除">
+        <Empty icon="tabler:server-off" description="节点不存在或已被删除">
           <template #extra>
             <Button @click="router.push('/')">
               返回首页
@@ -463,6 +463,8 @@ const deviceInfoFields = computed(() => {
           </div>
         </div>
       </div>
+
+      <NodeUptimeTimeline :uuid="data.uuid" :online="data.online" />
 
       <LoadChart v-if="!appStore.nodeDetailSectionTabsEnabled || activeDetailSection === 'load'" :uuid="data.uuid" class="px-4" />
       <PingChart v-if="!appStore.nodeDetailSectionTabsEnabled || activeDetailSection === 'ping'" :uuid="data.uuid" class="px-4" />

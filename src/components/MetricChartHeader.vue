@@ -14,22 +14,32 @@ const props = withDefaults(defineProps<{
   subtitle: '',
 })
 
-const toneClass = computed(() => ({
-  rose: 'text-muted-foreground',
-  amber: 'text-muted-foreground',
-  emerald: 'text-muted-foreground',
-  cyan: 'text-muted-foreground',
-  sky: 'text-muted-foreground',
-  violet: 'text-muted-foreground',
-  orange: 'text-muted-foreground',
-  slate: 'text-muted-foreground',
-})[props.tone])
+// 与全局单一品牌色（--primary，OKLCH 色相 258）同一明度/彩度家族的色相偏移，
+// 让每张指标卡的图标徽章拥有可辨识的身份色，同时不引入互不相关的第 4/5 种品牌色。
+const TONE_HUE: Record<MetricChartTone, number> = {
+  rose: 12,
+  orange: 45,
+  amber: 70,
+  emerald: 154,
+  cyan: 195,
+  sky: 230,
+  violet: 300,
+  slate: 258,
+}
+
+const toneStyle = computed(() => {
+  const hue = TONE_HUE[props.tone]
+  return {
+    color: `oklch(0.52 0.15 ${hue})`,
+    backgroundColor: `oklch(0.52 0.15 ${hue} / 0.12)`,
+  }
+})
 </script>
 
 <template>
   <div class="flex min-w-0 items-center justify-between gap-3">
     <div class="flex min-w-0 items-center gap-2.5">
-      <div class="flex size-8 shrink-0 items-center justify-center rounded-md ring-0" :class="toneClass">
+      <div class="flex size-8 shrink-0 items-center justify-center rounded-md" :style="toneStyle">
         <Icon :icon="icon" :width="17" :height="17" />
       </div>
       <div class="min-w-0">

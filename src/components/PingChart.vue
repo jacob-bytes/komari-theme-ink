@@ -483,7 +483,7 @@ const chartData = computed(() => {
   return data
 })
 
-// ==================== ���具函数 ====================
+// ==================== �����具函数 ====================
 
 function formatTime(time: string, showDate: boolean): string {
   const date = dayjs(time)
@@ -816,7 +816,7 @@ onBeforeUnmount(() => {
         {{ error }}
       </div>
       <div v-else-if="tasks.length === 0 && !loading" class="py-8">
-        <Empty description="暂无延迟数据" />
+        <Empty icon="tabler:chart-line-off" description="暂无延迟数据" />
       </div>
 
       <template v-else>

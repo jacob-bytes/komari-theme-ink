@@ -1639,7 +1639,7 @@ onMounted(() => {
         {{ error }}
       </div>
       <div v-else-if="chartData.length === 0 && !loading" class="py-8">
-        <Empty description="暂无负载数据" />
+        <Empty icon="tabler:activity-heartbeat" description="暂无负载数据" />
       </div>
 
       <!-- 图表网格 -->

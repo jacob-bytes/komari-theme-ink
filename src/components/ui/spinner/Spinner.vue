@@ -25,26 +25,42 @@ function toSize(v: number | string) {
 <template>
   <div :class="cn('relative', props.class)">
     <slot />
-    <div
-      v-if="show"
-      :class="cn(
-        'absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-card/60 backdrop-blur-sm',
-        props.contentClass,
-      )"
+    <Transition
+      enter-active-class="transition-opacity duration-150 ease-out"
+      enter-from-class="opacity-0"
+      leave-active-class="transition-opacity duration-150 ease-in"
+      leave-to-class="opacity-0"
     >
-      <span
-        class="inline-block animate-spin rounded-full border-solid"
-        :style="{
-          width: toSize(size),
-          height: toSize(size),
-          borderWidth: toSize(stroke),
-          borderColor: 'color-mix(in srgb, currentColor 18%, transparent)',
-          borderTopColor: 'currentColor',
-        }"
-      />
-      <span v-if="description || $slots.description" class="text-sm text-muted-foreground">
-        <slot name="description">{{ description }}</slot>
-      </span>
-    </div>
+      <div
+        v-if="show"
+        :class="cn(
+          'absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-card/60 backdrop-blur-sm',
+          props.contentClass,
+        )"
+      >
+        <span
+          class="inline-block animate-spin rounded-full border-solid"
+          :style="{
+            width: toSize(size),
+            height: toSize(size),
+            borderWidth: toSize(stroke),
+            borderColor: 'color-mix(in srgb, currentColor 18%, transparent)',
+            borderTopColor: 'currentColor',
+          }"
+        />
+        <span v-if="description || $slots.description" class="text-sm text-muted-foreground">
+          <slot name="description">{{ description }}</slot>
+        </span>
+      </div>
+    </Transition>
   </div>
 </template>
+
+<style scoped>
+@media (prefers-reduced-motion: reduce) {
+  .v-enter-active,
+  .v-leave-active {
+    transition: none !important;
+  }
+}
+</style>
