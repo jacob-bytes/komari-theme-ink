@@ -2,11 +2,7 @@
   "name": "ink",
   "short": "ink",
   "description": "A minimal ink theme for Komari (deep navy-black, shadcn-inspired)",
-<<<<<<< HEAD
-  "version": "0.5.12",
-=======
-  "version": "0.6.0",
->>>>>>> origin/v0/github-dfc5dc3f
+  "version": "0.6.1",
   "author": "jacob-bytes",
   "url": "https://github.com/jacob-bytes/komari-theme-ink",
   "preview": "preview.png",
