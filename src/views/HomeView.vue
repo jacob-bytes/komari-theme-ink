@@ -3,7 +3,7 @@ import type { PermissionKey } from '@/services/auth.service'
 import type { HomeQuickControlKey } from '@/stores/app'
 import type { NodeData } from '@/stores/nodes'
 import { Icon } from '@iconify/vue'
-import { useDebounceFn } from '@vueuse/core'
+import { useDebounceFn, useElementSize } from '@vueuse/core'
 import { computed, nextTick, onActivated, onDeactivated, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import DeferredRender from '@/components/DeferredRender.vue'
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Empty } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useVirtualCardGrid } from '@/composables/useVirtualCardGrid'
 import { useVisitorAudit } from '@/composables/useVisitorAudit'
 import { UI_CONFIG } from '@/constants/ui'
 import { useAppStore } from '@/stores/app'
@@ -33,8 +34,8 @@ interface QuickControlOption {
   icon: string
 }
 
-type HomeToolKey = 'nodes' | 'nodeCompare' | 'globe' | 'providerValue' | 'snapshotExport' | 'auditLog'
-type PrivateHomeToolKey = Exclude<HomeToolKey, 'nodes' | 'nodeCompare' | 'globe'>
+type HomeToolKey = 'nodes' | 'nodeCompare' | 'providerValue' | 'snapshotExport' | 'auditLog'
+type PrivateHomeToolKey = Exclude<HomeToolKey, 'nodes' | 'nodeCompare'>
 
 interface HomeToolOption {
   key: HomeToolKey
@@ -50,7 +51,6 @@ const NodeGeneralCards = createLazyPanel(() => import('@/components/NodeGeneralC
 const NodeCard = createLazyPanel(() => import('@/components/NodeCard.vue'))
 const NodeList = createLazyPanel(() => import('@/components/NodeList.vue'))
 const NodeComparePanel = createLazyPanel(() => import('@/components/NodeComparePanel.vue'))
-const NodeGlobePanel = createLazyPanel(() => import('@/components/NodeGlobePanel.vue'))
 const PingMonitorDialog = createLazyPanel(() => import('@/components/PingMonitorDialog.vue'))
 const ProviderValuePanel = createLazyPanel(() => import('@/components/ProviderValuePanel.vue'))
 const SnapshotExportPanel = createLazyPanel(() => import('@/components/SnapshotExportPanel.vue'))
@@ -116,7 +116,6 @@ const homeTools = computed<HomeToolOption[]>(() => {
   const tools: HomeToolOption[] = [
     { key: 'nodes', label: '节点', icon: 'tabler:layout-grid', description: '节点卡片与列表视图' },
     { key: 'nodeCompare', label: '对比', icon: 'tabler:columns-3', description: '最多四台节点实时横向对比' },
-    { key: 'globe', label: '地球', icon: 'tabler:globe', description: '按地区分布查看节点，支持地球/地图切换' },
   ]
   if (!appStore.privateFeaturesAllowed)
     return tools
@@ -261,6 +260,44 @@ const reduceDenseNodeEffects = computed(() => appStore.nodeViewMode === 'card' &
 const deferNodeCards = computed(() => appStore.nodeViewMode === 'card' && nodeList.value.length > UI_CONFIG.virtualList.nodeThreshold)
 const deferredNodeCardHeight = computed(() => ({ mini: 220, compact: 270, comfortable: 310, large: 350 }[appStore.nodeCardSize]))
 
+// 卡片网格虚拟滚动：节点数超过阈值时，改用 useVirtualCardGrid 做窗口化渲染（滚出视口的行
+// 会被真正卸载），避免节点很多时 DOM/图表实例只增不减。阈值以下保持原有 TransitionGroup +
+// DeferredRender 路径不变。列宽/间距需与下方 nodeCardGridClass 的 Tailwind 断点保持一致。
+const cardGridMetrics: Record<typeof appStore.nodeCardSize, { minColumnWidth: number, gapPx: number }> = {
+  mini: { minColumnWidth: 270, gapPx: 12 },
+  compact: { minColumnWidth: 300, gapPx: 12 },
+  comfortable: { minColumnWidth: 360, gapPx: 16 },
+  large: { minColumnWidth: 420, gapPx: 20 },
+}
+const shouldVirtualizeCards = computed(() => appStore.nodeViewMode === 'card' && nodeList.value.length > UI_CONFIG.virtualList.nodeThreshold)
+// 用 .nodes 容器（始终渲染，不受卡片/列表视图切换影响）测宽度，避免和虚拟列表自身的
+// 滚动容器 ref 产生"先有鸡还是先有蛋"的循环依赖。
+const nodeGridAreaRef = ref<HTMLElement | null>(null)
+const { width: nodeGridAreaWidth } = useElementSize(nodeGridAreaRef)
+const cardGapPx = computed(() => cardGridMetrics[appStore.nodeCardSize].gapPx)
+const cardColumnCount = computed(() => {
+  const width = nodeGridAreaWidth.value
+  const { minColumnWidth, gapPx } = cardGridMetrics[appStore.nodeCardSize]
+  if (width <= 0)
+    return 1
+  return Math.max(1, Math.floor((width + gapPx) / (minColumnWidth + gapPx)))
+})
+const {
+  virtualRows: virtualCardRows,
+  containerProps: virtualCardContainerProps,
+  wrapperProps: virtualCardWrapperProps,
+} = useVirtualCardGrid({
+  items: () => nodeList.value,
+  columnCount: () => cardColumnCount.value,
+  rowHeight: () => deferredNodeCardHeight.value + cardGapPx.value,
+  overscan: 2,
+})
+const virtualCardRowStyle = computed(() => ({
+  display: 'grid',
+  gridTemplateColumns: `repeat(${cardColumnCount.value}, minmax(0, 1fr))`,
+  gap: `${cardGapPx.value}px`,
+}))
+
 const quickControlCounts = computed<Record<HomeQuickControlKey, number>>(() => {
   let base = groupNodeList.value
   if (debouncedSearchText.value.trim())
@@ -336,7 +373,7 @@ async function toggleHomeTool(key: HomeToolKey) {
     return
   }
 
-  const permission = (key === 'nodes' || key === 'nodeCompare' || key === 'globe') ? null : homeToolPermissionMap[key]
+  const permission = (key === 'nodes' || key === 'nodeCompare') ? null : homeToolPermissionMap[key]
   if (permission) {
     const granted = await appStore.requireLoginPermission(permission, { force: true })
     if (!granted) {
@@ -542,7 +579,6 @@ const nodeCardGridClass = computed(() => {
               {{ activeToolTitle }} · 当前分组：{{ g.tab }}（{{ groupNodeList.length }} 台）
             </div>
             <NodeComparePanel v-if="activeHomeTool === 'nodeCompare'" :nodes="groupNodeList" />
-            <NodeGlobePanel v-else-if="activeHomeTool === 'globe'" :nodes="groupNodeList" :reduce-motion="reduceDenseNodeEffects" @click="handleNodeClick" />
             <ProviderValuePanel v-else-if="activeHomeTool === 'providerValue'" :nodes="groupNodeList" />
             <SnapshotExportPanel v-else-if="activeHomeTool === 'snapshotExport'" :nodes="groupNodeList" />
             <AuditLogPanel v-else-if="activeHomeTool === 'auditLog'" />
