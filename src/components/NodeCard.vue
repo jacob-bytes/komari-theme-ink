@@ -88,6 +88,8 @@ const {
   lossDisplay,
   latencyRenderBars,
   lossRenderBars,
+  latencyPanelTooltip,
+  lossPanelTooltip,
 } = useNodePingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled })
 
 // 数值文字颜色与色块色阶保持同一套严重度阈值，仅在中高严重度提亮，常态仍为默认前景色
@@ -469,21 +471,36 @@ function hasRegion(region: string | null | undefined): boolean {
           >
             <div class="flex items-center justify-between">
               <span class="text-xs font-normal text-muted-foreground">延迟</span>
-              <span class="font-mono text-xs font-bold" :class="latencyTextClass(latencyDisplay)">{{ latencyDisplay }}</span>
+              <DataTooltip
+                v-if="latencyPanelTooltip"
+                :content="latencyPanelTooltip"
+                placement="top"
+                as="span"
+                content-class="whitespace-nowrap"
+              >
+                <span class="font-mono text-xs font-bold" :class="latencyTextClass(latencyDisplay)">{{ latencyDisplay }}</span>
+              </DataTooltip>
+              <span v-else class="font-mono text-xs font-bold" :class="latencyTextClass(latencyDisplay)">{{ latencyDisplay }}</span>
             </div>
             <div
               class="mt-1 grid h-2.5 cursor-auto items-end gap-[1.5px] rounded-sm bg-muted/40 p-0.5"
               :style="{ gridTemplateColumns: `repeat(${latencyRenderBars.length}, minmax(0, 1fr))` }"
             >
-              <span
+              <DataTooltip
                 v-for="bar in latencyRenderBars"
                 :key="bar.key"
-                :title="bar.tooltip"
-                :aria-label="bar.tooltip"
+                :content="bar.tooltip"
+                placement="top"
+                as="span"
                 class="h-full w-full"
+                content-class="whitespace-nowrap"
               >
-                <span class="block h-full w-full rounded-[1px] transition-all group-hover:opacity-50 hover:scale-y-125 hover:opacity-100" :class="bar.className" />
-              </span>
+                <span
+                  :aria-label="bar.tooltip"
+                  class="block h-full w-full rounded-[1px] transition-all group-hover:opacity-50 hover:scale-y-125 hover:opacity-100"
+                  :class="bar.className"
+                />
+              </DataTooltip>
             </div>
           </div>
           <div
@@ -496,21 +513,36 @@ function hasRegion(region: string | null | undefined): boolean {
           >
             <div class="flex items-center justify-between">
               <span class="text-xs font-normal text-muted-foreground">丢包</span>
-              <span class="font-mono text-xs font-bold" :class="lossTextClass(lossDisplay)">{{ lossDisplay }}</span>
+              <DataTooltip
+                v-if="lossPanelTooltip"
+                :content="lossPanelTooltip"
+                placement="top"
+                as="span"
+                content-class="whitespace-nowrap"
+              >
+                <span class="font-mono text-xs font-bold" :class="lossTextClass(lossDisplay)">{{ lossDisplay }}</span>
+              </DataTooltip>
+              <span v-else class="font-mono text-xs font-bold" :class="lossTextClass(lossDisplay)">{{ lossDisplay }}</span>
             </div>
             <div
               class="mt-1 grid h-2.5 cursor-auto items-end gap-[1.5px] rounded-sm bg-muted/40 p-0.5"
               :style="{ gridTemplateColumns: `repeat(${lossRenderBars.length}, minmax(0, 1fr))` }"
             >
-              <span
+              <DataTooltip
                 v-for="bar in lossRenderBars"
                 :key="bar.key"
-                :title="bar.tooltip"
-                :aria-label="bar.tooltip"
+                :content="bar.tooltip"
+                placement="top"
+                as="span"
                 class="h-full w-full"
+                content-class="whitespace-nowrap"
               >
-                <span class="block h-full w-full rounded-[1px] transition-all group-hover:opacity-50 hover:scale-y-125 hover:opacity-100" :class="bar.className" />
-              </span>
+                <span
+                  :aria-label="bar.tooltip"
+                  class="block h-full w-full rounded-[1px] transition-all group-hover:opacity-50 hover:scale-y-125 hover:opacity-100"
+                  :class="bar.className"
+                />
+              </DataTooltip>
             </div>
           </div>
         </div>
