@@ -147,8 +147,8 @@ export function buildUptimeDayBuckets(
 }
 
 export const UPTIME_STATUS_LABEL: Record<UptimeDayStatus, string> = {
-  ok: '正常',
-  degraded: '部分异常',
-  down: '离线',
+  'ok': '正常',
+  'degraded': '部分异常',
+  'down': '离线',
   'no-data': '无数据',
 }

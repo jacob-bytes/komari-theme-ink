@@ -34,9 +34,9 @@ const { records, loading, error, hasData } = useNodeLoadStats(
 const buckets = computed<UptimeDayBucket[]>(() => buildUptimeDayBuckets(records.value, timelineDays.value))
 
 const STATUS_DOT_CLASS: Record<UptimeDayBucket['status'], string> = {
-  ok: 'bg-[var(--status-ok)]',
-  degraded: 'bg-[var(--status-warn)]',
-  down: 'bg-[var(--status-alert)]',
+  'ok': 'bg-[var(--status-ok)]',
+  'degraded': 'bg-[var(--status-warn)]',
+  'down': 'bg-[var(--status-alert)]',
   'no-data': 'bg-muted-foreground/15',
 }
 

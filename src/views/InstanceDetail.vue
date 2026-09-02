@@ -2,6 +2,7 @@
 import { Icon } from '@iconify/vue'
 import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import NodeUptimeTimeline from '@/components/NodeUptimeTimeline.vue'
 import { Button } from '@/components/ui/button'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
