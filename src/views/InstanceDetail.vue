@@ -1,21 +1,23 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import NodeUptimeTimeline from '@/components/NodeUptimeTimeline.vue'
 import { Button } from '@/components/ui/button'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
 import { Empty } from '@/components/ui/empty'
+import { FlagIcon } from '@/components/ui/flag-icon'
 import { ProgressThin } from '@/components/ui/progress-thin'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useNodeProviderMetadata } from '@/composables/useNodeProviderMetadata'
 import { useAppStore } from '@/stores/app'
 import { useNodesStore } from '@/stores/nodes'
 import { formatBytesWithConfig, formatDateTime, formatUptimeWithFormat, getStatus } from '@/utils/helper'
+import { createLazyPanel } from '@/utils/lazyPanel'
 import { hasTrafficLimit as checkHasTrafficLimit, getDiskPercentage, getMemoryPercentage, getTrafficUsed, getTrafficUsedPercentage } from '@/utils/nodeMetricsHelper'
 import { getOSImage, getOSName } from '@/utils/osImageHelper'
-import { getFlagSrc, getRegionAltText, hasRegion } from '@/utils/regionHelper'
+import { hasRegion } from '@/utils/regionHelper'
 
 /** 指标图标：与 NodeCard 列表卡片保持一致的视觉语言 */
 const METRIC_ICONS = {
@@ -38,8 +40,8 @@ const DETAIL_ICONS = {
   lastReport: 'tabler:clock',
 } as const
 
-const LoadChart = defineAsyncComponent(() => import('@/components/LoadChart.vue'))
-const PingChart = defineAsyncComponent(() => import('@/components/PingChart.vue'))
+const LoadChart = createLazyPanel(() => import('@/components/LoadChart.vue'))
+const PingChart = createLazyPanel(() => import('@/components/PingChart.vue'))
 
 const route = useRoute()
 const router = useRouter()
@@ -208,7 +210,7 @@ interface DeviceInfoField {
 /** 「设备信息」统一网格：CPU / 架构 / 虚拟化 / 操作系统 / 内核版��� / 运行时间 / 最后上报——全部是低频、
  *  基本不变的静态身份数据，因此合并到同一张卡片、同一套网格中展示，不再拆成左右两张高度不对称的卡片。
  *  网格采用与上方「资源使用」行相同的 2/4 列断点，保证两行在宽度和分栏边界上严格对齐。
- *  GPU 只有节点确实配备时才追加一格；没有 GPU 的机器不再固定留出一格「无」造成空白噪音。 */
+ *  GPU 只有节点确实配备���才追加一格；没有 GPU 的机器不再固定留出一格「无」造成空白噪音。 */
 const deviceInfoFields = computed(() => {
   const node = data.value
   if (!node)
@@ -313,13 +315,11 @@ const deviceInfoFields = computed(() => {
             class="size-4.5 shrink-0 rounded-[3px] object-contain"
           >
           <span class="truncate">{{ data.name }}</span>
-          <img
+          <FlagIcon
             v-if="hasRegion(data.region)"
-            loading="lazy"
-            :src="getFlagSrc(data.region)"
-            :alt="getRegionAltText(data.region)"
+            :region="data.region"
             class="size-4.5 shrink-0 rounded-sm"
-          >
+          />
         </div>
         <div class="ml-auto flex h-8 shrink-0 items-center gap-1 rounded-md bg-background/50 p-0.5 backdrop-blur-xs">
           <Button

@@ -5,7 +5,7 @@ import type { CurrencyCode, ExchangeRateSource } from '@/utils/financeHelper'
 import type { TopNodeMetric } from '@/utils/nodeMetricsHelper'
 import { Icon } from '@iconify/vue'
 import { useNow } from '@vueuse/core'
-import { computed, defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
 import { UI_CONFIG } from '@/constants/ui'
@@ -13,6 +13,7 @@ import { useAppStore } from '@/stores/app'
 import { useNodesStore } from '@/stores/nodes'
 import * as financeHelper from '@/utils/financeHelper'
 import { formatBytesPerSecondSplit, formatBytesSplit } from '@/utils/helper'
+import { createLazyPanel } from '@/utils/lazyPanel'
 import {
   getConnectionCount,
   getExpiryDays,
@@ -63,7 +64,7 @@ const props = defineProps<{
 }>()
 const appStore = useAppStore()
 const nodesStore = useNodesStore()
-const FinanceDetailsDialog = defineAsyncComponent(() => import('@/components/FinanceDetailsDialog.vue'))
+const FinanceDetailsDialog = createLazyPanel(() => import('@/components/FinanceDetailsDialog.vue'))
 // 未登录且开启「未登录隐藏价格」时，屏蔽金额类信息
 const showPrice = computed(() => appStore.privateFeaturesAllowed || !appStore.hidePriceWhenLoggedOut)
 const exchangeRates = ref(financeHelper.DEFAULT_EXCHANGE_RATES)

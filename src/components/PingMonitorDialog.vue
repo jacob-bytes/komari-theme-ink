@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { defineAsyncComponent } from 'vue'
 import { AppDialog } from '@/components/ui/app-dialog'
+import { createLazyPanel } from '@/utils/lazyPanel'
 
 defineProps<{
   open: boolean
@@ -12,7 +12,7 @@ const emit = defineEmits<{
   'update:open': [open: boolean]
 }>()
 
-const PingChart = defineAsyncComponent(() => import('@/components/PingChart.vue'))
+const PingChart = createLazyPanel(() => import('@/components/PingChart.vue'))
 </script>
 
 <template>

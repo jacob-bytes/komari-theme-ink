@@ -8,6 +8,7 @@ import NodePingListCell from '@/components/NodePingListCell.vue'
 import TrafficProgress from '@/components/TrafficProgress.vue'
 import { Badge } from '@/components/ui/badge'
 import { DataTooltip } from '@/components/ui/data-tooltip'
+import { FlagIcon } from '@/components/ui/flag-icon'
 import { ProgressThin } from '@/components/ui/progress-thin'
 import { useNodeProviderMetadata } from '@/composables/useNodeProviderMetadata'
 import { UI_CONFIG } from '@/constants/ui'
@@ -16,7 +17,7 @@ import { formatCityNameZh } from '@/utils/cityNameHelper'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, formatUptimeWithFormat, getStatus } from '@/utils/helper'
 import { getRealtimeTotalSpeed, getTrafficUsed, getTrafficUsedPercentage, hasTrafficLimit } from '@/utils/nodeMetricsHelper'
 import { getOSImage, getOSName } from '@/utils/osImageHelper'
-import { getFlagSrc, getRegionAltText, getRegionDisplayName, hasRegion } from '@/utils/regionHelper'
+import { getRegionDisplayName, hasRegion } from '@/utils/regionHelper'
 import { formatPriceWithCycle, getDaysUntilExpired, getExpireStatus, parseTags } from '@/utils/tagHelper'
 
 interface ColumnConfig {
@@ -31,7 +32,7 @@ interface NodeMetadataItem {
   value: string
   title?: string
   icon?: string
-  flagSrc?: string
+  region?: string
   variant?: 'secondary' | 'outline'
   class?: string
   style?: CSSProperties
@@ -301,7 +302,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
         items.push({
           key: 'region',
           value: displayName,
-          flagSrc: getFlagSrc(node.region),
+          region: node.region,
           title: displayName,
           variant: 'outline',
           class: 'max-w-[8rem] bg-success/10 text-success border-success/25',
@@ -420,11 +421,11 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
                   />
                 </div>
                 <img loading="lazy" :src="getOSImage(node.os)" :alt="getOSName(node.os)" class="size-3.5 shrink-0">
-                <img
+                <FlagIcon
                   v-if="hasRegion(node.region)"
-                  loading="lazy" :src="getFlagSrc(node.region)"
-                  :alt="getRegionAltText(node.region)" class="size-3.5 rounded-sm shrink-0"
-                >
+                  :region="node.region"
+                  class="size-3.5 rounded-sm shrink-0"
+                />
                 <span
                   class="truncate text-[13px] font-semibold text-foreground min-w-0 flex-1"
                   :class="[!node.online && 'blur-sm opacity-30']"
@@ -488,11 +489,11 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
                 <!-- 节点名称 -->
                 <div v-else-if="col.key === 'name'" class="space-y-0.5 min-w-0" :class="[!node.online && 'blur-sm opacity-30']">
                   <div class="flex gap-1.5 items-center text-[13px] font-semibold text-foreground min-w-0">
-                    <img
+                    <FlagIcon
                       v-if="hasRegion(node.region)"
-                      loading="lazy" :src="getFlagSrc(node.region)"
-                      :alt="getRegionAltText(node.region)" class="size-5 rounded-sm shrink-0"
-                    >
+                      :region="node.region"
+                      class="size-5 rounded-sm shrink-0"
+                    />
                     <span class="truncate">{{ node.name }}</span>
                     <button
                       type="button"
@@ -537,7 +538,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
                       class="min-w-0 overflow-hidden whitespace-nowrap rounded-md px-1.5 text-[11px] font-medium shadow-none"
                       :class="item.class"
                     >
-                      <img v-if="item.flagSrc" loading="lazy" :src="item.flagSrc" :alt="item.value" class="size-3.5 rounded-[2px] shrink-0">
+                      <FlagIcon v-if="item.region" :region="item.region" class="size-3.5 rounded-[2px] shrink-0" />
                       <Icon v-else-if="item.icon" :icon="item.icon" width="12" height="12" class="shrink-0" />
                       <span class="truncate">{{ item.value }}</span>
                     </Badge>

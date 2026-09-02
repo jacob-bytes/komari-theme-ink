@@ -4,13 +4,14 @@ import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
+import { FlagIcon } from '@/components/ui/flag-icon'
 import { ProgressThin } from '@/components/ui/progress-thin'
 import { useNodePingDisplay } from '@/composables/useNodePingDisplay'
 import { useAppStore } from '@/stores/app'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, getStatus, getUptimeDays } from '@/utils/helper'
 import { getDiskPercentage, getMemoryPercentage, getTrafficUsed, getTrafficUsedPercentage, hasTrafficLimit } from '@/utils/nodeMetricsHelper'
 import { getOSImage, getOSName } from '@/utils/osImageHelper'
-import { getFlagSrc, getRegionAltText, hasRegion } from '@/utils/regionHelper'
+import { hasRegion } from '@/utils/regionHelper'
 import { formatCurrencyValue, formatPriceWithCycle, getDaysUntilExpired, getExpireStatus, getRemainingValue, isFreePrice, parseTags } from '@/utils/tagHelper'
 
 const props = withDefaults(defineProps<{
@@ -263,13 +264,11 @@ const customTags = computed(() => parseTags(props.node.tags).flatMap(t => t.text
         >
           <Icon :icon="isFavorite ? 'tabler:star-filled' : 'tabler:star'" width="14" height="14" />
         </button>
-        <img
+        <FlagIcon
           v-if="hasRegion(props.node.region)"
-          loading="lazy"
-          :src="getFlagSrc(props.node.region)"
-          :alt="getRegionAltText(props.node.region)"
+          :region="props.node.region"
           class="ml-auto size-4 shrink-0 rounded-sm"
-        >
+        />
       </div>
     </template>
 

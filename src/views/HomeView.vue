@@ -4,7 +4,7 @@ import type { HomeQuickControlKey } from '@/stores/app'
 import type { NodeData } from '@/stores/nodes'
 import { Icon } from '@iconify/vue'
 import { useDebounceFn } from '@vueuse/core'
-import { computed, defineAsyncComponent, nextTick, onActivated, onDeactivated, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onActivated, onDeactivated, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import DeferredRender from '@/components/DeferredRender.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
@@ -18,6 +18,7 @@ import { UI_CONFIG } from '@/constants/ui'
 import { useAppStore } from '@/stores/app'
 import { useNodesStore } from '@/stores/nodes'
 import * as financeHelper from '@/utils/financeHelper'
+import { createLazyPanel } from '@/utils/lazyPanel'
 import {
   getRealtimePeakSpeed,
   getTotalTraffic,
@@ -44,15 +45,15 @@ interface HomeToolOption {
 
 defineOptions({ name: 'HomeView' })
 
-const AuditLogPanel = defineAsyncComponent(() => import('@/components/AuditLogPanel.vue'))
-const NodeGeneralCards = defineAsyncComponent(() => import('@/components/NodeGeneralCards.vue'))
-const NodeCard = defineAsyncComponent(() => import('@/components/NodeCard.vue'))
-const NodeList = defineAsyncComponent(() => import('@/components/NodeList.vue'))
-const NodeComparePanel = defineAsyncComponent(() => import('@/components/NodeComparePanel.vue'))
-const NodeGlobePanel = defineAsyncComponent(() => import('@/components/NodeGlobePanel.vue'))
-const PingMonitorDialog = defineAsyncComponent(() => import('@/components/PingMonitorDialog.vue'))
-const ProviderValuePanel = defineAsyncComponent(() => import('@/components/ProviderValuePanel.vue'))
-const SnapshotExportPanel = defineAsyncComponent(() => import('@/components/SnapshotExportPanel.vue'))
+const AuditLogPanel = createLazyPanel(() => import('@/components/AuditLogPanel.vue'))
+const NodeGeneralCards = createLazyPanel(() => import('@/components/NodeGeneralCards.vue'))
+const NodeCard = createLazyPanel(() => import('@/components/NodeCard.vue'))
+const NodeList = createLazyPanel(() => import('@/components/NodeList.vue'))
+const NodeComparePanel = createLazyPanel(() => import('@/components/NodeComparePanel.vue'))
+const NodeGlobePanel = createLazyPanel(() => import('@/components/NodeGlobePanel.vue'))
+const PingMonitorDialog = createLazyPanel(() => import('@/components/PingMonitorDialog.vue'))
+const ProviderValuePanel = createLazyPanel(() => import('@/components/ProviderValuePanel.vue'))
+const SnapshotExportPanel = createLazyPanel(() => import('@/components/SnapshotExportPanel.vue'))
 
 const nodeItemStaggerMs = UI_CONFIG.motion.staggerMs
 const nodeItemStaggerLimit = UI_CONFIG.motion.staggerLimit
