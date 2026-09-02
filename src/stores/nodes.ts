@@ -105,6 +105,8 @@ const useNodesStore = defineStore('nodes', () => {
   const nodes = ref<NodeData[]>([])
   const wsConnectionState = ref<WsConnectionState>('disconnected')
   const wsReconnectAttempts = ref<number>(0)
+  /** 最近一次成功收到节点状态数据的本地时间戳（毫秒），供 Header 的数据新鲜度指示使用 */
+  const lastStatusUpdateAt = ref<number | null>(null)
 
   // ===== 计算属性 =====
   const nodeIndex = new Map<string, NodeData>()
@@ -412,6 +414,7 @@ const useNodesStore = defineStore('nodes', () => {
       if (node && status)
         applyStatus(node, status)
     }
+    lastStatusUpdateAt.value = Date.now()
   }
 
   /**
@@ -479,6 +482,7 @@ const useNodesStore = defineStore('nodes', () => {
     nodes,
     wsConnectionState,
     wsReconnectAttempts,
+    lastStatusUpdateAt,
     // 计算属性
     visibleNodes,
     onlineCount,

@@ -8,9 +8,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import VisitorInfo from '@/components/VisitorInfo.vue'
 import { useVisitorAudit } from '@/composables/useVisitorAudit'
 import { useAppStore } from '@/stores/app'
+import { useNodesStore } from '@/stores/nodes'
 
 const router = useRouter()
 const appStore = useAppStore()
+const nodesStore = useNodesStore()
 const { record: recordVisitorEvent } = useVisitorAudit()
 
 const siteFavicon = ref('/favicon.ico')
@@ -95,22 +97,25 @@ const sitename = computed(() => {
 })
 
 /**
- * 数据新鲜度指示：freshAt 是锚点（进入页面的时间），只设置一次；now 每 2s 更新一次
- * 仅用于触发 freshText 重新计算，让"Ns 前更新"随时间递增。之前的实现每次 tick 都把
- * freshAt 本身重置为当前时间，导致 seconds 永远接近 0、文案永远卡在"实时"，且定时器
- * 从未清理。
+ * 数据新鲜度指示：锚点是 nodesStore.lastStatusUpdateAt——每次轮询/推送真正拿到最新节点
+ * 状态时都会被 store 更新一次（见 nodes.ts 的 updateNodeStatuses），因此这里显示的是
+ * "距离上一次真实数据到达过了多久"，而不是页面挂载后单调递增的挂钟计时。正常情况下会
+ * 跟随 dataUpdateInterval（默认 3s）周期性回落到很小的数字；只有真的卡住、断连时才会
+ * 一直变大，这才是"新鲜度"该有的含义。now 每 1s tick 一次仅用于让秒数平滑递增。
  */
-const freshAt = Date.now()
 const now = ref(Date.now())
 const freshText = computed(() => {
-  const seconds = Math.max(0, Math.round((now.value - freshAt) / 1000))
+  const updatedAt = nodesStore.lastStatusUpdateAt
+  if (updatedAt === null)
+    return '等待数据'
+  const seconds = Math.max(0, Math.round((now.value - updatedAt) / 1000))
   return seconds <= 1 ? '实时' : `${seconds}s 前更新`
 })
 let freshTimer: ReturnType<typeof window.setInterval> | undefined
 onMounted(() => {
   freshTimer = window.setInterval(() => {
     now.value = Date.now()
-  }, 2000)
+  }, 1000)
 })
 onUnmounted(() => {
   if (freshTimer !== undefined)

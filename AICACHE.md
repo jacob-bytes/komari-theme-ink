@@ -13,6 +13,14 @@
 
 ## 当前任务
 
+- 状态：done，Header 数据新鲜度改为绑定真实轮询数据到达时间（bug fix，接续上一条记录）
+- 目标：上一条记录里的修复只是把"每 2s 重置锚点"改成了"锚点固定在页面挂载时刻"，但本质仍是页面开着就单调递增的挂钟计时——用户反馈截图显示"32s 前更新"，纯粹因为页面开了 32 秒，跟数据是否新鲜完全无关，给人数据越来越旧的错觉。真正的修复需要把锚点绑定到"最近一次真实收到节点状态数据"的时刻。
+- 实现：`src/stores/nodes.ts` 新增 `lastStatusUpdateAt` ref（初始 `null`），在 `updateNodeStatuses()`（每次轮询/推送成功拿到最新状态时的唯一入口，`src/utils/init.ts` 的 `poll()` 每个周期都调用，周期即 `dataUpdateInterval` 配置项，默认 3s）末尾写入 `Date.now()`，并加入 store 返回对象导出。`src/components/Header.vue` 改为 `import { useNodesStore }`，`freshText` 读取 `nodesStore.lastStatusUpdateAt`：为 `null`（尚未收到过第一次数据）时显示"等待数据"；否则显示"距上次真实数据到达的秒数"，正常情况下每个轮询周期就会回落到很小的数字（0-3s），只有真的断连/卡住时才会持续变大——这才是"新鲜度"该有的语义。本地 tick 间隔从 2s 收紧到 1s，让秒数增长更平滑。
+- 附带修复：本次核对 `komari-theme.json` 时发现两处历史遗留的乱码（编码损坏）——`diskPredictionThresholdDays` 的 `name` 字段"磁盘预测预警������数"、`gpuChartEnabled` 的 `help` 字段"控制 GPU ���用率..."，顺手修正为"磁盘预测预警天数"/"控制 GPU 利用率..."，属于后台设置面板里真实可见的文字损坏，与本次改动一并发布。
+- 验证：`bun run lint`、`bun run build`（type-check + vite + zip）均通过；无 chunk 体积变化（改动只涉及一个新 ref 和一次赋值，量级可忽略）。
+- 版本：`komari-theme.json` 0.5.11 → 0.5.12。
+- 下一步：如果之后接入真正的 WebSocket 推送模式（`rpc.ts` 里 `useWebSocket` 选项），要确认 WS 消息处理路径最终也会调用到 `updateNodeStatuses`（目前 `poll()` 内部统一走 HTTP/WS 两种 transport 都调用同一个 `rpc.getNodesLatestStatus()`，逻辑上是覆盖的，但建议真机验证一次 WS 模式下这个时间戳是否正常刷新）。
+
 - 状态：done，echarts 死组件裁剪 + Header 数据新鲜度定时器修复（M2 性能 + bug fix，小改动）
 - 目标：接续上一轮地球/虚拟滚动/配置梳理排查时发现的两个遗留问题——1) `echarts.ts` 里注册了从未被任何图表 option 使用的 `TitleComponent`/`DataZoomComponent`；2) `Header.vue` 的"数据新鲜度"心跳定时器有真实 bug（每 2s 把锚点 `freshAt` 本身重置为当前时间，导致文案永远卡在"实时"）且从未 `clearInterval`。
 - 实现：
@@ -58,8 +66,8 @@
   - `NodeUptimeTimeline.vue`：色块 `cursor-help` 改为按 `bucket.status === 'no-data'` 条件切换（`no-data` → `cursor-help`，其余 → `cursor-pointer`）；新增 `effectiveDays`（调用新增的 `estimateCoverableDays`）替代直接用 `timelineDays` 渲染，真正按该节点的真实上报密度反推可信天数；新增 `isCoverageTruncated` 判断并在时间轴下方追加一行浅色提示"该节点上报较频繁...仅能可靠展示近 N 天"，避免用户把截断误判成节点异常；summary 文案"近 N 天估算正常率"里的 N 同步改用 `effectiveDays`。
   - `uptimeHistory.ts`：新增导出 `estimateCoverableDays(records, maxRecordCount, requestedDays)`——用已拿到记录的时间间隔中位数估算真实上报间隔分钟数，反推 `maxRecordCount` 条配额理论上能覆盖多少天，与 `requestedDays` 取较小值；`estimateReportIntervalMinutes` 从模块私有函数改为导出，供新函数复用。
 - 未做：列表视图 `NodePingListCell.vue` 的 tooltip（若也用 `DataTooltip` 则已随通用修复受益，未单独验证）；`estimateCoverableDays` 目前只在 `NodeUptimeTimeline.vue` 使用，未评估 `LoadChart`/`useNodeLoadStats` 等其他消费同一段历史记录接口的组件是否有相同截断问题（范围外）。
-- 验证：`bun run lint`、`bun run build`（type-check + vite + zip）均通过。浏览器视觉验证：沙盒无可用真实 Komari 后端（RPC 连接失败，节点列表为空），无法用真实数据截图核对卡片/时间轴。改用浏览器里手写 DOM 复现"tooltip 贴视口右边缘"场景验证防裁切算法本身——构造一个会溢出视口 13.85px 的 tooltip，应用纠偏后气泡完整落在 `[0, viewportWidth]` 内（`isFullyVisible: true`），截图确认视觉正常。时间轴截断/光标修复未能用真实数据视觉验证，仅代码复查确认逻辑正确。
-- 下一步：建议用户在有真实数据的环境验证：a) 三网行/延迟面板 tooltip 在卡片网格最右列时不再被裁切；b) 三网行颜色阈值是否符合预期；c) 详情页时间轴 hover 到"正常/异常/离线"色块时是普通指针而非问号；d) 上报频率不同的服务器之间时间轴形状/可信天数是否出现差异（不再看起来完全一样），以及截断提示文案是否清晰。
+- 验证：`bun run lint`、`bun run build`（type-check + vite + zip）均通过。浏览器视觉验证：沙盒无可用真实 Komari 后端（RPC 连接失败，节点列表为空），无法用真实数据截图核对卡片/时间轴。改用浏览器里手写 DOM 复现"tooltip 贴视口右边缘"场景验证防裁切算法本身——构造一个会溢出视口 13.85px 的 tooltip，应用纠偏后气泡完整落在 `[0, viewportWidth]` 内（`isFullyVisible: true`��，截图确认视觉正常。时间轴截断/光标修复未能用真实数据视觉验证，仅代码复查确认逻辑正确。
+- 下一步：建议用户在有真实数据的环境验证：a) 三网行/延迟面板 tooltip 在卡片网格最右列时不再被裁切；b) 三网行颜色阈值是否符合��期；c) 详情页时间轴 hover 到"正常/异常/离线"色块时是普通指针而非问号；d) 上报频率不同的服务器之间时间轴形状/可信天数是否出现差异（不再看起来完全一样），以及截断提示文案是否清晰。
 - 版本：`komari-theme.json` 0.5.5 → 0.5.6。
 
 - 状态：done，节点卡片新增「三网」分项延迟行（M4 UI/UX）
@@ -148,9 +156,9 @@
 - 范围：共享到期阈值、NodeCard 到期提示、LoadChart 指标历史回退、确定性 Playwright 回归检查。
 - 已确认缺陷：指标历史当前只检查“任意序���有���”���CPU 序列缺失或全空时仍会压过 `common:getRecords` 兼容数据，导致 CPU 图表无有效数值。
 - 实现：共享阈值改为 5 天红色、10 天黄色；NodeCard 对到期状态着色并把无效日期显示为 `-`；短时历史缺少有效 CPU 点时回退 `common:getRecords`，同时保留新指标接口返回的 Ping 等独立序列；兼容记录的运行时数值先过滤非有限值再进入图表。
-- 回归：新增固定时钟下的 5/10 天边界颜色检查，以及新指标接口缺少 `cpu.usage` 时 4 小时 / 1 天 CPU 兼容回退检查。
+- 回归：新增固定时钟下的 5/10 天边界颜色检查，以及新指标接口缺少 `cpu.usage` 时 4 小�� / 1 天 CPU 兼容回退检查。
 - 验证：`bun run lint`、`bun run build`、后续 `bun run build-only` 和 `git diff --check` 通过；构建产物 `komari-theme-Glassmorphism-build-b56ef97.zip` 保持 `komari-theme.json`、`preview.png`、`dist/` 顶层契约。
-- 浏览器：系统 Chrome 两条聚焦用例均执行完且无失败产物，Windows Chrome 在测试结束后的关闭阶段未自行退出，由 120 秒外层超时终止；应用内浏览器确认 Vite 入口可装载，本机未运行 `127.0.0.1:25774` Komari 后端，因此普通开发页的 API/RPC 代理按预期返回 500，实际数据视图由确定性 mock 用例覆盖。
+- 浏览器：系统 Chrome 两条聚焦用例均执行���且无失败产物，Windows Chrome 在测试结束后的关闭阶段未自行退出，由 120 秒外层超时终止；应用内浏览器确认 Vite 入口可装载，本机未运行 `127.0.0.1:25774` Komari 后端，因此普通开发页的 API/RPC 代理按预期返回 500，实际数据视图由确定性 mock 用例覆盖。
 - 发布目标：`komari-theme.json` 与 README 已同步至 v3.3.4；发布提交仅包含本次修复、测试、版本和文档，不包含工作区原有预览图删除及本地目录。
 - 发布完成：提交 `e2129252b358fcbc42d1fe445b736df2b8003f8c` 已推送 `main`；Release On Version Bump run `31414499653` 与 Visual Regression run `31414499655` 均成功，tag / Release `v3.3.4` 指向该提交。
 - 线上资产：`komari-theme-Glassmorphism-build-e212925.zip`，7,593,495 bytes；GitHub digest 与下载后 SHA-256 均为 `6DE5F47E8EB4178572C3B78117481403EB68A8858C7A1DBDDC0D2F004CC37693`，包内版本 3.3.4、771 个 entries，顶层契约完整。此最终交接状态只保留在本地，避免纯文档推送再次触发工作流。
@@ -277,7 +285,7 @@
 
 ### 2026-08-26 blueprint 设备表数据格式修复
 
-- 用户在真实后端验证 blueprint 主题：蓝图默认视图正常、节点卡片视图效果良好、但设备表 CPU/内存/硬盘列显示异常。
+- 用户在真实后端验证 blueprint 主题：蓝图默认视图正常���节点卡片视图效果良好、但设备表 CPU/内存/硬盘列显示异常。
 - 根因：`mapper.ts` 的 `mapNode` 把 `NodeData.ram`/`disk`（字节数）直接当作百分比显示，`cpu` 未格式化，`fmtDiskText` 也错误地假设 `disk` 是百分比。
 - 修复：新增 `percent(used,total)`（字节→0-100 百分比）与 `round1`（1 位小数）；`mem`/`disk` 改为百分比换算，`cpu` 保留 1 位小数，`diskText` 改为字节直接换算 GiB；`BlueprintSchedule` 网络列新增 `fmtNet`（B/s→G/M/K 自适应单位）。
 - 用户明确：**不要**把蓝图改成独立默认主页，保持"蓝图作为首页工具且默认显示"的现状。已回退 HomeView 的结构改动（activeHomeTool 恢复默认 'blueprint'、homeTools 含 blueprint、渲染顺序恢复为 v-else-if）。
@@ -329,7 +337,7 @@
 ### 2026-07-16 exact Linux integration bundle
 
 - 刷新上游状态：Komari #604 仍为 open，head `f08f47d6a7f5e4cdec28a1e89c2183f1c1b6e1fb`，前端及 Linux/Windows 构建矩阵全部成功；komari-web #82 仍为 open，head `0fee1f123009eca4b5f380549845bed756fa2d0c`。
-- 发现旧本地 Komari 快照除默认主题外仍有 23 个换行归一化后的真实源码差异，集中在 Metric Store、迁移和启动流程，因此废弃旧二进制，不作为 PR 精确测试包交付。
+- 发现旧本地 Komari 快照除默认主题外仍有 23 个换行归一化后的真实源码差异���集中在 Metric Store、迁移和启动流程，因此废弃旧二进制，不作为 PR 精确测试包交付。
 - 从 GitHub 下载 `f08f47d` 原始源码，创建干净编译树；逐项比较 `cmd/database/pkg/protocol/utils/web` 共 243 个核心文件，排除有意替换的 `web/public/defaultTheme` 后差异为 0。
 - 默认主题替换为已发布的 Glassmorphism `v3.1.8` 资产；包内配置名为“主题设置”，完整管理端来源记录为 komari-web `0fee1f1`，路由桥接覆盖 `/admin`、`/terminal`、`/manage/*` 并加载 `glass-admin.css`。
 - 使用 Go `1.26.4`、Zig `0.14.1`、`x86_64-linux-musl`、`CGO_ENABLED=1` 和 `-buildvcs=false` 构建 Linux amd64 ELF；显式版本为 `integration-f08f47d-theme-v3.1.8`，版本哈希为完整 Komari PR head。
@@ -375,7 +383,7 @@
 - 已核对 Komari `web/public/public.go`：`/admin` 和 `/terminal` 强制使用 embedded defaultTheme，静态文件会在当前主题缺失时回退 embedded defaultTheme。
 - 已从官方 `komari-monitor/komari-web` 提交 `ebfbd3e079f8777a746276fe67429b519024f7c7` 完整构建 415 个 PWA 预缓存文件，并同步到 `public/admin-app/`。
 - 已加入根入口路由桥接和 admin-app URL 恢复，BrowserRouter 在 `/admin/...`、`/terminal`、`/manage/*` 下保留原路径语义。
-- 已加入 Glassmorphism 亮暗色 CSS 覆盖，不改官方 React 功能代码；后台菜单已在浏览器确认包含站点、主题、登录、通知、XtermJS、监控数据库、远程执行、Ping、会话、账户和日志等完整模块。
+- 已加入 Glassmorphism 亮暗色 CSS 覆盖，不改官方 React ���能代码；后台菜单已在浏览器确认包含站点、主题、登录、通知、XtermJS、监控数据库、远程执行、Ping、会话、账户和日志等完整模块。
 - 已新增 `bun run sync:admin -- <komari-web-path>`，可从新的官方 checkout 重建并记录来源提交。
 - 已为主题 Vite 开发服务器补 `/api`、`/themes` 代理，默认指向 `http://127.0.0.1:25774`，可用 `VITE_API_TARGET` 覆盖。
 - 最终校验：`bun run lint` 和 `bun run build` 均通过；生成 `komari-theme-Glassmorphism-build-e3abeff.zip`（7,573,457 bytes、770 个条目），关键管理模块与来源记录均已核对。浏览器已确认 `/admin` 完整菜单和 Glassmorphism 亮暗色覆盖；本地未启动 Komari 后端，因此未进行登录后的 API 写操作验证。
@@ -424,7 +432,7 @@
 - 线上复现：`tz.yisaw.com` 开启减弱过渡动画时，点击节点后 URL 已进入详情但 `<main>` 为空；`km.ydao.de` 使用同一构建且未触发配置时，详情和返回首页均正常。
 - 根因：路由 `Transition` 在 `css=false` 时仍使用 `mode="out-in"`；同步离场的 `afterLeave` 与 `KeepAlive` 更新重入后，Vue 访问空 DOM 锚点并抛出 `nextSibling` / `parentNode`。
 - 修复：减弱动画时路由 Transition 改用默认并行模式；正常动画继续使用 `out-in`，首页缓存策略保持不变。
-- 发布准备：唯一版本源更新为 `3.1.3`，README 当前版本、专项说明和更新日志已同步；`.claude/` 继续排除。
+- 发布准备：唯一版本源更新为 `3.1.3`���README 当前版本、专项说明和更新日志已同步；`.claude/` 继续排除。
 - 本地验证：`bun run lint`、`bun run build` 和 `git diff --check` 均通过；构建仅有既有 `@vueuse/core` PURE 注释与 `globe` 大 chunk 警告。
 - 本地资产：`komari-theme-Glassmorphism-build-4716f15.zip`，大小 5,105,653 bytes，SHA-256 `e202ce28508a3dc0c9b1a4a1e8c5c7706dd1f281ef72d8f4d73d429b891bac11`；顶层为 `komari-theme.json`、`preview.png`、`dist/`，包内版本为 `3.1.3`。
 - 远端验证：提交 `4f37416` 已推送到 `main`；GitHub Actions `Release On Version Bump` run `#29311122789` 成功；tag `v3.1.3` 已生成；Release 为正式发布（非 draft / prerelease）。
@@ -532,7 +540,7 @@
 - 开始实施官方 komari-web 高价值功能移植第一批：新增 metric series 工具、metrics service、Ping metric 优先路径与节点 `message` 提示；保持旧版 `common:getRecords` fallback，不改发布结构和版本。
 - 已新增 `src/utils/metricSeries.ts` 与 `src/services/metrics.service.ts`，封装 metric tags/series 拆分、Ping task/stat helper、EWMA 平滑工具，以��� `public:listMetricDefinitions` / `public:queryMetrics` / `public:getPingMetricStats` / `public:getPublicPingTasks` 服务层请求。
 - 已改 `src/composables/useNodePingStats.ts` 与 `src/components/PingChart.vue`：优先并发尝试 Ping metric stats 和 metric series；新接口失败或空数据时回退 legacy Ping records；Ping 图表信息卡补充 stddev、valid、loss approximate 等官方统计字段。
-- 已改 `src/components/NodeCard.vue` 与 `src/components/NodeList.vue`：节点名旁展示 `message` warning 图标，tooltip 纯文本/换行显示 message 与 `status_updated_at`，不使用 `v-html`。
+- 已改 `src/components/NodeCard.vue` 与 `src/components/NodeList.vue`：节点名旁展示 `message` warning 图标，tooltip 纯文本/换行显示 message 与 `status_updated_at`，不使��� `v-html`。
 - 已运行 `bun run lint` 与 `bun run build`，均通过；构建生成 `dist/` 和 `komari-theme-Glassmorphism-build-881385d.zip`。
 - 继续按用户“全部上马”要求实施剩余官方功能：LoadChart 历史模式优先 metric store、GPU detail/per-device metric 图表、`chartDashboardTemplate` 托管配置读取与布局排序。
 - 已改 `src/components/LoadChart.vue`：非实时历史数据优先通过 `public:listMetricDefinitions` 过滤可用指标，再调用 `public:queryMetrics` 查询 `cpu.usage`、`load.average`、memory/swap/disk/net/connections/process/GPU 等指标并转换为当前 ECharts 数据；无定义、无数据或失败时回退 `loadNodeLoadRecords()` legacy 路径。实时模式仍保留 `common:getNodeRecentStatus`。
@@ -587,7 +595,7 @@
 
 - `bun run lint` 当前脚本包含 `--fix`，会自动修改文件；如需运行，应在运行后检查 diff。
 - PingChart、首页 Ping 摘要、LoadChart 历史模式已优先尝试 public metric store，并保留 legacy fallback；HealthSummaryPanel 尚未迁移到 metric store。
-- PingChart 自定义范围在 metric API 可用时精确传 `start/end`；legacy fallback 会按保留时间扩大回溯后再裁剪，但仍受旧接口最大保留时长与 6000 点上限约束。
+- PingChart 自定义���围在 metric API 可用时精确传 `start/end`；legacy fallback 会按保留时间扩大回溯后再裁剪，但仍受旧接口最大保留时长与 6000 点上限约束。
 - AuditLogPanel 已按 `admin:getLogs` 接入但尚未在真实登录后端手动验证返回形态；若后端字段或分页语义变化，需按真实响应微调。
 - 自定义 LoadChart 时间范围在 metric API 可用时精确传 `start` / `end`；旧后端 fallback 仍只能近似为“最近 N 小时”。
 - `traffic_up` / `traffic_down` 当前只做字段接收与历史 normalize，不替换现有流量 UI 语义。
