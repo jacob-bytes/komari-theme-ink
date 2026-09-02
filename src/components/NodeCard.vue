@@ -383,7 +383,6 @@ const customTags = computed(() => parseTags(props.node.tags).flatMap(t => t.text
           <div class="flex flex-col gap-1">
             <div class="flex justify-between text-xs">
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
-                <Icon :icon="NODE_METRIC_ICONS.traffic" data-node-metric-icon="traffic" width="13" height="13" class="shrink-0 text-muted-foreground/70" aria-hidden="true" />
                 <span class="truncate">流量</span>
               </span>
               <span class="font-mono tabular-nums font-medium" :class="trafficPercentageClass">
