@@ -13,6 +13,22 @@
 
 ## 当前任务
 
+- 状态：done，DataTooltip 视口边缘防裁切 + 三网行视觉微调 + 在线状态时间轴 光标/数据截断 双修复（M4 UI/UX + M2/M3 数据正确性）
+- 起因：用户反馈 4 点——1) 三网行数字靠近卡片右边缘时 tooltip 被裁切看不全；2) 三网行视觉不够协调；3) 服务器详情页"在线状态时间轴"任何色块 hover 都变问号光标（预期只有"无数据"块才应该是问号）；4) 所有服务器的"在线状态时间轴"形状几乎一样，怀疑是数据 bug 而非真实一致。
+- 根因排查结论：
+  - 问题 1：`DataTooltip.vue` 原实现用纯 CSS `left-1/2 -translate-x-1/2` 居中，触发元素越靠近视口/卡片边缘，气泡越容易整体超出可视区域被裁掉——这是所有使用 `DataTooltip` 的地方（三网行、延迟面板等）的通用问题，不是三网行独有的。
+  - 问题 3：`NodeUptimeTimeline.vue` 模板里色块统一写了 `cursor-help`，与色块状态（正常/异常/离线/无数据）无关，所以任何状态 hover 都是问号光标。
+  - 问题 4 **确认是真实代码 bug，不是数据碰巧一致**：时间轴按固定的 `timelineDays`（最多 14 天）铺满渲染，但请求历史记录时有 `LOAD_RECORD_MAX_COUNT` 条数上限，后端超出上限只返回窗口内最新的一段记录。只要节点上报间隔较短（如 30 秒/条），几天内的记录量就会超过上限，更早的日期不是"节点真的没有历史"，而是"根本没请求到那段samples"，于是被一律误判成灰色 no-data——上报频率相近的节点因此呈现出几乎相同的"前面几天灰、最后一两天有色"的截断形状。
+- 修复：
+  - `DataTooltip.vue`：气泡不再用纯 CSS 居中定位，改为默认居中 + `mouseenter`/`focusin` 时用 `getBoundingClientRect` 实测触发元素和气泡尺寸，越界部分通过 CSS 变量（`--dt-shift-x`/`--dt-shift-y`，叠加进 `transform`）纠偏拉回视口内（`margin: 8px`）；隐藏方式从 `hidden`/`block` 改为 `invisible`/`visible` + `opacity`，保证隐藏态也能被测量到真实尺寸。此文件是通用组件，本次修复对所有用到 `DataTooltip` 的位置（三网行、延迟/丢包面板等）统一生效，不是三网专属 patch。
+  - `NodeCard.vue`（三网行美化）：数值套用与"延迟"面板一致的 `latencyTextClass` 严重度颜色阈值（不再统一 `text-foreground` 一个颜色，能一眼看出哪个网络延迟高/丢包/异常），字重从 `font-bold` 降为 `font-medium`（避免和左侧"延迟"数字抢视觉权重），分隔点 `·` 透明度降到 `text-muted-foreground/50`（更轻、不抢眼）。
+  - `NodeUptimeTimeline.vue`：色块 `cursor-help` 改为按 `bucket.status === 'no-data'` 条件切换（`no-data` → `cursor-help`，其余 → `cursor-pointer`）；新增 `effectiveDays`（调用新增的 `estimateCoverableDays`）替代直接用 `timelineDays` 渲染，真正按该节点的真实上报密度反推可信天数；新增 `isCoverageTruncated` 判断并在时间轴下方追加一行浅色提示"该节点上报较频繁...仅能可靠展示近 N 天"，避免用户把截断误判成节点异常；summary 文案"近 N 天估算正常率"里的 N 同步改用 `effectiveDays`。
+  - `uptimeHistory.ts`：新增导出 `estimateCoverableDays(records, maxRecordCount, requestedDays)`——用已拿到记录的时间间隔中位数估算真实上报间隔分钟数，反推 `maxRecordCount` 条配额理论上能覆盖多少天，与 `requestedDays` 取较小值；`estimateReportIntervalMinutes` 从模块私有函数改为导出，供新函数复用。
+- 未做：列表视图 `NodePingListCell.vue` 的 tooltip（若也用 `DataTooltip` 则已随通用修复受益，未单独验证）；`estimateCoverableDays` 目前只在 `NodeUptimeTimeline.vue` 使用，未评估 `LoadChart`/`useNodeLoadStats` 等其他消费同一段历史记录接口的组件是否有相同截断问题（范围外）。
+- 验证：`bun run lint`、`bun run build`（type-check + vite + zip）均通过。浏览器视觉验证：沙盒无可用真实 Komari 后端（RPC 连接失败，节点列表为空），无法用真实数据截图核对卡片/时间轴。改用浏览器里手写 DOM 复现"tooltip 贴视口右边缘"场景验证防裁切算法本身——构造一个会溢出视口 13.85px 的 tooltip，应用纠偏后气泡完整落在 `[0, viewportWidth]` 内（`isFullyVisible: true`），截图确认视觉正常。时间轴截断/光标修复未能用真实数据视觉验证，仅代码复查确认逻辑正确。
+- 下一步：建议用户在有真实数据的环境验证：a) 三网行/延迟面板 tooltip 在卡片网格最右列时不再被裁切；b) 三网行颜色阈值是否符合预期；c) 详情页时间轴 hover 到"正常/异常/离线"色块时是普通指针而非问号；d) 上报频率不同的服务器之间时间轴形状/可信天数是否出现差异（不再看起来完全一样），以及截断提示文案是否清晰。
+- 版本：`komari-theme.json` 0.5.5 → 0.5.6。
+
 - 状态：done，节点卡片新增「三网」分项延迟行（M4 UI/UX）
 - 目标：在节点卡片"延迟/丢包"整块区域正上方新增一行"三网"，按 ping 任务分项展示延迟（不做跨任务平均），动态适配任务数量：1 个任务时显示单个数字、无分隔符；≥2 个任务时最多显示前 3 个，用 `·` 分隔；丢包仍只看现有底部加权均值，不新增丢包分项行；不加折叠/展开交互，满足条件（存在任务级延迟数据）就固定显示。
 - 实现：
@@ -34,7 +50,7 @@
     - 经纬网格线步长从默认 10° 放宽到 20°（`geoGraticule().step([20, 20])`），线条数量减半；网格线、陆地描边都改成以球心为中心的径向渐变（中心亮、边缘淡出到 0.03），球体主体填充也改成受光角渐变，共同制造近大远小的空间纵深，替代之前"整张网格线/线框一样亮"的钢丝球感。
     - 悬浮控件（地球/地图切换、飞线开关、汇总统计角标）从 `bg-background/80` + `text-selection`（跟随站点主题）改为内联样式引用 `GLOBE_THEME.panelGlassBg` 等固定深色玻璃令牌，新增 scoped `:deep([data-globe-chip-btn='true']:hover...)` 覆盖 shadcn Button ghost 默认 hover 配色，避免控件在深色地球上突然冒出站点主题的浅色高亮。
   - 未改动：`useGlobeProjection.ts`、投影/旋转/飞线动画逻辑、标记点脉冲逻辑。
-- 验证：临时 Playwright 用例截图核对（节点卡片点阵扁平效果、浅色/暗色站点主题下地球柔和外框+深度渐变+控件 hover 态），四张截图均符合预期；跑完后删除临时测试文件。`bun run lint`、`bun run build` 通过。另跑了现有 `tests/visual/visual.spec.ts` 全量回归，`nodes tool view renders card grid` 一项失败（`data-node-metric-icon="cpu"` 找不到），经 `git stash` 验证为改动前（上次提交 `ab4c9fe`）就已存在的既有问题，与本次修改无关，未处理。
+- 验证：临时 Playwright 用例截图核对（节点卡片点阵扁平效果、浅色/暗色站点主题下地球柔和外框+深度渐变+控件 hover 态），四���截图均符合预期；跑完后删除临时测试文件。`bun run lint`、`bun run build` 通过。另跑了现有 `tests/visual/visual.spec.ts` 全量回归，`nodes tool view renders card grid` 一项失败（`data-node-metric-icon="cpu"` 找不到），经 `git stash` 验证为改动前（上次提交 `ab4c9fe`）就已存在的既有问题，与本次修改无关，未处理。
 - 版本：`komari-theme.json` 0.4.3 → 0.4.4。
 - 产物：`ink-build-<commit-sha>.zip`（bun run build 自动按当前 HEAD short sha 命名，提交后 sha 会变化，需要在提交后再跑一次 build 确认 zip 文件名与 HEAD 一致）。
 - 下一步：无遗留工作。若需要进一步验证"割裂感"改善程度，可考虑在真实生产数据/更多地区分布下再看一次实际效果。
@@ -97,7 +113,7 @@
 - 目标：节点卡片剩余 5 天内标红、6–10 天标黄；审计并修复详情页 4 小时 / 1 天历史视图 CPU 空白或异常显示。
 - 里程碑：M4 UI/UX + 兼容性修复，不修改计费计算、实时指标或后端接口契约。
 - 范围：共享到期阈值、NodeCard 到期提示、LoadChart 指标历史回退、确定性 Playwright 回归检查。
-- 已确认缺陷：指标历史当前只检查“任意序列有���”���CPU 序列缺失或全空时仍会压过 `common:getRecords` 兼容数据，导致 CPU 图表无有效数值。
+- 已确认缺陷：指标历史当前只检查“任意序���有���”���CPU 序列缺失或全空时仍会压过 `common:getRecords` 兼容数据，导致 CPU 图表无有效数值。
 - 实现：共享阈值改为 5 天红色、10 天黄色；NodeCard 对到期状态着色并把无效日期显示为 `-`；短时历史缺少有效 CPU 点时回退 `common:getRecords`，同时保留新指标接口返回的 Ping 等独立序列；兼容记录的运行时数值先过滤非有限值再进入图表。
 - 回归：新增固定时钟下的 5/10 天边界颜色检查，以及新指标接口缺少 `cpu.usage` 时 4 小时 / 1 天 CPU 兼容回退检查。
 - 验证：`bun run lint`、`bun run build`、后续 `bun run build-only` 和 `git diff --check` 通过；构建产物 `komari-theme-Glassmorphism-build-b56ef97.zip` 保持 `komari-theme.json`、`preview.png`、`dist/` 顶层契约。
@@ -222,7 +238,7 @@
 - 用户反馈 4 项并全部修复（版本 0.0.1→0.0.2）：
   1. 访客详情卡需缩放才可见：`VisitorInfo.vue` 左下角详情卡 `2xl:block` → `lg:block`（≥1024px 默认显示）。
   2. 拓扑总图信息冗余 + 遮罩：重写 `BlueprintGa.vue` 为紧凑布局（分区符号 270×150→190×78，每行 4 个，去掉大 ×N 台/第 N 张等冗余），跳线先画后用纸色 `fill="var(--bp-paper)"` 分区符号遮蔽（stubs-first），消除遮罩。
-  3. 设备符号蓝色文字与橙色 ▲ 重叠：`BlueprintZoneSheet.vue` 副行截断 30→20 字符，避免与右侧 CPU% 文字重叠。
+  3. 设备符号蓝��文字与橙色 ▲ 重叠：`BlueprintZoneSheet.vue` 副行截断 30→20 字符，避免与右侧 CPU% 文字重叠。
   4. 明细图纸重复信息 + chart 不美观：`BlueprintDetail.vue` 删除 CPU/延迟 24h chart 及 useBlueprintHistory（该文件已 git rm），保留铭牌/参数行/尺寸线/页脚。
 - 验证：type-check、lint、build、视觉回归 11 条全绿（快照更新）；zip 内 version=0.0.2。
 
@@ -319,7 +335,7 @@
 - 已确认 `/admin`、`/terminal`、`/manage/*` 通过独立静态子应用恢复原 URL 的方案可行；公开主题主包不会加载 React 管理端 chunk。
 - 已发现并修复：浏览器禁用 sessionStorage 时入口不跳转；桥接架构下官方 `/admin-app/` Service Worker 无法覆盖恢复后的真实路由却可能保留旧后台资源；同步脚本缺少上游 HTML 结构断言。
 - 真实后端联调发现 Vite 代理只改 Host、未改 HTTP Origin，Komari 默认来源校验会拒绝本地 RPC；开发代理现统一把 `/api`、`/themes` Origin 设为 `VITE_API_TARGET`，WebSocket 继续使用 `rewriteWsOrigin`。
-- 访客审计补强：详情限额改按 UTF-8 字节计算，超���优���保留会话、站点指纹和 WebRTC 摘要；审计面板增加 `visitor_audit_enabled` 管理员开关，复用 `admin:editSettings` 的部分更新契约。
+- 访客审计补强：详���限额改按 UTF-8 字节计算，超���优���保留会话、站点指纹和 WebRTC 摘要；审计面板增加 `visitor_audit_enabled` 管理员开关，复用 `admin:editSettings` 的部分更新契约。
 
 ### 2026-07-15 complete default-theme admin integration
 
@@ -508,7 +524,7 @@
 - 收尾修复 `src/utils/csv.ts`：公式注入检测正则显式覆盖前导空白、BOM、NBSP 与 `= + - @ |`。
 - 收尾修复 `src/services/snapshot.service.ts` 与 `src/components/SnapshotExportPanel.vue`：新增异步 JSON 构建流程，按节点分片序列化并让出主线程，避免导出时一次性 `map + JSON.stringify` 大对象。
 - 收尾补充 `src/stores/nodes.ts` 注释：节点对象本身必须保持响应式，复杂静态元数据后续应字段级 `markRaw` 或放入共享缓存，避免破坏实时指标刷新。
-- 说明：此前 `AICACHE.md` 只写入任务开始状态，未继续写入实现/验证/交接；它不是自动记忆文件，必须由 agent 显式编辑。
+- 说明：此前 `AICACHE.md` 只写入任务开始状态，未继续写���实现/验证/交接；它不是自动记忆文件，必须由 agent 显式编辑。
 
 ## 验证记录
 
@@ -747,7 +763,7 @@
 - 收藏节点保存在站点隔离的 `theme:favorite-nodes:v1`，卡片、列表与详情页均可切换星标；首页快捷控制新增 `favorite`。运行时会清洗损坏的本地存储值。
 - 详情页头部新增收藏、上一台、下一个和下拉节点切换器，继续使用公开可见节点列表，不引入新接口。
 - 首页工具新增公开的实时节点对比，最多选择 4 台，支持按名称/IP/CPU 搜索，显示 CPU、内存、磁盘、网络、流量、运行时间和按隐私设置降级的价格；选择保存在 `theme:node-compare:v1`。
-- 健康摘要在现有历史请求结果上派生综合异常排行，合并离线、CPU、内存、磁盘、流量、Ping 和磁盘耗尽风险，不增加重复请求。
+- 健康摘要在现有历史请求结果上派生综合��常排行，合并离线、CPU、内存、磁盘、流量、Ping 和磁盘耗尽风险，不增加重复请求。
 - 明确排除：不做地球自动画质，也不增加 CPU 天梯规则的在线维护功能。
 - PR #29 (`7e582c2`, merged as `9c9a7ee`) restores PWA metadata. Local integration preserves its iOS standalone intent and manifest retention, then hardens it: the root theme links the manifest, Apple touch uses the existing 512px PNG, and `sync-komari-admin.ts` parses manifest JSON to rewrite `/assets/` icons under `/admin-app/assets/`. Service worker files remain intentionally removed to avoid stale admin assets after route bridging.
 - Final test package validation passed: `bun run lint`, `bun run build`, and `git diff --check`; `dist/index.html` links `/admin-app/manifest.json` and `/admin-app/assets/pwa-icon.png`, all manifest PWA paths resolve inside the archive, and the output remains manifest version `3.2.0`. After removing the redundant default quick control, test zip SHA-256 is `DF72FC12C4B57C59482A24F28793C1C9B7E7874205F21E410DC87BE487B5610D`.

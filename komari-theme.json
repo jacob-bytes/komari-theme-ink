@@ -2,7 +2,7 @@
   "name": "ink",
   "short": "ink",
   "description": "A minimal ink theme for Komari (deep navy-black, shadcn-inspired)",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "author": "jacob-bytes",
   "url": "https://github.com/jacob-bytes/komari-theme-ink",
   "preview": "preview.png",
@@ -215,7 +215,7 @@
       },
       {
         "key": "diskPredictionThresholdDays",
-        "name": "磁盘预测预警���数",
+        "name": "磁盘预测预警����数",
         "type": "number",
         "default": 30,
         "help": "预计剩余天数小于等于该值时在节点卡片和详情负载图中显示提示（1-3650）"
