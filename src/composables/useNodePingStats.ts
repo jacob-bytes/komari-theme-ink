@@ -13,11 +13,22 @@ export interface NodePingHistoryPoint {
   loss: number | null
 }
 
+// 单个 ping 任务（如"电信/联通/移动"三网测速任务）各自的延迟明细，
+// 不做跨任务平均——用于首页卡片「三网」行按任务分项展示。
+// 顺序沿用后台/上游数据返回的原始顺序（近似任务配置顺序），不做重要性排序。
+export interface NodePingTaskLatency {
+  taskId: string
+  name?: string
+  // 该任务当前没有任何有效样本时为 null，展示层应显示为占位符（如 --），而不是 0ms。
+  latency: number | null
+}
+
 export interface NodePingStatsState {
   avgLatency: number
   avgLoss: number
   avgVolatility: number
   history: NodePingHistoryPoint[]
+  taskLatencies: NodePingTaskLatency[]
   hasData: boolean
 }
 
@@ -58,7 +69,8 @@ interface SharedPingRecordsEntry {
 }
 
 const HISTORY_BUCKET_COUNT = 20
-const CACHE_VERSION = 8
+// v9：NodePingStatsState 新增 taskLatencies 字段，历史缓存条目结构不再匹配，需要整体失效重取。
+const CACHE_VERSION = 9
 const CACHE_KEY_PREFIX = 'komari-theme-emerald:node-ping-stats'
 const FULL_LOSS_EPSILON = 1e-6
 const PING_RECORD_REFRESH_INTERVAL_MS = 60_000
@@ -75,6 +87,7 @@ function createEmptyStats(): NodePingStatsState {
     avgLoss: 0,
     avgVolatility: 0,
     history: [],
+    taskLatencies: [],
     hasData: false,
   }
 }
@@ -144,6 +157,16 @@ function isValidHistoryPoint(value: unknown): value is NodePingHistoryPoint {
     && (loss === null || typeof loss === 'number')
 }
 
+function isValidTaskLatency(value: unknown): value is NodePingTaskLatency {
+  if (!value || typeof value !== 'object')
+    return false
+
+  const item = value as Record<string, unknown>
+  return typeof item.taskId === 'string'
+    && (item.latency === null || typeof item.latency === 'number')
+    && (item.name === undefined || typeof item.name === 'string')
+}
+
 function isValidStatsState(value: unknown): value is NodePingStatsState {
   if (!value || typeof value !== 'object')
     return false
@@ -155,6 +178,8 @@ function isValidStatsState(value: unknown): value is NodePingStatsState {
     && typeof state.hasData === 'boolean'
     && Array.isArray(state.history)
     && state.history.every(isValidHistoryPoint)
+    && Array.isArray(state.taskLatencies)
+    && state.taskLatencies.every(isValidTaskLatency)
 }
 
 function readStatsCache(uuid: string, hours: number, maxCount?: number): NodePingStatsState | null {
