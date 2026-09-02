@@ -473,11 +473,11 @@ function hasRegion(region: string | null | undefined): boolean {
           :class="!props.node.online ? 'blur-xs opacity-50' : ''"
         >
           <span class="text-xs font-normal text-muted-foreground">三网</span>
-          <div class="flex items-center gap-1 font-mono text-xs font-bold text-foreground">
+          <div class="flex items-center gap-1 font-mono text-xs font-medium">
             <template v-for="(item, index) in taskLatencyItems" :key="item.key">
-              <span v-if="index > 0" class="text-muted-foreground">·</span>
+              <span v-if="index > 0" class="text-muted-foreground/50">·</span>
               <DataTooltip :content="item.tooltip" placement="top" as="span" content-class="whitespace-nowrap">
-                <span>{{ item.valueText }}</span>
+                <span :class="latencyTextClass(item.valueText)">{{ item.valueText }}</span>
               </DataTooltip>
             </template>
           </div>

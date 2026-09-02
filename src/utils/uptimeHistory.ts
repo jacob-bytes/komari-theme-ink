@@ -15,6 +15,48 @@ import dayjs from 'dayjs'
  * - 因此 UI 上必须明确标注「估算」，不能包装成精确的可用率数字。
  */
 
+/**
+ * 估算「在当前记录条数上限（maxRecordCount）下，能被密集样本真正覆盖的天数」。
+ *
+ * 背景（真实 bug，不是数据碰巧一致）：请求历史记录时会带一个固定的 maxRecordCount 上限
+ * （见 LOAD_RECORD_MAX_COUNT），而后端在超出上限时只会返回时间窗口内最新的一段记录。
+ * 如果节点上报间隔很短（比如每 30 秒一条），几天的窗口就足以超过这个上限——于是请求 7、14 天
+ * 却实际只拿到最近一两天的密集数据，更早的日期不是「节点真的没有历史/离线」，而是「压根没请求到」。
+ * 之前的实现把这些被截断掉的早期日期一律标成 no-data（灰色），导致几乎所有上报频率相近的节点
+ * 都呈现出「前面几天灰、最后一两天才有颜色」的相同形状，看起来像是所有服务器数据都一样。
+ *
+ * 修复思路：不再盲目按配置的天数（timelineDays）铺满时间轴，而是先用已拿到的记录估算出
+ * 真实的上报间隔，反推这批 maxRecordCount 条记录理论上能撑起多少天的「密集覆盖」，
+ * 时间轴只按这个真实可信的天数渲染——上报越频繁的节点，可信窗口越短；上报越稀疏的节点，
+ * 可信窗口越长。不同节点会因为各自真实的上报节奏而展示出不同的天数/形状，而不是被统一的
+ * 截断误判成看起来一样。
+ */
+export function estimateCoverableDays(
+  records: Pick<StatusRecord, 'time'>[],
+  maxRecordCount: number,
+  requestedDays: number,
+): number {
+  const safeRequestedDays = Math.max(1, Math.floor(requestedDays))
+  if (!records.length || !Number.isFinite(maxRecordCount) || maxRecordCount <= 0)
+    return safeRequestedDays
+
+  const timestamps = records
+    .map(record => dayjs(record.time).valueOf())
+    .filter(ts => Number.isFinite(ts))
+    .sort((a, b) => a - b)
+
+  if (timestamps.length < 2)
+    return safeRequestedDays
+
+  const intervalMinutes = estimateReportIntervalMinutes(timestamps)
+  const coverableDays = Math.floor((maxRecordCount * intervalMinutes) / (24 * 60))
+
+  if (coverableDays <= 0)
+    return safeRequestedDays
+
+  return Math.max(1, Math.min(safeRequestedDays, coverableDays))
+}
+
 export type UptimeDayStatus = 'ok' | 'degraded' | 'down' | 'no-data'
 
 export interface UptimeDayBucket {
@@ -37,7 +79,7 @@ const DOWN_RATIO_THRESHOLD = 0.4
  * 从上报记录的时间间隔中位数推算「理论上报间隔（分钟）」，用于计算每天理论应有的上报次数。
  * 使用中位数而非平均数，避免个别长间隙（重启/掉线）拉高估算的间隔。
  */
-function estimateReportIntervalMinutes(sortedTimestamps: number[]): number {
+export function estimateReportIntervalMinutes(sortedTimestamps: number[]): number {
   if (sortedTimestamps.length < 2)
     return 1
 
