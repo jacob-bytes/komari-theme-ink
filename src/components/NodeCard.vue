@@ -10,7 +10,7 @@ import { useAppStore } from '@/stores/app'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, getStatus, getUptimeDays } from '@/utils/helper'
 import { getDiskPercentage, getMemoryPercentage, getTrafficUsed, getTrafficUsedPercentage, hasTrafficLimit } from '@/utils/nodeMetricsHelper'
 import { getOSImage, getOSName } from '@/utils/osImageHelper'
-import { getRegionCode } from '@/utils/regionHelper'
+import { getFlagSrc, getRegionAltText, hasRegion } from '@/utils/regionHelper'
 import { formatCurrencyValue, formatPriceWithCycle, getDaysUntilExpired, getExpireStatus, getRemainingValue, isFreePrice, parseTags } from '@/utils/tagHelper'
 
 const props = withDefaults(defineProps<{
@@ -206,10 +206,6 @@ const remainingInfoTags = computed<RemainingInfoTag[]>(() => {
 })
 
 const customTags = computed(() => parseTags(props.node.tags).flatMap(t => t.text.length ? t.text.split(' ').filter(Boolean) : [t.text]))
-
-function hasRegion(region: string | null | undefined): boolean {
-  return Boolean(region?.trim())
-}
 </script>
 
 <template>
@@ -267,10 +263,13 @@ function hasRegion(region: string | null | undefined): boolean {
         >
           <Icon :icon="isFavorite ? 'tabler:star-filled' : 'tabler:star'" width="14" height="14" />
         </button>
-        <span
+        <img
           v-if="hasRegion(props.node.region)"
-          class="ml-auto shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground"
-        >{{ getRegionCode(props.node.region) }}</span>
+          loading="lazy"
+          :src="getFlagSrc(props.node.region)"
+          :alt="getRegionAltText(props.node.region)"
+          class="ml-auto size-4 shrink-0 rounded-sm"
+        >
       </div>
     </template>
 
@@ -344,9 +343,7 @@ function hasRegion(region: string | null | undefined): boolean {
           <!-- CPU -->
           <div class="flex flex-col gap-1">
             <div class="flex justify-between text-xs">
-              <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
-                <span>CPU<span v-if="props.node.cpu_cores" class="text-muted-foreground"> {{ props.node.cpu_cores }} 核</span></span>
-              </span>
+              <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">CPU</span>
               <span class="font-mono tabular-nums font-medium">{{ (props.node.cpu ?? 0).toFixed(1) }}%</span>
             </div>
             <ProgressThin :percentage="props.node.cpu ?? 0" :status="cpuStatus" :height="2" />

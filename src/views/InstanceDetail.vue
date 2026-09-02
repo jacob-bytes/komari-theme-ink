@@ -15,7 +15,7 @@ import { useNodesStore } from '@/stores/nodes'
 import { formatBytesWithConfig, formatDateTime, formatUptimeWithFormat, getStatus } from '@/utils/helper'
 import { hasTrafficLimit as checkHasTrafficLimit, getDiskPercentage, getMemoryPercentage, getTrafficUsed, getTrafficUsedPercentage } from '@/utils/nodeMetricsHelper'
 import { getOSImage, getOSName } from '@/utils/osImageHelper'
-import { getRegionCode } from '@/utils/regionHelper'
+import { getFlagSrc, getRegionAltText, hasRegion } from '@/utils/regionHelper'
 
 /** 指标图标：与 NodeCard 列表卡片保持一致的视觉语言 */
 const METRIC_ICONS = {
@@ -96,7 +96,6 @@ function toggleCurrentFavorite(): void {
 const providerMetadata = computed(() => data.value ? getNodeProviderMetadata(data.value) : null)
 const vpsProvider = computed(() => providerMetadata.value?.provider ?? null)
 
-const hasRegion = (region: string) => !!region
 const formatBytes = (bytes: number) => formatBytesWithConfig(bytes, appStore.byteDecimals)
 const formatUptime = (seconds: number) => formatUptimeWithFormat(seconds, 'minute')
 
@@ -314,7 +313,13 @@ const deviceInfoFields = computed(() => {
             class="size-4.5 shrink-0 rounded-[3px] object-contain"
           >
           <span class="truncate">{{ data.name }}</span>
-          <span v-if="hasRegion(data.region)" class="rounded-full bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground">{{ getRegionCode(data.region) }}</span>
+          <img
+            v-if="hasRegion(data.region)"
+            loading="lazy"
+            :src="getFlagSrc(data.region)"
+            :alt="getRegionAltText(data.region)"
+            class="size-4.5 shrink-0 rounded-sm"
+          >
         </div>
         <div class="ml-auto flex h-8 shrink-0 items-center gap-1 rounded-md bg-background/50 p-0.5 backdrop-blur-xs">
           <Button

@@ -16,7 +16,7 @@ import { formatCityNameZh } from '@/utils/cityNameHelper'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, formatUptimeWithFormat, getStatus } from '@/utils/helper'
 import { getRealtimeTotalSpeed, getTrafficUsed, getTrafficUsedPercentage, hasTrafficLimit } from '@/utils/nodeMetricsHelper'
 import { getOSImage, getOSName } from '@/utils/osImageHelper'
-import { getRegionCode, getRegionDisplayName } from '@/utils/regionHelper'
+import { getFlagSrc, getRegionAltText, getRegionDisplayName, hasRegion } from '@/utils/regionHelper'
 import { formatPriceWithCycle, getDaysUntilExpired, getExpireStatus, parseTags } from '@/utils/tagHelper'
 
 interface ColumnConfig {
@@ -210,18 +210,6 @@ const nodeMetadataItemsByUuid = computed(() => {
     itemsByUuid[node.uuid] = buildNodeMetadataItems(node)
   return itemsByUuid
 })
-
-function getFlagSrc(region: string): string {
-  return `/images/flags/${getRegionCode(region)}.svg`
-}
-
-function getRegionAltText(region: string): string {
-  return getRegionDisplayName(region) || getRegionCode(region)
-}
-
-function hasRegion(region: string | null | undefined): boolean {
-  return Boolean(region?.trim())
-}
 
 function handleClick(node: NodeData) {
   emit('click', node)

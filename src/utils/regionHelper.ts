@@ -1714,3 +1714,28 @@ export function extractRegionEmojis(text: string): string[] {
 
   return emojis
 }
+
+/**
+ * 判断地区字段是否有值（非空、非纯空白）
+ * @param region 地区字段原始值（可能是 emoji、别名或代码）
+ */
+export function hasRegion(region: string | null | undefined): boolean {
+  return Boolean(region?.trim())
+}
+
+/**
+ * 根据地区字段获取国旗图片路径（真实国旗矢量图，而非文字代码/emoji）。
+ * 图片资源位于 public/images/flags/{CODE}.svg，与地区代码一一对应。
+ * @param region 地区字段原始值（可能是 emoji、别名或代码）
+ */
+export function getFlagSrc(region: string): string {
+  return `/images/flags/${getRegionCode(region)}.svg`
+}
+
+/**
+ * 获取国旗图片的无障碍替代文本（地区中文名，取不到则回退地区代码）
+ * @param region 地区字段原始值（可能是 emoji、别名或代码）
+ */
+export function getRegionAltText(region: string): string {
+  return getRegionDisplayName(region) || getRegionCode(region)
+}
