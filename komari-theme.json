@@ -2,7 +2,7 @@
   "name": "ink",
   "short": "ink",
   "description": "A minimal ink theme for Komari (deep navy-black, shadcn-inspired)",
-  "version": "0.5.9",
+  "version": "0.6.0",
   "author": "jacob-bytes",
   "url": "https://github.com/jacob-bytes/komari-theme-ink",
   "preview": "preview.png",
@@ -46,6 +46,14 @@
         "help": "从高密度 mini 到宽松 large；默认 compact。"
       },
       {
+        "key": "defaultViewMode",
+        "name": "默认视图模式",
+        "type": "select",
+        "default": "card",
+        "options": "card,list",
+        "help": "card=卡片网格；list=列表。仅影响用户本地未手动切换过视图时的初始展示，用户切换后以本地记忆为准。"
+      },
+      {
         "name": "02 · 首页布局",
         "type": "title"
       },
@@ -84,6 +92,21 @@
         "default": "标准",
         "options": "标准,色觉友好",
         "help": "色觉友好使用蓝、蓝绿、橙、朱红、紫红，并为图表和状态增加线型、纹理、文字或图标区分。"
+      },
+      {
+        "key": "generalCardPreset",
+        "name": "首页概览卡片方案",
+        "type": "select",
+        "default": "基础",
+        "options": "官方,基础,运维,资源,财务,流量,GPU,资产,完整,自定义",
+        "help": "控制首页顶部概览卡片（在线节点/流量/负载等统计卡）的展示组合；自定义时读取下方 keys。"
+      },
+      {
+        "key": "generalCardKeys",
+        "name": "自定义概览卡片 keys",
+        "type": "richtext",
+        "default": "onlineNodes\nhighLoadNodes\ntotalTraffic\nnetSpeed",
+        "help": "逗号、空格或换行分隔。currentTime=当前时间；memory=内存用量；disk=硬盘用量；remainingValue=剩余价值；monthlyCost=月费用估算；yearlyCost=年费用估算；totalTraffic=累计流量；uploadSpeed=实时上行；downloadSpeed=实时下行；netSpeed=实时速率；onlineNodes=在线节点；offlineNodes=离线节点；avgCpu=平均CPU；avgGpu=平均GPU；avgLoad=平均负载；systemLoad=系统负载；swap=交换内存；processes=进程总数；connections=连接数；cpuCores=CPU核心；gpuNodes=GPU节点；gpuPeakNode=GPU峰值；trafficQuota=流量配额；trafficPeak=实时峰值；uploadPeakNode=上行最高；downloadPeakNode=下行最高；highLoadNodes=高负载节点；expiringNodes=即将到期；trafficWarnings=流量预警；connectionPeakNode=连接峰值；regionDistribution=地区分布；systemDistribution=系统分布；virtualizationDistribution=虚拟化分布。"
       },
       {
         "name": "03 · 高级工具与隐私",
@@ -215,7 +238,7 @@
       },
       {
         "key": "diskPredictionThresholdDays",
-        "name": "磁盘预测预警�����数",
+        "name": "磁盘预测预警������数",
         "type": "number",
         "default": 30,
         "help": "预计剩余天数小于等于该值时在节点卡片和详情负载图中显示提示（1-3650）"

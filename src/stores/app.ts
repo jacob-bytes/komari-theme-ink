@@ -912,8 +912,6 @@ const useAppStore = defineStore('app', () => {
 
   const dataUpdateInterval = computed<number>(() => readNumberSetting(themeSettings.value, 'dataUpdateInterval', 3, 1, 60))
 
-  const hideGeneralCard = computed<boolean>(() => readBooleanSetting(themeSettings.value, 'hideGeneralCard', false))
-
   const visitorInfoEnabled = computed<boolean>(() => readBooleanSetting(themeSettings.value, 'visitorInfoEnabled', true))
 
   const generalCardEnabledMap = computed<Record<GeneralCardKey, boolean>>(() => {
@@ -1197,7 +1195,6 @@ const useAppStore = defineStore('app', () => {
     alertTitle,
     alertContent,
     dataUpdateInterval,
-    hideGeneralCard,
     visitorInfoEnabled,
     generalCardEnabledMap,
     generalCardOrder,

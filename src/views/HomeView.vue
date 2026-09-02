@@ -6,7 +6,6 @@ import { Icon } from '@iconify/vue'
 import { useDebounceFn, useElementSize } from '@vueuse/core'
 import { computed, nextTick, onActivated, onDeactivated, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import DeferredRender from '@/components/DeferredRender.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -257,12 +256,11 @@ const nodeList = computed(() => {
 const isDenseNodeGrid = computed(() => appStore.nodeViewMode === 'card' && nodeList.value.length > denseNodeAppearThreshold)
 const enableNodeCardTransition = computed(() => !appStore.disablePageAnimation && !isDenseNodeGrid.value)
 const reduceDenseNodeEffects = computed(() => appStore.nodeViewMode === 'card' && nodeList.value.length > denseNodePingAnimationThreshold)
-const deferNodeCards = computed(() => appStore.nodeViewMode === 'card' && nodeList.value.length > UI_CONFIG.virtualList.nodeThreshold)
 const deferredNodeCardHeight = computed(() => ({ mini: 220, compact: 270, comfortable: 310, large: 350 }[appStore.nodeCardSize]))
 
 // 卡片网格虚拟滚动：节点数超过阈值时，改用 useVirtualCardGrid 做窗口化渲染（滚出视口的行
-// 会被真正卸载），避免节点很多时 DOM/图表实例只增不减。阈值以下保持原有 TransitionGroup +
-// DeferredRender 路径不变。列宽/间距需与下方 nodeCardGridClass 的 Tailwind 断点保持一致。
+// 会被真正卸载），避免节点很多时 DOM/图表实例只增不减。阈值以下保持原有 TransitionGroup
+// 路径不变。列宽/间距需与下方 nodeCardGridClass 的 Tailwind 断点保持一致。
 const cardGridMetrics: Record<typeof appStore.nodeCardSize, { minColumnWidth: number, gapPx: number }> = {
   mini: { minColumnWidth: 270, gapPx: 12 },
   compact: { minColumnWidth: 300, gapPx: 12 },
@@ -465,7 +463,7 @@ const nodeCardGridClass = computed(() => {
     />
 
     <div class="node-info p-4 pt-4 flex flex-col gap-4 relative z-1 pointer-events-none">
-      <div class="nodes min-w-0">
+      <div ref="nodeGridAreaRef" class="nodes min-w-0">
         <Tabs v-model="appStore.nodeSelectedGroup" class="w-full flex-col gap-4">
           <div class="flex flex-col gap-2 xl:flex-row xl:items-center">
             <div class="home-controls-scroll min-w-0 overflow-x-auto overscroll-x-contain rounded-sm pointer-events-auto touch-pan-x">
@@ -582,6 +580,29 @@ const nodeCardGridClass = computed(() => {
             <ProviderValuePanel v-else-if="activeHomeTool === 'providerValue'" :nodes="groupNodeList" />
             <SnapshotExportPanel v-else-if="activeHomeTool === 'snapshotExport'" :nodes="groupNodeList" />
             <AuditLogPanel v-else-if="activeHomeTool === 'auditLog'" />
+            <div
+              v-else-if="nodeList.length !== 0 && appStore.nodeViewMode === 'card' && shouldVirtualizeCards"
+              v-bind="virtualCardContainerProps"
+              class="max-h-[70vh]"
+            >
+              <div v-bind="virtualCardWrapperProps">
+                <div
+                  v-for="row in virtualCardRows"
+                  :key="row.index"
+                  :style="virtualCardRowStyle"
+                >
+                  <div v-for="node in row.data" :key="node.uuid" class="min-w-0">
+                    <NodeCard
+                      :node="node"
+                      :reduce-motion="reduceDenseNodeEffects"
+                      :ping-enabled="isViewActive"
+                      @click="handleNodeClick(node)"
+                      @ping-click="openPingDialog(node)"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
             <TransitionGroup
               v-else-if="nodeList.length !== 0 && appStore.nodeViewMode === 'card'"
               :appear="enableNodeCardTransition"
@@ -592,23 +613,17 @@ const nodeCardGridClass = computed(() => {
             >
               <div
                 v-for="(node, index) in nodeList"
-                :key="`${getNodeItemTransitionKey(node)}:${deferNodeCards ? 'deferred' : 'full'}`"
+                :key="getNodeItemTransitionKey(node)"
                 class="min-w-0"
                 :style="getNodeItemTransitionStyle(index)"
               >
-                <DeferredRender
-                  :enabled="deferNodeCards"
-                  :idle-delay="800 + index * 70"
-                  :min-height="deferredNodeCardHeight"
-                >
-                  <NodeCard
-                    :node="node"
-                    :reduce-motion="reduceDenseNodeEffects"
-                    :ping-enabled="isViewActive"
-                    @click="handleNodeClick(node)"
-                    @ping-click="openPingDialog(node)"
-                  />
-                </DeferredRender>
+                <NodeCard
+                  :node="node"
+                  :reduce-motion="reduceDenseNodeEffects"
+                  :ping-enabled="isViewActive"
+                  @click="handleNodeClick(node)"
+                  @ping-click="openPingDialog(node)"
+                />
               </div>
             </TransitionGroup>
             <NodeList

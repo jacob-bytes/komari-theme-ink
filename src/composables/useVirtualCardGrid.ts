@@ -1,4 +1,4 @@
-import type { MaybeRefOrGetter, Ref } from 'vue'
+import type { MaybeRefOrGetter } from 'vue'
 import { useVirtualList } from '@vueuse/core'
 import { computed, toValue } from 'vue'
 
@@ -13,10 +13,7 @@ export interface UseVirtualCardGridOptions<T> {
   overscan?: number
 }
 
-export interface VirtualCardRow<T> {
-  data: T[]
-  index: number
-}
+export interface VirtualCardRow<T> { data: T[], index: number }
 
 /**
  * 将响应式多列卡片网格（CSS grid auto-fill）接入 @vueuse/core 的 useVirtualList。
@@ -48,7 +45,7 @@ export function useVirtualCardGrid<T>(options: UseVirtualCardGridOptions<T>) {
   })
 
   return {
-    virtualRows: virtualRows as unknown as Ref<VirtualCardRow<T>[]>,
+    virtualRows,
     containerProps,
     wrapperProps,
   }
