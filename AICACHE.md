@@ -13,7 +13,21 @@
 
 ## 当前任务
 
-- 状态：done，DataTooltip 视口边缘防裁切 + 三网行视觉微调 + 在线状态时间轴 光标/数据截断 双修复（M4 UI/UX + M2/M3 数据正确性）
+- 状态：done，DataTooltip 改为 Teleport+fixed 彻底重构（上一版 CSS transform 纠偏方案仍会「跑位盖住别处内容」，本次为根治版）
+- 起因：用户反馈上一轮修复（见下方旧记录）没有解决问题——截图显示悬停「三网」行最右侧延迟数字时，tooltip 确实渲染出来了，但被拽到离数字很远的左侧位置，盖住了上一行「剩余152天 / ¥138.78」的文字。说明上一版"水平居中 + 越界纠偏"的 CSS transform 方案在窄卡片场景下纠偏量过大，会让气泡跑到无关位置盖住别的正文——遮罩问题从"自己被裁掉"变成了"别人被盖住"，本质没解决。
+- 根因：上一版用 `position: absolute` 挂在触发元素自身的包裹层下（该层在多层 `overflow-hidden` 的卡片/进度条容器内），靠 CSS 变量做"从期望居中位置到视口边界"的位移纠偏；这个位移量在窄视口/窄卡片下可能很大，导致气泡被硬拽到离触发元素很远的地方。
+- 修复（彻底重写 `DataTooltip.vue`）：
+  - 气泡不再挂在触发元素的局部容器下，改用 `<Teleport to="body">` 直接挂到 `<body>`，彻底脱离任何祖先的 `overflow`/层叠上下文，永久不会被任何卡片、进度条容器裁切；
+  - 定位方式从"先居中再算纠偏"改为"直接用 `getBoundingClientRect()` 实测触发元素和气泡尺寸，计算贴着触发元素只留 8px 间距的精确坐标"（`position: fixed`），气泡永远紧贴被悬停的元素本身，不会跳到很远的位置；
+  - 若期望方向（如 top）在视口内放不下会自动翻转到对侧（bottom/left/right 同理），翻转后再做最终的视口边缘夹紧兜底；
+  - 由于气泡被 Teleport 出去后不再是原 CSS `group-hover` 选择器的子节点，改用 `mouseenter`/`mouseleave`/`focusin`/`focusout` 事件 + `visible` ref 控制显隐（配合 `visibility`+`opacity` 做淡入淡出），显隐状态变化时同步添加/移除 `scroll`/`resize` 监听以保持定位跟手。
+  - 组件对外 props（`content`/`placement`/`width`/`height`/`as`/`class`/`contentClass`）保持完全不变，15 处调用方（NodeCard、NodeUptimeTimeline、InstanceDetail、NodePingListCell、Footer、NodeList、NodeGeneralCards）无需改动。
+- 验证：`bun run lint`、`bun run build`（含 vue-tsc 类型检查）通过。因沙盒无真实 Komari 后端数据，无法在真实卡片上截图验证，改用浏览器手写 DOM 精确复刻截图场景（窄卡片贴视口右边缘、卡片本身带 `overflow: hidden`、三网行紧贴上一行文字、触发元素在卡片最右侧），并用与组件内 `measureAndPosition` 完全一致的算法定位一个挂在 `document.body`（而非卡片内部）的气泡：验证结果 `isBubbleActuallyOutsideCardDom: true`（证明气泡确实脱离了带 overflow-hidden 的卡片 DOM，不会被裁切）、`isFullyVisibleInViewport: true`（未被视口边缘裁切）、`horizontalOffsetFromTriggerCenter` 仅 25px（气泡紧贴数字上方，不再跳到远处覆盖别的内容）。截图确认气泡出现在"9ms"正上方，未侵入上一行"剩余152天 ¥138.78"文字区域。
+- 下一步：请在有真实数据的环境里实际 hover 验证——尤其是卡片网格最右列、最底行等边缘位置的 tooltip（三网行、延迟/丢包面板、详情页图表等所有用到 DataTooltip 的地方），确认气泡始终紧贴被 hover 的元素、不再出现跑位盖住其他内容的情况。
+
+---
+
+- 状态：done（已被上方新记录取代，仅供追溯），DataTooltip 视口边缘防裁切 + 三网行视觉微调 + 在线状态时间轴 光标/数据截断 双修复（M4 UI/UX + M2/M3 数据正确性）
 - 起因：用户反馈 4 点——1) 三网行数字靠近卡片右边缘时 tooltip 被裁切看不全；2) 三网行视觉不够协调；3) 服务器详情页"在线状态时间轴"任何色块 hover 都变问号光标（预期只有"无数据"块才应该是问号）；4) 所有服务器的"在线状态时间轴"形状几乎一样，怀疑是数据 bug 而非真实一致。
 - 根因排查结论：
   - 问题 1：`DataTooltip.vue` 原实现用纯 CSS `left-1/2 -translate-x-1/2` 居中，触发元素越靠近视口/卡片边缘，气泡越容易整体超出可视区域被裁掉——这是所有使用 `DataTooltip` 的地方（三网行、延迟面板等）的通用问题，不是三网行独有的。
@@ -86,7 +100,7 @@
   - 移除地球：删除 NodeEarthGlobe/CobeGlobe/RealisticGlobe/TiledMap、NodeGeneralCards、useNodeGeoClusters 共 6 个文件；删除 public/images/earth/ 纹理(2.98MB)；移除 cobe/globe.gl/three/@types/three 依赖；vite manualChunks 移除 globe。
   - 改名：komari-theme.json name/short→blueprint、package.json name→blueprint、Footer 文案、zip 前缀 blueprint-build-、GitHub workflow glob、README 标题、fixture theme→blueprint。
   - komari-theme.json 配置精简：移除地球样式(earthRenderer/stopEarth/hideEarth)、隐藏头部、毛玻璃配色(glassColorPreset/glassCustomColors)、总览卡片(generalCardPreset/generalCardKeys)，配���项 48→47，编号顺延重排。
-- 验证：bun run lint、bun run build(type-check+vite+zip) 通过；视觉回归重写为 11 条用例（蓝图首页亮/暗、明细展开铭牌、节点视图卡片/mini、详情页 6 条），全部通过；修复了 detail ping 作用域用例的 RequestManager 并发排队时序问题（等 12 个 queryMetrics 全部发出后再清空）。
+- ��证：bun run lint、bun run build(type-check+vite+zip) 通过；视觉回归重写为 11 条用例（蓝图首页亮/暗、明细展开铭牌、节点视图卡片/mini、详情页 6 条），全部通过；修复了 detail ping 作用域用例的 RequestManager 并发排队时序问题（等 12 个 queryMetrics 全部发出后再清空）。
 - 产物：blueprint-build-e065dc7.zip（3.93 MB，从 7.25 MB 减少 46%），顶层契约 komari-theme.json/preview.png/dist/，包内 name=blueprint，753 个 dist 条目，无地球/globe 残留 chunk。
 - 交接：版本号仍是 3.3.7；远程 GitHub 仓库仍叫 komari-theme-Glassmorphism（本地改名不影响远程，需另建/改名仓库）；如需发版需 bump 版本并推送。
 
@@ -201,7 +215,7 @@
 
 ### 2026-08-26 blueprint v0.0.6 四项调整
 
-- 用户反馈 4 项并全部修复（版本 0.0.5→0.0.6）：
+- 用户反馈 4 项并全部��复（版本 0.0.5→0.0.6）：
   1. 首页搜索框缩放才看全：去掉 Input 的 `focus:!w-52 sm:focus:!w-60` focus 强制展开（聚焦时不展开，仅输入后展开 w-60），避免右侧溢出。
   2. 拓扑总图分区符号：左上角新增固定 26×18 `<image>` 国旗（`/images/flags/{ISO code}.svg`，经 regionHelper.getRegionCode 解析，仅合法 2 字母代码才显示，自定义地域不 404），右侧显示地域名（getRegionDisplayName 中文名，fitText 截断）；新增地域经 regionHelper 自动映射。
   3. 分区图设备符号只显示主机名：去掉 CPU% 行（及已离线时间行），nodeH 46→34，框更扁。
@@ -308,7 +322,7 @@
 
 ### 2026-07-15 Linux integration test bundle
 
-- 已确认 Komari PR #604 没有修改上游默认主题，但其提交历史已包含 PR #602 的访客审计 RPC、默认关闭开关、限流和日志过滤修复。
+- 已确认 Komari PR #604 没有���改上游默认主题，但其提交历史已包含 PR #602 的访客审计 RPC、默认关闭开关、限流和日志过滤修复。
 - 已确认 Glassmorphism `dist/` 包含由 komari-web `b8fcc4580fe2cd5b715b76c97f4ff4b9ba066581` 构建的完整 `/admin-app/`，入口桥接覆盖 `/admin`、`/terminal`、`/manage/*`。
 - 用户指定只需 Linux 测试包；目标收窄为 `linux/amd64`。
 - PR #604 复核修复：账单累计写入失败现在只记录日志，不再阻断已保存的 Agent 上报和运行时在线状态；新增回归测试，提交 `b242ee8` 已推送 PR 分支。流量费率明确为每 TiB（`1024^4 bytes`）。
@@ -333,7 +347,7 @@
 
 - 正在复核已有 admin-app 路由桥接、PWA 作用域、同步可重复性，以及 v3.1.5 色觉友好 / 访客审计与 Komari PR #602 合并代码的真实契约。
 - 已确认 `/admin`、`/terminal`、`/manage/*` 通过独立静态子应用恢复原 URL 的方案可行；公开主题主包不会加载 React 管理端 chunk。
-- 已发现并修复：浏览器禁用 sessionStorage 时入口不跳转；桥接架构下官方 `/admin-app/` Service Worker 无法覆盖恢复后的真实路由却可能保留旧后台资源；同步脚本缺少上游 HTML 结构断言。
+- 已发现并修复：浏览器禁用 sessionStorage 时入口不跳转；桥接架构下官方 `/admin-app/` Service Worker 无法覆盖恢复后的真实路由却可能保留旧后台资源；同步脚本缺���上游 HTML 结构断言。
 - 真实后端联调发现 Vite 代理只改 Host、未改 HTTP Origin，Komari 默认来源校验会拒绝本地 RPC；开发代理现统一把 `/api`、`/themes` Origin 设为 `VITE_API_TARGET`，WebSocket 继续使用 `rewriteWsOrigin`。
 - 访客审计补强：详���限额改按 UTF-8 字节计算，超���优���保留会话、站点指纹和 WebRTC 摘要；审计面板增加 `visitor_audit_enabled` 管理员开关，复用 `admin:editSettings` 的部分更新契约。
 
@@ -361,7 +375,7 @@
 ### 2026-07-15 color-vision-friendly palette / visitor audit preparation
 
 - 参考结论：色觉友好模式不能只换红绿色；���要拉开明度/饱和度，使用朱红、蓝绿、蓝、橙、紫红等安全色，并让重要状态同时具备文字、图标、形状或线型差异。
-- 上游状态：Komari PR #602 已于 2026-07-15 合并，head `0c80f0f`、merge commit `5fa59ab`；PR CI run `29389802493` 成功。当前最新正式 Release 仍为 `1.2.6`（2026-07-12），所以主题只能提前适配并通过公开设置字段做能力检测。
+- 上游状态：Komari PR #602 已于 2026-07-15 合并，head `0c80f0f`、merge commit `5fa59ab`；PR CI run `29389802493` 成功。当前最新正式 Release ���为 `1.2.6`（2026-07-12），所以主题只能提前适配并通过公开设置字段做能力检测。
 - 上游契约：`public:recordVisitorEvent` 只接收 `event/path/route/target/detail`；IP、User-Agent、登录 UUID 和时间由服务端可信记录；`visitor_audit_enabled` 默认 false；每 IP 30 次/分钟、burst 10；`admin:getLogs` 新增 SQL 级 `msg_type` 精确过滤。
 - 指纹决策：在核心开关明确启用后，记录随机 session ID、浏览器/系统能力、时区语言、屏幕/硬件摘要、自动化标记和含当前 origin 的 SHA-256 站点隔离指纹；WebRTC 仅使用本地 ICE gathering，保存候选类型/协议/地址类别和站点隔离哈希，不保存原始候选或地址，不调用第三方 STUN。
 - 发布目标：功能完成并确认无明显逻辑漏洞后更新唯一版本源和 README 到 `v3.1.5`，执行 lint/build/zip 检查，推送 main 并核验 GitHub Actions、Release 和线上包。
@@ -406,9 +420,9 @@
 
 ### 2026-07-14 startup single-point-of-failure fix
 
-- 已确认根因：`InitManager.init()` 串行等待 `healthCheck()`，首次 Ping 失败会阻止 public settings、用户、节点数据和实时连接启动；`connectionError` 仅在首页渲染，详情路由缺少故障反馈。
+- 已确认根因：`InitManager.init()` 串行等待 `healthCheck()`，首次 Ping 失败会阻止 public settings、用户、节点数据和实时连接启动；`connectionError` ��在首页渲染，详情路由缺少故障反馈。
 - 设计：健康检查使用已有 5 秒配置并增加 3 次递增间隔重试；四个启动请求通过 `Promise.allSettled()` 隔离；节点首拉失败仍启动轮询自动恢复；显式重试复用现有 manager，避免重复定时器和 WebSocket 监听。
-- 已实现：RPC Ping 支持 AbortSignal；健康检查超时会取消底层请求；初始化改为独立并行；全局 app shell 显示连接错误和重试状态，首页重复提示已移除。
+- 已实现：RPC Ping 支持 AbortSignal；健康检查超时会取消底层请求；初始化改为独立并行；全局 app shell 显示连接错误和重试状态，首页重复提示已���除。
 - 首轮验证：`bun run lint`、`bun run build` 通过，生成 `komari-theme-Glassmorphism-build-bb52e94.zip`；仅有既有 `@vueuse/core` PURE 注释提示和 `globe` chunk 体积警告。
 - 浏览器验证：首页和直接进入 `/instance/missing-node` 都显示全局连接错误；1270px 和 390x844 无横向溢出或按钮/文案重叠；重试按钮会进入禁用的“重试中”状态，失败后恢复。
 - 快速复查：未发现新的发布阻断 bug；Firefox 毛玻璃回退、列表虚拟化、共享 Ping/负载缓存已存在。后续高收益专项候选为卡片模式 30+ 节点全量挂载，以及约 2.98 MB 地球纹理和 1.98 MB `globe` chunk 的传输/解析成本。
@@ -497,7 +511,7 @@
 ### 2026-07-13 official metric-store feature port
 
 - 开始实施官方 komari-web 高价值功能移植第一批：新增 metric series 工具、metrics service、Ping metric 优先路径与节点 `message` 提示；保持旧版 `common:getRecords` fallback，不改发布结构和版本。
-- 已新增 `src/utils/metricSeries.ts` 与 `src/services/metrics.service.ts`，封装 metric tags/series 拆分、Ping task/stat helper、EWMA 平滑工具，以及 `public:listMetricDefinitions` / `public:queryMetrics` / `public:getPingMetricStats` / `public:getPublicPingTasks` 服务层请求。
+- 已新增 `src/utils/metricSeries.ts` 与 `src/services/metrics.service.ts`，封装 metric tags/series 拆分、Ping task/stat helper、EWMA 平滑工具，以��� `public:listMetricDefinitions` / `public:queryMetrics` / `public:getPingMetricStats` / `public:getPublicPingTasks` 服务层请求。
 - 已改 `src/composables/useNodePingStats.ts` 与 `src/components/PingChart.vue`：优先并发尝试 Ping metric stats 和 metric series；新接口失败或空数据时回退 legacy Ping records；Ping 图表信息卡补充 stddev、valid、loss approximate 等官方统计字段。
 - 已改 `src/components/NodeCard.vue` 与 `src/components/NodeList.vue`：节点名旁展示 `message` warning 图标，tooltip 纯文本/换行显示 message 与 `status_updated_at`，不使用 `v-html`。
 - 已运行 `bun run lint` 与 `bun run build`，均通过；构建生成 `dist/` 和 `komari-theme-Glassmorphism-build-881385d.zip`。
@@ -568,7 +582,7 @@
 
 - 首页强闪屏修复：首屏前预设暗色 class/color-scheme、文档初始背景 token 化、LoadingCover 去除 `bg-white/80`、密集节点卡片禁用首轮动画与在线状态扩散环。
 - 自定义背景图片 follow-up：`src/styles/main.css` 不再给 `#app` 设置不透明背景，避免遮住 `Background.vue` 的 fixed 背景层；仍保留 `html` / `body` token 背景来降低首屏白底闪现。`LoadingCover.vue` 在自定义背景启用且当前模式有背景 URL 时不再铺白雾遮罩/Loading 文案，仅保留轻量圆形指示器。
-- 本次未做真实浏览器夜间首屏录屏或真实 Komari 自定义背景验证；建议在真实 Komari 多节点环境中用暗色/auto 模式硬刷新首页，并打开自定义背景图片确认无白屏闪烁且背景可见。
+- 本次未��真实浏览器夜间首屏录屏或真实 Komari 自定义背景验证；建议在真实 Komari 多节点环境中用暗色/auto 模式硬刷新首页，并打开自定义背景图片确认无白屏闪烁且背景可见。
 - HTTP/WS timeout 与 abort 清理、RequestManager 队列 `finally` 释放、共享 Promise reject/finally 清理。
 - Provider metadata 模块级共享缓存与 `markRaw` 元数据。
 - NodeTopologyPanel 拓扑索引与离线上游解析复杂度优化。
@@ -577,7 +591,7 @@
 - CSV 公式注入与 RFC 4180 转义收尾修复。
 - Snapshot JSON/CSV 导出加载态与异步分片构建。
 - `AICACHE.md` 已从旧文档任务交接内容更新为当前 v3.0 任务状态。
-- Komari 1.2.x 第一批兼容补丁已完成：RPC/API 类型补新字段、`common:getRecords` `maxCount` 兼容、public RPC/metric 方法壳、历史 records array/map normalize、节点 store 同步新字段、详情页展示物理核心。
+- Komari 1.2.x 第一批兼容补���已完成：RPC/API 类型补新字段、`common:getRecords` `maxCount` 兼容、public RPC/metric 方法壳、历史 records array/map normalize、节点 store 同步新字段、详情页展示物理核心。
 - 官方 komari-web 高价值功能移植第一批已完成：metric series 工具、metrics service、PingChart / 首页 Ping 摘要 metric 优先 + legacy fallback、NodeCard / NodeList 探针 `message` 纯文本提示。
 - 用户要求“全部上马”后的剩余官方功能已完成：LoadChart 历史模式 metric store 优先 + legacy fallback、GPU detail/per-device metric 图表、`chartDashboardTemplate` 托管配置读取和布局排序。
 - 详情页 Metric Store 扩展已完成：25 个官方 definition 归并为 12 个图表族，补齐流量、显存、温度、Ping 延迟/丢包卡片及预设；概览恢复宽屏 4 列和 8/12/16 卡预设；PingChart 支持自定义起止时间并补强新旧丢包 fallback。
@@ -816,7 +830,7 @@
 
 ## 2026-09-01（续）· 地图模式杂散横线修复 + 地球扫描线效果 + 呼吸留白
 
-- **地图模式杂散横线根因与修复**（用户反馈截图：切换到"地图"后画面上出现多条横穿全宽的半透明蓝线）：`useGlobeProjection.ts` 的 `buildProjection` 始终用 `projection.clipAngle(90 + t * 90)`（小圆裁剪），过渡到纯平面地图态时 `t=1` 令裁剪角=180°。180° 小圆裁剪在数值上是退化情形（裁剪圆退化为一个点），d3.geoPath 用小圆裁剪算法给经纬网格/陆地边界求交时在这个退化边界上产生穿越整张画布的杂散线段——这不是"网格层没隐藏"，而是自定义 `interpolateRaw` 插值投影 + 小圆裁剪在 180° 时的算法退化 bug。修复：`t >= 0.999`（完全进入平面地图态，过渡动画已结束）时改调 `projection.clipAngle(null)`，切换回 d3 默认的"反经线裁剪"，与标准 `d3.geoEquirectangular()` 行为一致，从根源消除杂线；`0<t<1` 过渡中间态仍用小圆裁剪从 90°→180° 渐变以保留"背面地区逐渐展开"的过渡视觉。同步修正 `isPointVisible`：`t>=0.999` 时直接返回 `true`（平面地图上任意经纬度点都应可见，不再按到球心角距离判断）。
+- **地图模式杂散横线根因与修复**（用户反馈截图：切换到"地图"后画面上出现多条横穿全宽的半透明蓝线）：`useGlobeProjection.ts` 的 `buildProjection` 始终用 `projection.clipAngle(90 + t * 90)`（小圆裁剪），过渡到纯平面地图态时 `t=1` 令裁剪角=180°。180° 小圆裁剪在数值上是退化情形（裁剪圆退化为一个点），d3.geoPath 用小圆裁剪算法给经纬网格/陆地边界求交时在这个退化边界上产生穿越整张画布的杂散线段——这不是"网格层没隐藏"，而是自定义 `interpolateRaw` 插值投影 + 小圆裁剪在 180° 时的算法退化 bug。修复：`t >= 0.999`（完全进入平面地图态，过渡动画已结束）时改调 `projection.clipAngle(null)`，切换回 d3 默认的"反经线裁剪"，与标准 `d3.geoEquirectangular()` 行为一致，从根源消除杂线；`0<t<1` 过渡中间态仍用小圆裁剪从 90°→180° 渐变以保留"背面地区逐渐展开"的过渡视觉。同步修正 `isPointVisible`：`t>=0.999` 时直接返回 `true`（平面地图上任意��纬度点都应可见，不再按到球心角距离判断）。
 - **地球扫描线效果**（对标用户提供的参考图：球面上一条竖直经线弧持续扫描）：`NodeGlobePanel.vue` 新增非响应式的 `scanLambda` 状态，在 `renderFrame` 每帧递增 `SCAN_SPEED_DEG=0.35`，用 `buildScanMeridian(lambda)` 生成一条纵贯南北极的经线弧（纬度 -90→90，步长 2°，固定经度），叠加 `ctx.shadowBlur=8` 发光效果后用比经纬网格更高的不透明度（75%）描边。扫描线透明度按 `1 - transitionProgress.value` 线性衰减，过渡到平面地图态时完全淡出，不会与地图内容混淆。裁剪逻辑与陆地/网格共用同一个 `path()`，球面态下扫描线走到背面会被小圆裁剪自然隐藏，效果符合参考图。
 - **地球呼吸留��**：`buildProjection` 的球体直径缩放系数由 `Math.min(width, height) / 2.05` 调整为 `/ 2.3`，球体半径整体缩小约 11%，外层卡片边框到球体轮廓之间留出更明显的空白边距，不再贴边。此调整同时影响地图态缩放（共用同一个 `scale`），但平面地图本身因宽高比差异已有留白，缩小无副作用。
 - 用 Playwright 截图（684×719，浅色）分别验证：① 地球默认视图——扫描线可见且随帧推进移动、球体与卡片边缘留白明显增加；② 地图视图——原先的多条横向杂线已完全消失，世界地图/网格/国界线/标记点清晰无遮挡。

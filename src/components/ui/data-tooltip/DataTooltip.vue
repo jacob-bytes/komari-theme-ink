@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { cn } from '@/lib/utils'
 
 type DataTooltipPlacement = 'top' | 'bottom' | 'left' | 'right'
@@ -27,62 +27,109 @@ const props = withDefaults(defineProps<Props>(), {
   as: 'div',
 })
 
-// 只保留基础方位偏移（贴边 + 间距），水平/垂直居中改由下方 --dt-shift-x / --dt-shift-y
-// 叠加到 transform 上实现，这样默认居中效果不变，只在越界时才产生纠偏。
-const placementClass: Record<DataTooltipPlacement, string> = {
-  top: 'bottom-full left-1/2 mb-2',
-  bottom: 'top-full left-1/2 mt-2',
-  left: 'top-1/2 right-full mr-2',
-  right: 'top-1/2 left-full ml-2',
+const GAP = 8 // 气泡与触发元素之间的间距
+const MARGIN = 8 // 气泡与视口边缘之间至少保留的间距
+
+const rootRef = ref<HTMLElement | null>(null)
+const bubbleRef = ref<HTMLElement | null>(null)
+const visible = ref(false)
+const top = ref(-9999)
+const left = ref(-9999)
+
+/**
+ * 彻底解决 tooltip 被遮罩/跑位的问题：
+ *
+ * 之前的实现用 `position: absolute` 挂在触发元素自身的包裹层下，靠 CSS transform 做「越界纠偏」。
+ * 这带来两个真实问题：
+ * 1）只要祖先元素上有 `overflow-hidden`（卡片、进度条容器等到处都有），越界的那部分气泡会被直接切掉——
+ *    这正是最初「延迟数值靠边时提示看不全」的根因；
+ * 2）纠偏是「从期望居中位置量到视口边缘」的位移，在较窄的卡片网格里这个位移量可能很大，
+ *    于是气泡被硬拽到离触发元素很远的地方，反而盖住了别的正文内容（如「三网」气泡盖住了上一行的
+ *    「剩余天数/价格」文字）——遮罩问题从「自己被裁」变成了「别人被盖」，本质没解决。
+ *
+ * 现在改为业界标准的浮层做法：
+ * - 用 `<Teleport to="body">` 把气泡挂到 body 下，彻底脱离任何祖先的 overflow/层叠上下文，
+ *   不会再被任何卡片、进度条容器裁切；
+ * - 用 `position: fixed` + hover/focus 时通过 `getBoundingClientRect()` 实测触发元素和气泡的
+ *   真实尺寸，直接计算「贴着触发元素、只留 8px 间距」的精确坐标，而不是「先居中再算跑多远纠偏」，
+ *   这样气泡永远紧贴被悬停的数值本身，不会跳到很远的位置；
+ * - 若期望方向（如 top）在视口内放不下，自动翻转到对侧（bottom），翻转后再做最终的视口边缘夹紧兜底。
+ */
+function measureAndPosition() {
+  const trigger = rootRef.value
+  const bubble = bubbleRef.value
+  if (!trigger || !bubble)
+    return
+
+  const triggerRect = trigger.getBoundingClientRect()
+  const bubbleRect = bubble.getBoundingClientRect()
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+
+  let placement = props.placement
+  if (placement === 'top' && triggerRect.top - bubbleRect.height - GAP < MARGIN)
+    placement = 'bottom'
+  else if (placement === 'bottom' && triggerRect.bottom + bubbleRect.height + GAP > vh - MARGIN)
+    placement = 'top'
+  else if (placement === 'left' && triggerRect.left - bubbleRect.width - GAP < MARGIN)
+    placement = 'right'
+  else if (placement === 'right' && triggerRect.right + bubbleRect.width + GAP > vw - MARGIN)
+    placement = 'left'
+
+  let nextTop: number
+  let nextLeft: number
+
+  if (placement === 'top' || placement === 'bottom') {
+    nextTop = placement === 'top'
+      ? triggerRect.top - bubbleRect.height - GAP
+      : triggerRect.bottom + GAP
+    nextLeft = triggerRect.left + triggerRect.width / 2 - bubbleRect.width / 2
+  }
+  else {
+    nextLeft = placement === 'left'
+      ? triggerRect.left - bubbleRect.width - GAP
+      : triggerRect.right + GAP
+    nextTop = triggerRect.top + triggerRect.height / 2 - bubbleRect.height / 2
+  }
+
+  // 兜底夹紧：即便翻转后气泡本身仍可能过大而越界，最后再拉回视口内，避免裁切
+  nextLeft = Math.min(Math.max(nextLeft, MARGIN), Math.max(MARGIN, vw - MARGIN - bubbleRect.width))
+  nextTop = Math.min(Math.max(nextTop, MARGIN), Math.max(MARGIN, vh - MARGIN - bubbleRect.height))
+
+  left.value = nextLeft
+  top.value = nextTop
 }
 
-// top/bottom 默认水平居中于触发元素，越界时沿 X 轴纠偏；left/right 默认垂直居中，越界时沿 Y 轴纠偏。
-const transform = computed(() => {
-  if (props.placement === 'top' || props.placement === 'bottom')
-    return 'translateX(calc(-50% + var(--dt-shift-x, 0px)))'
-  return 'translateY(calc(-50% + var(--dt-shift-y, 0px)))'
+function handleEnter() {
+  // 气泡默认 visibility:hidden（保留布局，可测量真实尺寸），先测量再显示，不会有位置跳动的闪烁
+  measureAndPosition()
+  visible.value = true
+  window.addEventListener('scroll', measureAndPosition, true)
+  window.addEventListener('resize', measureAndPosition)
+}
+
+function handleLeave() {
+  visible.value = false
+  window.removeEventListener('scroll', measureAndPosition, true)
+  window.removeEventListener('resize', measureAndPosition)
+}
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', measureAndPosition, true)
+  window.removeEventListener('resize', measureAndPosition)
 })
 
 const sizeStyle = computed(() => {
-  const style: Record<string, string> = { transform: transform.value }
+  const style: Record<string, string> = {
+    top: `${top.value}px`,
+    left: `${left.value}px`,
+  }
   if (props.width != null)
     style.width = typeof props.width === 'number' ? `${props.width}px` : props.width
   if (props.height != null)
     style.height = typeof props.height === 'number' ? `${props.height}px` : props.height
   return style
 })
-
-const rootRef = ref<HTMLElement | null>(null)
-const bubbleRef = ref<HTMLElement | null>(null)
-
-// 视口边缘防裁切：气泡默认以居中方式渲染在触发元素旁，靠近视口边缘时会整块超出可视区域被裁掉。
-// 气泡本身用 visibility（而不是 display:none）隐藏，所以任何时候都能拿到真实尺寸；
-// 每次即将显示（hover/focus 进入）时重新测量一次，把超出视口的部分通过 CSS 变量纠偏拉回来。
-function updatePosition() {
-  const trigger = rootRef.value
-  const bubble = bubbleRef.value
-  if (!trigger || !bubble)
-    return
-
-  const margin = 8
-  const triggerRect = trigger.getBoundingClientRect()
-  const bubbleRect = bubble.getBoundingClientRect()
-
-  if (props.placement === 'top' || props.placement === 'bottom') {
-    const desiredLeft = triggerRect.left + triggerRect.width / 2 - bubbleRect.width / 2
-    const minLeft = margin
-    const maxLeft = Math.max(minLeft, window.innerWidth - margin - bubbleRect.width)
-    const clampedLeft = Math.min(Math.max(desiredLeft, minLeft), maxLeft)
-    bubble.style.setProperty('--dt-shift-x', `${clampedLeft - desiredLeft}px`)
-  }
-  else {
-    const desiredTop = triggerRect.top + triggerRect.height / 2 - bubbleRect.height / 2
-    const minTop = margin
-    const maxTop = Math.max(minTop, window.innerHeight - margin - bubbleRect.height)
-    const clampedTop = Math.min(Math.max(desiredTop, minTop), maxTop)
-    bubble.style.setProperty('--dt-shift-y', `${clampedTop - desiredTop}px`)
-  }
-}
 </script>
 
 <template>
@@ -90,23 +137,26 @@ function updatePosition() {
     :is="as"
     ref="rootRef"
     data-slot="data-tooltip"
-    :class="cn('group/data-tooltip relative inline-block', props.class)"
-    @mouseenter="updatePosition"
-    @focusin="updatePosition"
+    :class="cn('relative inline-block', props.class)"
+    @mouseenter="handleEnter"
+    @mouseleave="handleLeave"
+    @focusin="handleEnter"
+    @focusout="handleLeave"
   >
     <slot />
-    <span
-      v-if="content || $slots.content"
-      ref="bubbleRef"
-      role="tooltip"
-      :class="cn(
-        'pointer-events-none absolute z-20 invisible opacity-0 transition-opacity duration-100 rounded bg-foreground/80 p-1 text-[10px] leading-none text-background shadow-lg group-hover/data-tooltip:visible group-hover/data-tooltip:opacity-100 group-focus-within/data-tooltip:visible group-focus-within/data-tooltip:opacity-100 whitespace-normal break-words',
-        placementClass[placement],
-        props.contentClass,
-      )"
-      :style="sizeStyle"
-    >
-      <slot name="content">{{ content }}</slot>
-    </span>
+    <Teleport v-if="content || $slots.content" to="body">
+      <span
+        ref="bubbleRef"
+        role="tooltip"
+        :class="cn(
+          'pointer-events-none fixed z-[100] rounded bg-foreground/80 p-1 text-[10px] leading-none text-background shadow-lg transition-opacity duration-100 whitespace-normal break-words',
+          visible ? 'visible opacity-100' : 'invisible opacity-0',
+          props.contentClass,
+        )"
+        :style="sizeStyle"
+      >
+        <slot name="content">{{ content }}</slot>
+      </span>
+    </Teleport>
   </component>
 </template>
