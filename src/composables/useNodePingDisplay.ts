@@ -13,6 +13,17 @@ export interface NodePingBar {
   tooltip: string
 }
 
+// 「三网」行：按 ping 任务分项展示延迟（如电信/联通/移动各自独立测速），
+// 不做跨任务平均。后台可能只配置了 1 个任务，也可能配置了 2、3 个甚至更多——
+// UI 侧固定只取前 N_TASK_LATENCY_ITEMS 项，其余的本阶段不处理。
+export interface NodePingTaskLatencyItem {
+  key: string
+  valueText: string
+  tooltip: string
+}
+
+const TASK_LATENCY_DISPLAY_LIMIT = 3
+
 interface UseNodePingDisplayOptions {
   enabled?: MaybeRefOrGetter<boolean>
   loadingDisplayText?: string
@@ -192,6 +203,33 @@ export function useNodePingDisplay(
     return `平均丢包 ${pingStats.avgLoss.value.toFixed(1)}%${volatility}`
   })
 
+  // 只要该节点配置了 ping 任务（不管 1 个、2 个还是 3 个以上），就取前
+  // TASK_LATENCY_DISPLAY_LIMIT 项渲染「三网」行；单任务节点这里就是一个数字，
+  // 不带分隔符——由使用方（模板）按数组长度自然渲染，这里不做数量上的特殊分支。
+  const taskLatencyItemsRaw = computed<NodePingTaskLatencyItem[]>(() => {
+    return pingStats.taskLatencies.value
+      .slice(0, TASK_LATENCY_DISPLAY_LIMIT)
+      .map((task) => {
+        const valueText = task.latency === null ? '--' : `${Math.round(task.latency)}ms`
+        const label = task.name?.trim() || `任务 ${task.taskId}`
+        return {
+          key: task.taskId,
+          valueText,
+          tooltip: `${label} ${valueText}`,
+        }
+      })
+  })
+  // 与 lastLatencyBars 同理：enabled 短暂变 false（如路由切换）时不应该让这一行闪烁消失。
+  const lastTaskLatencyItems = ref<NodePingTaskLatencyItem[]>([])
+  const taskLatencyItems = computed(() => {
+    if (taskLatencyItemsRaw.value.length) {
+      lastTaskLatencyItems.value = taskLatencyItemsRaw.value
+      return taskLatencyItemsRaw.value
+    }
+    return lastTaskLatencyItems.value
+  })
+  const hasTaskLatencyItems = computed(() => taskLatencyItems.value.length > 0)
+
   return {
     pingStats,
     pingStatsEnabled,
@@ -202,5 +240,7 @@ export function useNodePingDisplay(
     lossDisplay,
     latencyPanelTooltip,
     lossPanelTooltip,
+    taskLatencyItems,
+    hasTaskLatencyItems,
   }
 }

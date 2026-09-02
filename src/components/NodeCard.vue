@@ -90,6 +90,8 @@ const {
   lossRenderBars,
   latencyPanelTooltip,
   lossPanelTooltip,
+  taskLatencyItems,
+  hasTaskLatencyItems,
 } = useNodePingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled })
 
 // 数值文字颜色与色块色阶保持同一套严重度阈值，仅在中高严重度提亮，常态仍为默认前景色
@@ -455,6 +457,28 @@ function hasRegion(region: string | null | undefined): boolean {
               <div class="text-[11px] text-muted-foreground truncate">
                 {{ (props.node.load5 ?? 0).toFixed(2) }} / {{ (props.node.load15 ?? 0).toFixed(2) }}
               </div>
+            </template>
+          </div>
+        </div>
+
+        <!--
+          三网：按 ping 任务分项展示延迟，不做跨任务平均。
+          后台可能只配置了 1 个任务，也可能配置了多个（如电信/联通/移动三网测速）——
+          这里最多取前 3 项，单任务节点这里就是一个数字、没有分隔点，多任务节点用 · 分隔。
+          只在存在任务级延迟数据时渲染，不占位、不影响其余节点的卡片高度。
+        -->
+        <div
+          v-if="hasTaskLatencyItems"
+          class="flex items-center justify-between gap-2"
+          :class="!props.node.online ? 'blur-xs opacity-50' : ''"
+        >
+          <span class="text-xs font-normal text-muted-foreground">三网</span>
+          <div class="flex items-center gap-1 font-mono text-xs font-bold text-foreground">
+            <template v-for="(item, index) in taskLatencyItems" :key="item.key">
+              <span v-if="index > 0" class="text-muted-foreground">·</span>
+              <DataTooltip :content="item.tooltip" placement="top" as="span" content-class="whitespace-nowrap">
+                <span>{{ item.valueText }}</span>
+              </DataTooltip>
             </template>
           </div>
         </div>

@@ -215,7 +215,7 @@
       },
       {
         "key": "diskPredictionThresholdDays",
-        "name": "磁盘预测预警��数",
+        "name": "磁盘预测预警���数",
         "type": "number",
         "default": 30,
         "help": "预计剩余天数小于等于该值时在节点卡片和详情负载图中显示提示（1-3650）"

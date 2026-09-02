@@ -587,11 +587,24 @@ function buildStats(records: PingRecord[], metricStats?: PingMetricTaskStats[], 
 
     const avgLoss = weightedAverage(lossValues)
 
+    // 按任务保留各自的延迟数值（不做跨任务平均），供首页卡片「三网」行分项展示。
+    // 顺序沿用 statsWithSamples 的原始顺序（即后端 stats 接口返回的任务顺序，近似任务配置顺序）。
+    const taskLatencies: NodePingTaskLatency[] = statsWithSamples.map(stat => ({
+      taskId: stat.task_id,
+      name: stat.name,
+      latency: stat.valid > 0 && isFiniteNumber(stat.avg)
+        ? stat.avg
+        : isFiniteNumber(stat.latest)
+          ? stat.latest
+          : null,
+    }))
+
     return {
       avgLatency: latencyValues.length ? weightedAverage(latencyValues) : average(latestLatencyValues),
       avgLoss,
       avgVolatility: weightedAverage(volatilityValues),
       history,
+      taskLatencies,
       hasData: true,
     }
   }
@@ -614,18 +627,25 @@ function buildStats(records: PingRecord[], metricStats?: PingMetricTaskStats[], 
   const latencyValues: number[] = []
   const taskLossValues: number[] = []
   const volatilityValues: number[] = []
+  // 旧版（无 metricStats）回退路径没有任务名，只能拿到 task_id；顺序沿用 Map 的插入顺序
+  // （即 filteredRecords 中各任务首次出现的顺序），近似任务配置顺序。
+  const taskLatencies: NodePingTaskLatency[] = []
 
-  for (const recordsByTask of taskRecords.values()) {
+  for (const [taskId, recordsByTask] of taskRecords) {
     const validValues = recordsByTask
       .map(record => record.value)
       .filter(value => value >= 0)
 
     taskLossValues.push((recordsByTask.length - validValues.length) / recordsByTask.length * 100)
 
-    if (!validValues.length)
+    if (!validValues.length) {
+      taskLatencies.push({ taskId: String(taskId), latency: null })
       continue
+    }
 
-    latencyValues.push(average(validValues))
+    const taskAvgLatency = average(validValues)
+    latencyValues.push(taskAvgLatency)
+    taskLatencies.push({ taskId: String(taskId), latency: taskAvgLatency })
 
     if (validValues.length > 1) {
       const p50 = getPercentile(validValues, 0.5)
@@ -653,6 +673,7 @@ function buildStats(records: PingRecord[], metricStats?: PingMetricTaskStats[], 
     avgLoss,
     avgVolatility,
     history,
+    taskLatencies,
     hasData,
   }
 }
@@ -795,6 +816,7 @@ export function useNodePingStats(
     avgLatency: computed(() => stats.value.avgLatency),
     avgLoss: computed(() => stats.value.avgLoss),
     avgVolatility: computed(() => stats.value.avgVolatility),
+    taskLatencies: computed(() => stats.value.taskLatencies),
     hasData: computed(() => stats.value.hasData),
   }
 }

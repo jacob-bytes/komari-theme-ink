@@ -13,6 +13,17 @@
 
 ## 当前任务
 
+- 状态：done，节点卡片新增「三网」分项延迟行（M4 UI/UX）
+- 目标：在节点卡片"延迟/丢包"整块区域正上方新增一行"三网"，按 ping 任务分项展示延迟（不做跨任务平均），动态适配任务数量：1 个任务时显示单个数字、无分隔符；≥2 个任务时最多显示前 3 个，用 `·` 分隔；丢包仍只看现有底部加权均值，不新增丢包分项行；不加折叠/展开交互，满足条件（存在任务级延迟数据）就固定显示。
+- 实现：
+  - `useNodePingStats.ts`：`NodePingStatsState` 新增 `taskLatencies: NodePingTaskLatency[]`（`taskId`/`name?`/`latency`，`latency` 为 `null` 表示该任务当前无有效样本）；`buildStats` 两条分支（metricStats 主路径 + records-only 回退路径）都补齐计算，顺序沿用后端/上游返回的原始任务顺序；`isValidStatsState` 同步校验新字段；`CACHE_VERSION` 8→9 使旧缓存整体失效；`useNodePingStats` 返回值新增 `taskLatencies` computed。
+  - `useNodePingDisplay.ts`：新增 `NodePingTaskLatencyItem`（`key`/`valueText`/`tooltip`）与 `TASK_LATENCY_DISPLAY_LIMIT = 3`；新增 `taskLatencyItems`（取前 3 项，`latency===null` 时 `valueText` 为 `--`，`tooltip` 为"任务名 数值"）与 `hasTaskLatencyItems`；沿用 `lastLatencyBars` 同款"记忆最后一次有数据的值"模式，避免 `pingEnabled` 短暂置 false（路由切换等）时该行闪烁消失。
+  - `NodeCard.vue`：解构新增 `taskLatencyItems`/`hasTaskLatencyItems`；在延迟/丢包 `grid grid-cols-2` 容器前插入 `v-if="hasTaskLatencyItems"` 的新行，左侧"三网"标签与"延迟"/"丢包"同款 `text-xs text-muted-foreground` 样式，右侧按 `v-for` 渲染每个数字，数字间用 `·`（`text-muted-foreground`）分隔，每个数字包一层 `DataTooltip`（复用现有延迟面板同款用法）；容器为 `flex flex-col gap-*`，新行自动获得与其余卡片行一致的间距，无需额外 margin。
+- 未做（用户已确认不需要）：三网丢包分项行、折叠/展开交互、后台默认展开开关；列表视图 `NodePingListCell.vue` 本次未同步（范围外，待后续单独评估）。
+- 验证：`bun run lint`、`bun run build`（type-check + vite + zip）均通过。浏览器视觉验证受限——本地沙盒无可用监控后端，预览页面无真实节点/ping 任务数据（服务器列表为空），无法截图核对三网行真实渲染；已通过代码复查确认 0/1/多任务三种场景的条件渲染、分隔符逻辑、tooltip 内容符合设计。
+- 版本：`komari-theme.json` 0.5.3 → 0.5.4。
+- 下一步：建议在有真实后端数据的环境（或用户自己的 Komari 实例）里实际核对一次三网行渲染效果，尤其是单任务节点（无分隔符）与 ≥3 任务节点（截断到前 3 个）两种边界情况；如需同步到列表视图可另开任务。
+
 - 状态：done，节点卡片延迟/丢包点阵扁平化 + 地球视觉融合度优化（M4 UI/UX）
 - 目标：1) 卡片延迟/丢包点阵改为竖直方向更扁平的样式（参考用户截图 p2：细线条点阵，而非较高的柱状）；2) 优化三维地球的"割裂感/钢丝球感/控件不融合"三个问题。
 - 实现：
@@ -58,7 +69,7 @@
   - Background.vue 默认背景从毛玻璃 webp 改为蓝图纸样网格。
   - 移除地球：删除 NodeEarthGlobe/CobeGlobe/RealisticGlobe/TiledMap、NodeGeneralCards、useNodeGeoClusters 共 6 个文件；删除 public/images/earth/ 纹理(2.98MB)；移除 cobe/globe.gl/three/@types/three 依赖；vite manualChunks 移除 globe。
   - 改名：komari-theme.json name/short→blueprint、package.json name→blueprint、Footer 文案、zip 前缀 blueprint-build-、GitHub workflow glob、README 标题、fixture theme→blueprint。
-  - komari-theme.json 配置精简：移除地球样式(earthRenderer/stopEarth/hideEarth)、隐藏头部、毛玻璃配色(glassColorPreset/glassCustomColors)、总览卡片(generalCardPreset/generalCardKeys)，配置项 48→47，编号顺延重排。
+  - komari-theme.json 配置精简：移除地球样式(earthRenderer/stopEarth/hideEarth)、隐藏头部、毛玻璃配色(glassColorPreset/glassCustomColors)、总览卡片(generalCardPreset/generalCardKeys)，配���项 48→47，编号顺延重排。
 - 验证：bun run lint、bun run build(type-check+vite+zip) 通过；视觉回归重写为 11 条用例（蓝图首页亮/暗、明细展开铭牌、节点视图卡片/mini、详情页 6 条），全部通过；修复了 detail ping 作用域用例的 RequestManager 并发排队时序问题（等 12 个 queryMetrics 全部发出后再清空）。
 - 产物：blueprint-build-e065dc7.zip（3.93 MB，从 7.25 MB 减少 46%），顶层契约 komari-theme.json/preview.png/dist/，包内 name=blueprint，753 个 dist 条目，无地球/globe 残留 chunk。
 - 交接：版本号仍是 3.3.7；远程 GitHub 仓库仍叫 komari-theme-Glassmorphism（本地改名不影响远程，需另建/改名仓库）；如需发版需 bump 版本并推送。
@@ -104,9 +115,9 @@
 - 状态：done，v3.3.2 已发布且 Issue #36 已关闭
 - 目标：为节点卡片 CPU、内存、硬盘、流量指标原生增加一致的线性图标，替代依赖 custom body DOM 注入的脆弱方案。
 - 里程碑：M4 UI/UX 小版本，不修改数据、请求、计费或卡片高度契约。
-- 范围：普通卡片图标+文字；mini 卡片图标替代 C/M 并保留无障碍名称；必要视觉基线、README、版本、Release 与 Issue 收尾。
-- 审查结论：Ping、网速、累计流量和剩余价值区已有图标；没有发现需要与本次同批处理的其他结构或性能问题。
-- 不做：不增加图标组件依赖，不给所有文字机械堆图标，不调整卡片尺寸、进度条状态色或数据布局。
+- 范围：普通��片图标+文字；mini 卡片图标替代 C/M 并保留无障碍名称；必要视觉基线、README、版本、Release 与 Issue 收尾。
+- 审查结论：Ping、网速、累计流量和剩余价值���已有图标；没有发现需要与本次同批处理的其他结构或性能问题。
+- 不做：不增加图标组件��赖，不给所有文字机械堆图标，不调整卡片尺寸、进度条状态色或数据布局。
 
 - 状态：done，v3.3.1 已发布且 Issue #33 / #35 已关闭
 - 目标：修复 GitHub Issue #33（详情页保留首页全部节点 Ping 查询）与 #35（提前续费后的剩余价值被封顶为一个计费周期）。
@@ -333,7 +344,7 @@
 
 ### 2026-07-15 color-vision-friendly palette / visitor audit preparation
 
-- 参考结论：色觉友好模式不能只换红绿色；需要拉开明度/饱和度，使用朱红、蓝绿、蓝、橙、紫红等安全色，并让重要状态同时具备文字、图标、形状或线型差异。
+- 参考结论：色觉友好模式不能只换红绿色；���要拉开明度/饱和度，使用朱红、蓝绿、蓝、橙、紫红等安全色，并让重要状态同时具备文字、图标、形状或线型差异。
 - 上游状态：Komari PR #602 已于 2026-07-15 合并，head `0c80f0f`、merge commit `5fa59ab`；PR CI run `29389802493` 成功。当前最新正式 Release 仍为 `1.2.6`（2026-07-12），所以主题只能提前适配并通过公开设置字段做能力检测。
 - 上游契约：`public:recordVisitorEvent` 只接收 `event/path/route/target/detail`；IP、User-Agent、登录 UUID 和时间由服务端可信记录；`visitor_audit_enabled` 默认 false；每 IP 30 次/分钟、burst 10；`admin:getLogs` 新增 SQL 级 `msg_type` 精确过滤。
 - 指纹决策：在核心开关明确启用后，记录随机 session ID、浏览器/系统能力、时区语言、屏幕/硬件摘要、自动化标记和含当前 origin 的 SHA-256 站点隔离指纹；WebRTC 仅使用本地 ICE gathering，保存候选类型/协议/地址类别和站点隔离哈希，不保存原始候选或地址，不调用第三方 STUN。
@@ -429,7 +440,7 @@
 - `InstanceDetail.vue` 已接入 18 类可配置概览卡：价格/月成本/到期/剩余价值、CPU/GPU/内存/Swap/磁盘、负载/温度/进程/连接/运行时间、上下行速率/总流量/流量额度。默认财务预设保持原有视觉行为。
 - `app.ts` 已新增详情概览和图表预设及配置兼容。图表提供 all/compact/resource/network/gpu/custom 公开预设，并继续兼容旧独立卡位、advanced 值和 `chartDashboardTemplate` JSON/逗号列表。
 - `komari-theme.json` 已把设置重组到 8 个编号区段；后续按用户反馈移除 23 个逐项下拉卡位，收缩为 48 个唯一设置 key，并压短易溢出的 help。主页、详情概览、详情图表分别使用一个英文逗号 keys 字段；打包预览字段为发布契约要求的 `preview.png`。
-- `index.html`、`main.css` 和 `vite.config.ts` 已增加旧 WebKit 兼容边界：构建目标 Safari 15.4，缺少 `oklch` / `color-mix` 时切换 sRGB token 并关闭毛玻璃，无 ESM 时显示可读升级提示。Tailwind CSS v4 的正式浏览器基线仍是 Safari 16.4+。
+- `index.html`、`main.css` 和 `vite.config.ts` 已增加旧 WebKit 兼容边界：构建目标 Safari 15.4，缺少 `oklch` / `color-mix` 时切换 sRGB token 并关闭毛玻璃，��� ESM 时显示可读升级提示。Tailwind CSS v4 的正式浏览器基线仍是 Safari 16.4+。
 - Ping 诊断结论：legacy `value < 0` 是 Komari 1.2.6 的历史丢包哨兵，不能直接删除；后续应修复 100% 丢包任务被过滤、不同样本量按任务等权平均，以及新接口只有延迟序列但缺少 loss stats 时未整体 fallback 的低报风险。本轮未改 Ping 语义。
 - 设置紧凑化 follow-up：5 个 key 列表改为 `richtext` 多行输入，`parseKeyList()` 统一接受英文/中文逗号、分号、空格和换行；help 补全每个英文 key 的中文含义，并用映射间空格保证官方后台可换行。详情概览从桌面 4 列改为 3 列，财务/状态/网络/GPU 预设各 6 卡、资源 9 卡、综合 12 卡；同时修复自定义头部白名单遗漏 `monthlyCost`。
 - 安全边界：后台 Metric Store 配置/迁移、数据库维护、通知、Agent 管理、命令执行和终端继续使用 Komari 官方后台，不进入公开主题路由。
@@ -506,7 +517,7 @@
 - 2026-07-14 v3.1.0 release：发布提交 `14dac71` 已推送 `main`；GitHub Actions run `#42` 成功。Release `v3.1.0` 为正式发布（非 draft / prerelease），target 为完整提交 `14dac711d3e1ad1e7963c6dc2609ab6d1921f82d`，zip 资产上传状态为 `uploaded`。
 - 2026-07-14 official detail metric dashboard / Ping custom range：`komari-theme.json` 解析通过，共 56 个表单行、48 个唯一 key、无重复；12 个图表族使用的 Tabler 图标均存在。最终 `bun run lint` 与 `bun run build` 通过，生成 `dist/` 和 `komari-theme-Glassmorphism-build-4e9ae53.zip`，zip 顶层保持 `komari-theme.json`、`preview.png`、`dist/`。本地 `http://127.0.0.1:5174/` 页面非空且桌面布局无重叠；本地无 Komari 后端，未完成真实节点数据下的移动端详情页、新旧 Ping 接口和 GPU 多设备实测。构建仍只有既有 `@vueuse/core` PURE 注释与 `globe` chunk 体积警告。
 - 2026-07-13 managed settings compact keys follow-up：`komari-theme.json` 经 PowerShell `ConvertFrom-Json` 解析通过，共 56 个表单行、48 个唯一 key、0 个 Slot 字段、5 个 `richtext` 多行 keys 字段。混合分隔样例 `cpu,memory\ndisk process；gpu` 按顺序解析为 5 个 key。`bun run lint` 通过；`bun run build` 内含 `vue-tsc --build` 并通过，生成 `dist/` 与 `komari-theme-Glassmorphism-build-4e9ae53.zip`。构建仍只有既有 `@vueuse/core` PURE 注释和 `globe` 大 chunk 警告。
-- 2026-07-13 Komari 1.2.6 detail/settings/iOS adaptation：`bun run lint` 通过；`bun run build` 通过，生成 `dist/` 与 `komari-theme-Glassmorphism-build-4e9ae53.zip`。Zip 顶层已核对为 `komari-theme.json`、`preview.png`、`dist/`；清单 71 个设置 key 无重复。390x844 浏览器检查无横向溢出，中文与旧浏览器提示可读。因本地无 Komari 后端，尚未验证真实 1.2.6 数据、后台保存流程和 iOS 15.4 真机；构建仍仅有既有 `@vueuse/core` PURE 注释和 `globe` 大 chunk 警告。
+- 2026-07-13 Komari 1.2.6 detail/settings/iOS adaptation：`bun run lint` 通过；`bun run build` 通过，生成 `dist/` 与 `komari-theme-Glassmorphism-build-4e9ae53.zip`。Zip 顶层已核对为 `komari-theme.json`、`preview.png`、`dist/`；清��� 71 个设置 key 无重复。390x844 浏览器检查无横向溢出，中文与旧浏览器提示可读。因本地无 Komari 后端，尚未验证真实 1.2.6 数据、后台保存流程和 iOS 15.4 真机；构建仍仅有既有 `@vueuse/core` PURE 注释和 `globe` 大 chunk 警告。
 - 2026-07-13 light-mode flash and home reveal follow-up：`bun run lint` 通过；`bun run build` 通过，生成 `dist/` 与 `komari-theme-Glassmorphism-build-4e9ae53.zip`。构建仍有既有 `@vueuse/core` PURE 注释警告与 `globe` chunk 超过 600 kB 警告。本轮将 light mode 根背景、默认毛玻璃 preset、自定义默认色、Firefox fallback、默认背景和 loading/video fallback 全部压到低亮灰蓝雾面；自定义图片预加载阶段保留默认背景兜底；LoadingCover/app shell/router/HomeView 增加更柔和过渡并遵守 `disablePageAnimation` / reduced-motion。未做真实浏览器硬刷新录屏或真实 Komari 自定义背景验证，需在真实环境中确认视觉效果。
 - 2026-07-13 home refresh flash fix / custom background / ping follow-up：`bun run lint` 通过；`bun run build` 通过，生成 `dist/` 与 `komari-theme-Glassmorphism-build-4e9ae53.zip`。构建仍有既有 `@vueuse/core` PURE 注释警告与 `globe` chunk 超过 600 kB 警告。已修复 `#app` 不透明背景覆盖自定义背景的问题；已调整自定义背景启用时的 `LoadingCover`，刷新加载阶段不再覆盖白雾遮罩/Loading 文案，仅保留轻量圆形指示器，并移除外层 Transition blur；图片背景预加载阶段不再显示纯白 token 占位，普通 loading 改低对比灰蓝/深色。已修复首页 Ping metric null 点误计丢包；首页小卡延迟/丢包采样条按用户反馈恢复为等高整条颜色分级；legacy `common:getRecords` fallback 仍保留按 `value < 0` 计算丢包。未做真实浏览器夜间首屏录屏、真实 Komari 自定义背景验证或新旧后端 Ping 实测，需在真实环境中确认视觉效果与 Ping 摘要。
 - 2026-07-13 v3.0.1 release refresh：README 已重写为更短、更有设计感的功能介绍，致谢已收束到文末；`komari-theme.json.version` 已更新为 `3.0.1`，准备按发布契约推送 main 触发新 release。
@@ -791,6 +802,6 @@
 
 - **地图模式杂散横线根因与修复**（用户反馈截图：切换到"地图"后画面上出现多条横穿全宽的半透明蓝线）：`useGlobeProjection.ts` 的 `buildProjection` 始终用 `projection.clipAngle(90 + t * 90)`（小圆裁剪），过渡到纯平面地图态时 `t=1` 令裁剪角=180°。180° 小圆裁剪在数值上是退化情形（裁剪圆退化为一个点），d3.geoPath 用小圆裁剪算法给经纬网格/陆地边界求交时在这个退化边界上产生穿越整张画布的杂散线段——这不是"网格层没隐藏"，而是自定义 `interpolateRaw` 插值投影 + 小圆裁剪在 180° 时的算法退化 bug。修复：`t >= 0.999`（完全进入平面地图态，过渡动画已结束）时改调 `projection.clipAngle(null)`，切换回 d3 默认的"反经线裁剪"，与标准 `d3.geoEquirectangular()` 行为一致，从根源消除杂线；`0<t<1` 过渡中间态仍用小圆裁剪从 90°→180° 渐变以保留"背面地区逐渐展开"的过渡视觉。同步修正 `isPointVisible`：`t>=0.999` 时直接返回 `true`（平面地图上任意经纬度点都应可见，不再按到球心角距离判断）。
 - **地球扫描线效果**（对标用户提供的参考图：球面上一条竖直经线弧持续扫描）：`NodeGlobePanel.vue` 新增非响应式的 `scanLambda` 状态，在 `renderFrame` 每帧递增 `SCAN_SPEED_DEG=0.35`，用 `buildScanMeridian(lambda)` 生成一条纵贯南北极的经线弧（纬度 -90→90，步长 2°，固定经度），叠加 `ctx.shadowBlur=8` 发光效果后用比经纬网格更高的不透明度（75%）描边。扫描线透明度按 `1 - transitionProgress.value` 线性衰减，过渡到平面地图态时完全淡出，不会与地图内容混淆。裁剪逻辑与陆地/网格共用同一个 `path()`，球面态下扫描线走到背面会被小圆裁剪自然隐藏，效果符合参考图。
-- **地球呼吸留白**：`buildProjection` 的球体直径缩放系数由 `Math.min(width, height) / 2.05` 调整为 `/ 2.3`，球体半径整体缩小约 11%，外层卡片边框到球体轮廓之间留出更明显的空白边距，不再贴边。此调整同时影响地图态缩放（共用同一个 `scale`），但平面地图本身因宽高比差异已有留白，缩小无副作用。
+- **地球呼吸留��**：`buildProjection` 的球体直径缩放系数由 `Math.min(width, height) / 2.05` 调整为 `/ 2.3`，球体半径整体缩小约 11%，外层卡片边框到球体轮廓之间留出更明显的空白边距，不再贴边。此调整同时影响地图态缩放（共用同一个 `scale`），但平面地图本身因宽高比差异已有留白，缩小无副作用。
 - 用 Playwright 截图（684×719，浅色）分别验证：① 地球默认视图——扫描线可见且随帧推进移动、球体与卡片边缘留白明显增加；② 地图视图——原先的多条横向杂线已完全消失，世界地图/网格/国界线/标记点清晰无遮挡。
 - `bun run lint`、`bun run build`（含 `vue-tsc --build` 类型检查）均通过；`tests/visual/visual.spec.ts` 全量回归 8 项中仅 1 项失败，且是上一条记录里提到的既有 `disk` 图标 data 属性缺口（`NodeCard.vue` 未改动，与本次 globe 修复无关），其余 7 项全部通过，未引入新回归。
