@@ -1,7 +1,21 @@
+<script lang="ts">
+// 移动端触摸没有 hover/mouseleave 概念，改用「点击展开/再点收起」模式。
+// 用模块级变量（跨所有 DataTooltip 实例共享）确保同一时刻最多一个气泡在展开——
+// 打开新气泡前先收起上一个仍开着的气泡，避免多个气泡叠加、彼此都消不掉。
+let closeActiveTouchTooltip: (() => void) | null = null
+</script>
+
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { cn } from '@/lib/utils'
+
+const props = withDefaults(defineProps<Props>(), {
+  placement: 'top',
+  as: 'div',
+})
+
+let closeActiveTouchTooltip: (() => void) | null = null
 
 type DataTooltipPlacement = 'top' | 'bottom' | 'left' | 'right'
 
@@ -22,11 +36,6 @@ interface Props {
   contentClass?: HTMLAttributes['class']
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  placement: 'top',
-  as: 'div',
-})
-
 const GAP = 8 // 气泡与触发元素之间的间距
 const MARGIN = 8 // 气泡与视口边缘之间至少保留的间距
 
@@ -35,6 +44,10 @@ const bubbleRef = ref<HTMLElement | null>(null)
 const visible = ref(false)
 const top = ref(-9999)
 const left = ref(-9999)
+/** 记录最近一次交互的指针类型，用来区分「真实鼠标 hover」和「触摸 tap」，两者走不同的展示/收起逻辑 */
+const lastPointerType = ref<string>('mouse')
+/** 点击外部时用于关闭气泡的监听器引用，仅在触摸 tap 打开气泡期间存在 */
+let outsideCloseHandler: ((event: Event) => void) | null = null
 
 /**
  * 彻底解决 tooltip 被遮罩/跑位的问题：
@@ -114,9 +127,77 @@ function handleLeave() {
   window.removeEventListener('resize', measureAndPosition)
 }
 
+function handlePointerDown(event: PointerEvent) {
+  lastPointerType.value = event.pointerType
+}
+
+/**
+ * 真实鼠标（含触控笔悬浮）才走 hover 展示；触摸的 pointerenter/leave 直接忽略，
+ * 交给下面的 handleClick 走「tap 展开 / 再 tap 收起」的独立逻辑——
+ * 触摸设备根本不会有真正的 pointerleave，靠 mouseleave/pointerleave 兜底只会导致气泡永久卡住。
+ */
+function handlePointerEnter(event: PointerEvent) {
+  if (event.pointerType === 'touch')
+    return
+  handleEnter()
+}
+
+function handlePointerLeave(event: PointerEvent) {
+  if (event.pointerType === 'touch')
+    return
+  handleLeave()
+}
+
+function detachOutsideClose() {
+  if (!outsideCloseHandler)
+    return
+  document.removeEventListener('touchstart', outsideCloseHandler, true)
+  document.removeEventListener('click', outsideCloseHandler, true)
+  outsideCloseHandler = null
+}
+
+function closeTouchTooltip() {
+  handleLeave()
+  detachOutsideClose()
+  if (closeActiveTouchTooltip === closeTouchTooltip)
+    closeActiveTouchTooltip = null
+}
+
+function handleTouchTap() {
+  // 已经展开：再次点击自己 = 收起
+  if (visible.value) {
+    closeTouchTooltip()
+    return
+  }
+  // 打开新气泡前，先收起可能还开着的上一个（同一时刻只允许一个气泡展开，避免叠加）
+  closeActiveTouchTooltip?.()
+  handleEnter()
+  closeActiveTouchTooltip = closeTouchTooltip
+  outsideCloseHandler = (event: Event) => {
+    if (rootRef.value?.contains(event.target as Node))
+      return
+    closeTouchTooltip()
+  }
+  // 延后一帧再绑定，避免触发气泡展开的这次点击本身被「点在外部」判定为需要立即关闭
+  requestAnimationFrame(() => {
+    if (!outsideCloseHandler)
+      return
+    document.addEventListener('touchstart', outsideCloseHandler, true)
+    document.addEventListener('click', outsideCloseHandler, true)
+  })
+}
+
+function handleClick() {
+  if (lastPointerType.value === 'touch')
+    handleTouchTap()
+}
+
 onBeforeUnmount(() => {
   window.removeEventListener('scroll', measureAndPosition, true)
   window.removeEventListener('resize', measureAndPosition)
+  detachOutsideClose()
+  if (closeActiveTouchTooltip === closeTouchTooltip)
+    closeActiveTouchTooltip = null
 })
 
 const sizeStyle = computed(() => {
@@ -138,8 +219,10 @@ const sizeStyle = computed(() => {
     ref="rootRef"
     data-slot="data-tooltip"
     :class="cn('relative inline-block', props.class)"
-    @mouseenter="handleEnter"
-    @mouseleave="handleLeave"
+    @pointerdown="handlePointerDown"
+    @pointerenter="handlePointerEnter"
+    @pointerleave="handlePointerLeave"
+    @click="handleClick"
     @focusin="handleEnter"
     @focusout="handleLeave"
   >

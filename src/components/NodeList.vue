@@ -437,6 +437,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
                   as="span"
                   class="inline-flex shrink-0 text-[var(--status-warn)]"
                   content-class="w-56 whitespace-pre-line leading-snug text-left"
+                  @click.stop
                 >
                   <Icon icon="tabler:alert-triangle-filled" width="13" height="13" aria-label="节点消息" />
                 </DataTooltip>
@@ -513,6 +514,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
                       as="span"
                       class="inline-flex shrink-0 text-[var(--status-warn)]"
                       content-class="w-56 whitespace-pre-line leading-snug text-left"
+                      @click.stop
                     >
                       <Icon icon="tabler:alert-triangle-filled" width="13" height="13" aria-label="节点消息" />
                     </DataTooltip>

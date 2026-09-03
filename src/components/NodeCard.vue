@@ -466,6 +466,7 @@ const customTags = computed(() => parseTags(props.node.tags).flatMap(t => t.text
           v-if="hasTaskLatencyItems"
           class="flex items-center justify-between gap-2"
           :class="!props.node.online ? 'blur-xs opacity-50' : ''"
+          @click.stop
         >
           <span class="text-xs font-normal text-muted-foreground">三网</span>
           <div class="flex items-center gap-1 font-mono text-xs font-medium">
