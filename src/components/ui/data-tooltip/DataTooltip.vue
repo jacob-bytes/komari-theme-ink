@@ -16,8 +16,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 let closeActiveTouchTooltip: (() => void) | null = null
 
-let closeActiveTouchTooltip: (() => void) | null = null
-
 type DataTooltipPlacement = 'top' | 'bottom' | 'left' | 'right'
 
 interface Props {
