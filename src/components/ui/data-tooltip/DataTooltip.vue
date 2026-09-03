@@ -2,7 +2,6 @@
 // 移动端触摸没有 hover/mouseleave 概念，改用「点击展开/再点收起」模式。
 // 用模块级变量（跨所有 DataTooltip 实例共享）确保同一时刻最多一个气泡在展开——
 // 打开新气泡前先收起上一个仍开着的气泡，避免多个气泡叠加、彼此都消不掉。
-let closeActiveTouchTooltip: (() => void) | null = null
 </script>
 
 <script setup lang="ts">
@@ -14,6 +13,8 @@ const props = withDefaults(defineProps<Props>(), {
   placement: 'top',
   as: 'div',
 })
+
+let closeActiveTouchTooltip: (() => void) | null = null
 
 let closeActiveTouchTooltip: (() => void) | null = null
 
