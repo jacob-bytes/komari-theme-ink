@@ -20,7 +20,7 @@
   3. **首页死代码/重复请求清理**：`HomeView.vue` 的 `onMounted` 里有一段调用 `financeHelper.getDailyExchangeRates()` 存入本地 `exchangeRates` ref，但该 ref 在整个组件里从未被模板或其他逻辑读取——纯死代码；而真正消费汇率数据的 `NodeGeneralCards.vue`（首页默认工具，几乎每个访客都会挂载）已经完全独立地自己调用了一次同名方法。也就是原来每个访客打开首页会触发两次独立的汇率请求（有当日缓存所以实际影响有限，但仍是浪费）。核实 `ProviderValuePanel.vue` 同样自带独立的 `excludeFreeNodes`/`shouldExcludeFreeNodes()` 调用，与 `HomeView.vue` 里的同名死代码无任何耦合后，直接删除 `HomeView.vue` 里的 `exchangeRates` ref、`excludeFreeNodes` ref、整个 `onMounted` 块，以及随之变成未使用的 `onMounted`（vue 导入）和 `financeHelper`（模块导入）。
   4. **列表视图合成层收敛**：`NodeList.vue` 桌面表格行原来是逐行（`v-for` 内）各自加一层 `backdrop-blur-sm`；虚拟滚动只减少了同时存在的 DOM 节点数量，可视区内同屏的十几行仍各自是独立合成层，`backdrop-filter` 是浏览器里开销最大的滤镜之一，逐行叠加在中低端设备滚动时有明显的重复取样开销。改为把 `backdrop-blur-sm` 从每行移到外层视口容器（`nodeRowsViewportBind` 所在的 div，虚拟滚动开启与否都存在，一直渲染）上做一次，每行只保留半透明背景色叠加在这层已模糊背景上——高斯模糊对局部区域的卷积结果不受"整体一次做"还是"逐块分别做"影响，视觉结果等价，合成层数从 N 降到 1。移动端堆叠卡片分支未使用 `backdrop-blur`，未受影响。
 - 验证：`bun run type-check`（`vue-tsc --build`）、`bun run lint`（针对本次改动文件单独跑通过；全量 `lint --fix` 命中一处与本次改动无关的 ESLint 自动修复 bug——把已有的模块级 `let closeActiveTouchTooltip` 声明误判为需要"添加"导致同名变量重复声明，已用 `git checkout` 还原该文件，未提交该 lint 误改）、`bun run build`（type-check + vite build + zip 打包）三者均通过。浏览器验证（`agent-browser`，`bun run dev` 临时起本地 dev server）：`performance.getEntriesByType('resource')` 确认零个 `fonts.googleapis.com`/`fonts.gstatic.com`/`api.iconify.design` 请求，字体走本地 `node_modules/@fontsource-variable/inter/...woff2`；首屏渲染的 14 个 `svg.iconify` 图标全部带有效 `viewBox`/`path`（本地子集注册成功，无需等待网络往返）。因沙盒无真实 Komari 后端数据（控制台可见 RPC/health check 500，与本次改动无关，是环境限制），列表视图 backdrop-blur 的实际滚动跟手性未能用真实节点数据截图对比，仅代码复查确认视觉等价（半透明背景色 + 单层模糊叠加）。
-- 版本：`komari-theme.json` 0.6.1 → 0.6.2。
+- 版本：`komari-theme.json` 提交时发现远程已并行推进到 0.6.3（含一次无关的 DataTooltip 重复声明去重修复），rebase 解决版本号冲突后最终定为 0.6.4；push 前重新跑过一次 `bun run build` 确认基于 rebase 后代码构建仍通过。
 - 下一步：若之后引入图标集合切换（比如新增一个当前 `KNOWN_PREFIXES` 之外的前缀），脚本会直接报错提醒补充清单，不会静默漏收录；如果开发时频繁增删图标引用觉得手动跑 `icons:generate` 麻烦，可以考虑接入 Vite 插件在 dev/build 前自动跑一次（本次未做，保持最小改动范围）。
 
 - 状态：done，Header 数据新鲜度改为绑定真实轮询数据到达时间（bug fix，接续上一条记录）
@@ -47,8 +47,8 @@
   2. **卡片网格虚拟滚动**：新增 `src/composables/useVirtualCardGrid.ts`——把响应式多列卡片网格（CSS `auto-fill`）按当前列数切成"虚拟行"数组，再接入 `@vueuse/core` 的 `useVirtualList` 做行级窗口化（滚出视口的行真正卸载 DOM/图表实例）。`HomeView.vue`：新增 `nodeGridAreaRef`（`useElementSize` 测容器宽度）、`cardColumnCount`（按 `nodeCardSize` 对应最小卡片宽度/gap 估算每行列数，规则与现有 `nodeCardGridClass` 的 `minmax` 值保持一致）、`shouldVirtualizeCards`（复用现有 `UI_CONFIG.virtualList.nodeThreshold`，阈值 30，与原 `deferNodeCards` 判断标准一致）；模板新增虚拟滚动分支（`v-else-if="... && shouldVirtualizeCards"`，`max-h-[70vh] overflow-y-auto` 容器 + 虚拟行内部小 grid 渲染 `NodeCard`），阈值以下保留原 `TransitionGroup` 路径不变。因虚拟滚动分支与原 `DeferredRender`（进入视口挂载、之后不卸载）用的是同一阈值判断，两者会互斥触发，`DeferredRender` 在保留分支��永远是禁用状态，遂顺手删除死代码：移除 `deferNodeCards` computed、`TransitionGroup` 分支里的 `DeferredRender` 包裹，以及不再被任何文件引用的 `src/components/DeferredRender.vue` 组件本身。
   3. **配置项梳理**：`komari-theme.json` 新增 3 项——"01·基础与外观"块 `nodeCardSize` 之后插入 `defaultViewMode`（select，card/list）；"02·首页布局"块 `colorVisionMode` 之后插入 `generalCardPreset`（select，9 种预设）与 `generalCardKeys`（richtext，自定义 key 列表）。三项代码里已有完整读取/校验/默认值回退逻辑（`app.ts` 的 `defaultViewMode`/`generalCardOrder`/`parseGeneralCardPreset` 等 computed），本次只暴露 schema，未改代码。`src/stores/app.ts` 删除彻底死亡的 `hideGeneralCard` computed 定义及 store 返回对象里的导出（核实过除定义/导出外无任何消费方，删除零行为影响）。收尾跑了一次全部 42 个 `komari-theme.json` key 与 `src/` 引用的交叉核查脚本，确认无孤儿配置项（无"有配置无代码"或"有代码无配置"）。
 - 验证：`bun run lint`、`bun run build`（type-check + vite + zip）均通过；构建输出确认无 d3-geo/d3-drag/d3-selection/topojson-client/world-atlas 依赖链，无地球专属 chunk；zip 从改动前体积下降。因沙盒无真实 Komari 后端数据，卡片网格虚拟滚动的真实节点数据滚动效果未能截图核对，仅代码复查确认列数估算、虚拟行切分、点击/Ping 弹窗透传逻辑正确；已有 Playwright 视觉测试用例（`nodes-card-desktop`、mini 卡片等）节点数远低于虚拟滚动阈值 30，不受本次改动影响，未重跑。
-- 版本：`komari-theme.json` 0.5.9 → 0.6.0。
-- 下一步：建议在有真实数据、节点数超过 30 台的环境里实际验证一次卡片网格虚拟滚动的滚动跟手性与卡片懒渲染/回收效果；管理后台确认新增的 `defaultViewMode`/`generalCardPreset`/`generalCardKeys` 三项配置显示正常且默认值与改动前实际行为一致（回归风险低，均沿用代码里原有默认值）。
+- ��本：`komari-theme.json` 0.5.9 → 0.6.0。
+- 下一步：建议在有真实数据、节点数超过 30 台的环境里实际验证一次卡片网格虚拟滚动的滚动跟手性与卡片懒渲染/回收效果；管理后台确认新增的 `defaultViewMode`/`generalCardPreset`/`generalCardKeys` 三项配置显示正常且��认值与改动前实际行为一致（回归风险低，均沿用代码里原有默认值）。
 
 - 状态：done，DataTooltip 改为 Teleport+fixed 彻底重构（上一版 CSS transform 纠偏方案仍会「跑位盖住别处内容」，本次为根治版）
 - 起因：用户反馈上一轮修复（见下方旧记录）没有解决问题——截图显示悬停「三网」行最右侧延迟数字时，tooltip 确实渲染出来了，但被拽到离数字很远的左侧位置，盖住了上一行「剩余152天 / ¥138.78」的文字。说明上一版"水平居中 + 越界纠偏"的 CSS transform 方案在窄卡片场景下纠偏量过大，会让气泡跑到无关位置盖住别的正文——遮罩问题从"自己被裁掉"变成了"别人被盖住"，本质没解决。
@@ -109,8 +109,8 @@
 - 状态：done（历史记录）节点卡片延迟/丢包点阵 + 地球固定深色科技主题/脉冲标记/枢纽飞线/智能聚焦 视觉回归验证完成
 - 目标���验证近期改造（NodeCard 延迟/丢包复用 flat 点阵、NodeGlobePanel 固定深色科技配色+陆地线框+大气层发光+标记脉冲+枢纽放射飞线开关+点击分区智能聚焦旋转）在浏览器中的真实渲染效果。
 - 验证方式：临时 Playwright 用例（`bunx playwright test`，需先点击 Header「显示首页工具」的 aria-label 按钮，而非 `title` 属性，才能展开首页工具栏再点「地球」）+ 截图核对；确认可视化测试服务器跑的是 `vite preview`（`dist/` 构建产物），修改源码后必须先 `bun run build` 再跑测试，否则调试日志/最新代码不会生效。
-- 结论：卡片延迟/丢包点阵展示正常；地球默认视图、开启飞线（枢纽放射+呼吸光点）、点击分区触发聚焦旋转、以及站点整体切到暗色主题时地球仍保持固定深色科技配色，四种场景截图均符合预期，无需改动实现代码。
-- 清理：移除验证过程中临时加入的 `console.log('[v0] ...')` 调试语句与临时测试文件 `tests/visual/tmp-globe-check.spec.ts`；清理后 `src/components/NodeGlobePanel.vue` 与验证前最后一次提交（`0798f56`）逐字节一致（`git diff` 无输出）。
+- 结论：卡片延迟/丢包点阵展示正常；地球默认视图、开启飞线（枢纽放射+呼吸光点）、点��分区触发聚焦旋转、以及站点整体切到暗色主题时地球仍保持固定深色科技配色，四种场景截图均符合预期，无需改动实现代码。
+- 清理：移除验证过程中临时加入的 `console.log('[v0] ...')` 调试语句与临时测试文件 `tests/visual/tmp-globe-check.spec.ts`���清理后 `src/components/NodeGlobePanel.vue` 与验证前最后一次提交（`0798f56`）逐字节一致（`git diff` 无输出）。
 - 验证：`bun run lint`、`bun run build`（type-check + vite + zip）均通过。
 - 产物：`ink-build-5960250.zip`（构建哈希未变，因为源码无功能性差异）。
 - 下一步：无遗留工作，如需发版可直接沿用现有 `komari-theme.json` 版本号。
@@ -166,7 +166,7 @@
 - 范围：共享到期阈值、NodeCard 到期提示、LoadChart 指标历史回退、确定性 Playwright 回归检查。
 - 已确认缺陷：指标历史当前只检查“任意序���有���”���CPU 序列缺失或全空时仍会压过 `common:getRecords` 兼容数据，导致 CPU 图表无有效数值。
 - 实现：共享阈值改为 5 天红色、10 天黄色；NodeCard 对到期状态着色并把无效日期显示为 `-`；短时历史缺少有效 CPU 点时回退 `common:getRecords`，同时保留新指标接口返回的 Ping 等独立序列；兼容记录的运行时数值先过滤非有限值再进入图表。
-- 回归：新增固定时钟下的 5/10 天边界颜色检查，以及新指标接口缺少 `cpu.usage` 时 4 小�� / 1 天 CPU 兼容回退检查。
+- 回归：新增固��时钟下的 5/10 天边界颜色检查，以及新指标接口缺少 `cpu.usage` 时 4 小�� / 1 天 CPU 兼容回退检查。
 - 验证：`bun run lint`、`bun run build`、后续 `bun run build-only` 和 `git diff --check` 通过；构建产物 `komari-theme-Glassmorphism-build-b56ef97.zip` 保持 `komari-theme.json`、`preview.png`、`dist/` 顶层契约。
 - 浏览器：系统 Chrome 两条聚焦用例均执行���且无失败产物，Windows Chrome 在测试结束后的关闭阶段未自行退出，由 120 秒外层超时终止；应用内浏览器确认 Vite 入口可装载，本机未运行 `127.0.0.1:25774` Komari 后端，因此普通开发页的 API/RPC 代理按预期返回 500，实际数据视图由确定性 mock 用例覆盖。
 - 发布目标：`komari-theme.json` 与 README 已同步至 v3.3.4；发布提交仅包含本次修复、测试、版本和文档，不包含工作区原有预览图删除及本地目录。
@@ -341,8 +341,8 @@
 - 本地验证：3.3.1 版本下 `bun run lint`、`bun run type-check`、`bun run build` �� `git diff --check` 已通过；聚焦 Playwright RPC 用例通过。按用户要求停止额外的完整视觉矩阵。
 - 本地资产：`komari-theme-Glassmorphism-build-7d2c7e1.zip`，7,584,274 bytes，SHA-256 `F438AF4BDF12849983D206600A4C30025D64EF33ED47EBC330DA3E2458D039EB`；包内版本 3.3.1，顶层为 `komari-theme.json`、`preview.png`、`dist/`，包含 769 个 dist entries。
 - 发布完成：提交 `9f13b72442944f9a99c808054fe8a0a18dd710c2` 已推送 main；Release On Version Bump run `30445113985` 和 Visual Regression run `30445114027` 均成功；tag / Release `v3.3.1` 指向该提交。
-- 线上资产：`komari-theme-Glassmorphism-build-9f13b72.zip`，7,586,093 bytes，GitHub digest 与下载后 SHA-256 均为 `feadd4b3194aaacda719771584425c93dc8ffe3d70281fb0979e8a3d12c03e9f`；包内版本、顶层结构、预览图和 769 个 dist entries 均正确。
-- Issue 收尾：`#33` 与 `#35` 均已分别留言说明修复和验证结果，并以 completed 关闭。此最终交接状态只保留在本地 AICACHE，避免纯文档推送额外触发完整 Visual Regression。
+- 线上资产：`komari-theme-Glassmorphism-build-9f13b72.zip`，7,586,093 bytes，GitHub digest 与下载后 SHA-256 均�� `feadd4b3194aaacda719771584425c93dc8ffe3d70281fb0979e8a3d12c03e9f`；包内版本、顶层结构、预览图和 769 个 dist entries 均正确。
+- Issue 收尾：`#33` 与 `#35` 均已分别留言说明修复和验证结果，并以 completed 关闭。此最终交接状态只保留在本地 AICACHE，避免���文档推送额外触发完整 Visual Regression。
 
 ### 2026-07-16 exact Linux integration bundle
 
@@ -393,7 +393,7 @@
 - 已核对 Komari `web/public/public.go`：`/admin` 和 `/terminal` 强制使用 embedded defaultTheme，静态文件会在当前主题缺失时回退 embedded defaultTheme。
 - 已从官方 `komari-monitor/komari-web` 提交 `ebfbd3e079f8777a746276fe67429b519024f7c7` 完整构建 415 个 PWA 预缓存文件，并同步到 `public/admin-app/`。
 - 已加入根入口路由桥接和 admin-app URL 恢复，BrowserRouter 在 `/admin/...`、`/terminal`、`/manage/*` 下保留原路径语义。
-- 已加入 Glassmorphism 亮暗色 CSS 覆盖，不改官方 React ���能代码；后台菜单已在浏览器确认包含站点、主题、登录、通知、XtermJS、监控数据库、远程执行、Ping、会话、账户和日志等完整模块。
+- 已加入 Glassmorphism 亮暗色 CSS 覆盖，不改官方 React ���能代码；后台菜单已在浏览器确认包含站点、主��、登录、通知、XtermJS、监控数据库、远程执行、Ping、会话、账户和日志等完整模块。
 - 已新增 `bun run sync:admin -- <komari-web-path>`，可从新的官方 checkout 重建并记录来源提交。
 - 已为主题 Vite 开发服务器补 `/api`、`/themes` 代理，默认指向 `http://127.0.0.1:25774`，可用 `VITE_API_TARGET` 覆盖。
 - 最终校验：`bun run lint` 和 `bun run build` 均通过；生成 `komari-theme-Glassmorphism-build-e3abeff.zip`（7,573,457 bytes、770 个条目），关键管理模块与来源记录均已核对。浏览器已确认 `/admin` 完整菜单和 Glassmorphism 亮暗色覆盖；本地未启动 Komari 后端，因此未进行登录后的 API 写操作验证。
@@ -433,7 +433,7 @@
 - 已实现：Metric Store 查询同时请求 `ping.latency_ms` / `ping.loss`；按任务与时间桶聚合 loss point，使用 `count` 加权；丢包序列覆盖不完整时回退 legacy records；本地 Ping 缓存版本升到 8，避免旧错误结果继���命中。
 - 发布准备：唯一版本源更新为 `3.1.4`，README 当前版本、专项说明与更新日志已同步；`.claude/` 继续排除。`gh` 登录 token 已失效，本次公开 Issue / Actions / Release 核验改用 GitHub REST，git 推送凭据正常。
 - 本地验证：`bun run lint`、`bun run build` 和 `git diff --check` 均���过；构建仅有既有 `@vueuse/core` PURE 注释与 `globe` 大 chunk 警告。
-- 本地资产：`komari-theme-Glassmorphism-build-4f37416.zip`，大小 5,105,926 bytes，SHA-256 `3b9510345ad79319d70311ed8a3c03a79cf4159cbf5b0ef48c3f04623798df74`；顶层为 `komari-theme.json`、`preview.png`、`dist/`，包内版本为 `3.1.4`。
+- 本地资产：`komari-theme-Glassmorphism-build-4f37416.zip`，大小 5,105,926 bytes，SHA-256 `3b9510345ad79319d70311ed8a3c03a79cf4159cbf5b0ef48c3f04623798df74`；顶层为 `komari-theme.json`、`preview.png`、`dist/`，包内版本��� `3.1.4`。
 - 远端验证：发布提交 `91c9b06` 已推送 `main`；GitHub Actions `Release On Version Bump` run `#29312369165`（#49）成功���tag `v3.1.4` 指向完整提交 `91c9b06fc5c4b5ee2636dc18779861186806abd7`；Release 为正式发布（非 draft / prerelease）；Issue #18 已由 `Fixes #18` 自动关闭为 completed。
 - 线上资产：`komari-theme-Glassmorphism-build-91c9b06.zip`，大小 5,114,852 bytes，SHA-256 `f8b4c9b6f61cc66d755d7a612357d16d1d2774f9494b9b0c3ce87e572ee5da9b`；下载复核顶层结构为 `komari-theme.json`、`preview.png`、`dist/`（344 个 dist entries），包内版本为 `3.1.4`。
 
@@ -638,7 +638,7 @@
 
 - chunk/request pressure follow-up 已完成：`vite.config.ts` 新增 `v3-services` manual chunk；`LoadChart.vue` legacy fallback 与详情页统计统一使用 `LOAD_RECORD_MAX_COUNT` 维度，降低重复历史请求概率。
 - HealthSummaryPanel 尚未接入 metric store。
-- 尚未实现后台写入/保存 `chartDashboardTemplate`，当前只读取托管配置。
+- 尚未实现后台写入/保�� `chartDashboardTemplate`，当前只读取托管配置。
 - 尚未在真实 Komari 1.2.x 后端上手动确认 `public:getPingMetricStats` / `public:queryMetrics` / GPU metric 返回形态；当前只通过类型检查、lint、build 验证。
 
 下一步：
@@ -858,7 +858,7 @@
 ## 2026-09-01 · 首页"地球"工具（d3-geo 点阵地球 + 投影插值变形）验收与修复
 
 - 该功能（`NodeGlobePanel.vue` + `useGlobeProjection.ts` + `regionCoordinates.ts` + `HomeView.vue` 集成）已在此前会话实现并提交���`403b98b`），本次会话专做浏��器可视化验收。
-- **发现并修复一个渲染 bug**：`NodeGlobePanel.vue` 的 `withAlpha(color, alpha)` helper 对已经是百分比整数（6/16/38/55/80）的 `alpha` 参数又做了 `alpha * 100`，拼出 `color-mix(in oklab, ... 600% ...)` 之类的非法百分比值。浏览器静默拒绝这个非法 `fillStyle`/`strokeStyle` 赋值并回退成 canvas 默认的不透明黑色，导致地球在浅/深色模式���都渲染成纯黑球体（陆地、经纬网���、球体轮廓全部看不见，只剩标记点）。修复：`withAlpha` 直接用 `Math.round(alpha)`，不再二次乘 100（提交 `f273a8a`）。
+- **发现并修复一个渲染 bug**：`NodeGlobePanel.vue` 的 `withAlpha(color, alpha)` helper 对已经是百分比整数（6/16/38/55/80）的 `alpha` 参数又做了 `alpha * 100`，拼出 `color-mix(in oklab, ... 600% ...)` 之类的非法百分比值。浏览器静默拒绝这个非法 `fillStyle`/`strokeStyle` 赋值并回退成 canvas 默认的不透明黑色，导致地球在浅/深色模式���都渲染成纯黑球体（陆地、经纬网���、球体轮廓全部看不见，只剩标记点）。修复：`withAlpha` 直接用 `Math.round(alpha)`，不再二次乘 100（��交 `f273a8a`）。
 - 用 Playwright + `installKomariFixture` 补充了地球工具专项截图验收（浅色/深色默认视图、拖拽旋转、地球↔地图切换、移动端堆叠、标记聚合），全部通过后按仓库约定删除了临时 `_debug_globe.spec.ts` / `_verify_globe.spec.ts`（提交 `e79ac0f`），不保留在仓库里。
 - **踩坑记录**：`playwright.config` 的 webServer 跑的是 `vite preview`（serve `dist/`），源码改完必须先 `bun run build` 再跑测试，否则截图仍是旧代码的黑球——本次调试一开始就是被这个坑迷惑了一轮。
 - 验收结论：地球模式（浅/深色）陆地颜色、国��线、经纬网格、球体轮廓均正常显示；拖拽旋转正确重新投影标记点；地球→平面地图（等距矩形）过渡后网格线/陆地/标记全部正确重新计算位置，"地图"分段按钮高亮态正确；移动端纵向堆叠布局无横向溢出。
