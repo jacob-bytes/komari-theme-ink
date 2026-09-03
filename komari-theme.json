@@ -2,7 +2,7 @@
   "name": "ink",
   "short": "ink",
   "description": "A minimal ink theme for Komari (deep navy-black, shadcn-inspired)",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "author": "jacob-bytes",
   "url": "https://github.com/jacob-bytes/komari-theme-ink",
   "preview": "preview.png",
@@ -185,7 +185,7 @@
         "name": "列表信息栏",
         "type": "switch",
         "default": true,
-        "help": "在列表视图显示节点信息栏；关闭后隐藏厂商、地区、ASN 和标签信息列。"
+        "help": "在列表视图显示节点信息栏；关闭后隐藏厂商、地区、ASN ���标签信息列。"
       },
       {
         "key": "nodeListMetadataFields",

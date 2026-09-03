@@ -19,12 +19,14 @@
     "type-check": "vue-tsc --build",
     "publish": "bun scripts/publish.ts",
     "sync:admin": "bun scripts/sync-komari-admin.ts",
+    "icons:generate": "bun scripts/generate-icon-subset.ts",
     "test:visual": "bun run build-only && playwright test",
     "test:visual:update": "bun run build-only && playwright test --update-snapshots",
     "lint": "eslint . --fix --cache",
     "lint:eslint": "eslint . --fix --cache"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
     "@iconify/vue": "^4.3.0",
     "@vueuse/core": "^14.2.1",
     "class-variance-authority": "^0.7.1",
@@ -42,6 +44,7 @@
   "devDependencies": {
     "@antfu/eslint-config": "^7.4.3",
     "@iconify/json": "^2.2.442",
+    "@iconify/utils": "^3.1.4",
     "@playwright/test": "^1.62.0",
     "@tailwindcss/vite": "^4.1.16",
     "@tsconfig/node24": "^24.0.4",
@@ -53,6 +56,7 @@
     "eslint": "^9.39.2",
     "eslint-plugin-format": "^1.4.0",
     "eslint-plugin-vue": "~10.8.0",
+    "fast-glob": "^3.3.3",
     "jiti": "^2.6.1",
     "npm-run-all2": "^8.0.4",
     "tailwindcss": "^4.1.16",

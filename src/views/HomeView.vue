@@ -4,7 +4,7 @@ import type { HomeQuickControlKey } from '@/stores/app'
 import type { NodeData } from '@/stores/nodes'
 import { Icon } from '@iconify/vue'
 import { useDebounceFn, useElementSize } from '@vueuse/core'
-import { computed, nextTick, onActivated, onDeactivated, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onActivated, onDeactivated, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -17,7 +17,6 @@ import { useVisitorAudit } from '@/composables/useVisitorAudit'
 import { UI_CONFIG } from '@/constants/ui'
 import { useAppStore } from '@/stores/app'
 import { useNodesStore } from '@/stores/nodes'
-import * as financeHelper from '@/utils/financeHelper'
 import { createLazyPanel } from '@/utils/lazyPanel'
 import {
   getRealtimePeakSpeed,
@@ -87,8 +86,6 @@ function resetHomeFilters() {
   searchText.value = ''
   activeQuickControl.value = null
 }
-const exchangeRates = ref(financeHelper.DEFAULT_EXCHANGE_RATES)
-const excludeFreeNodes = ref(true)
 const pingDialogNode = ref<NodeData | null>(null)
 
 const homeToolPermissionMap: Record<PrivateHomeToolKey, PermissionKey> = {
@@ -153,12 +150,6 @@ watch(
   },
   { immediate: true },
 )
-
-onMounted(async () => {
-  excludeFreeNodes.value = financeHelper.shouldExcludeFreeNodes()
-  const { rates } = await financeHelper.getDailyExchangeRates()
-  exchangeRates.value = rates
-})
 
 watch(
   () => nodesStore.groups,

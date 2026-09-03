@@ -394,12 +394,20 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
         </div>
       </div>
 
-      <div v-bind="nodeRowsViewportBind" :class="nodeRowsViewportClass">
+      <!--
+        性能说明：backdrop-blur 曾直接加在每一行上——虚拟滚动只减少了 DOM 节点数量，
+        视口内同屏的十几行仍各自是一个独立合成层，逐行叠加 backdrop-filter 在中低端
+        设备滚动时会有明显的重复取样开销。改为在整个视口容器上做一次 backdrop-blur，
+        每行只保留半透明背景色叠在这层已模糊的背景上——两种写法视觉结果等价（高斯模糊
+        对空间局部区域的卷积结果不受"整体一次做"还是"逐块分别做"影响，行内边缘处
+        反而因为有更完整的周边像素可采样而更平滑），但合成层数从 N 降到 1。
+      -->
+      <div v-bind="nodeRowsViewportBind" class="backdrop-blur-sm" :class="[nodeRowsViewportClass]">
         <component :is="nodeRowsContainerComponent" v-bind="nodeRowsContainerBind">
           <div
             v-for="({ data: node, index }) in renderedRows"
             :key="getRowTransitionKey(node)"
-            class="flex flex-col relative h-16 min-h-16 max-h-16 overflow-hidden justify-center px-2.5 cursor-pointer bg-background/40 rounded-lg backdrop-blur-sm shadow-[0_0_0_2px] shadow-transparent hover:shadow-ring/10 hover:bg-background/70 transition-all"
+            class="flex flex-col relative h-16 min-h-16 max-h-16 overflow-hidden justify-center px-2.5 cursor-pointer bg-background/40 rounded-lg shadow-[0_0_0_2px] shadow-transparent hover:shadow-ring/10 hover:bg-background/70 transition-all"
             :class="[!node.online && '!shadow-destructive/20']"
             :style="getRowTransitionStyle(index)"
             role="button"

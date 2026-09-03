@@ -1,3 +1,9 @@
+/* 自托管 Inter 可变字体（替代 Google Fonts CDN）：
+   1. 消灭跨域请求，不再受 fonts.googleapis.com/fonts.gstatic.com 在国内访问不稳定/被墙的影响
+   2. 可变字体单文件覆盖 400-700 全部字重，比多个静态字重文件更小
+   3. 随 CSS 一起被打包进构建产物，享受 Vite 的 hash 缓存策略 */
+@import '@fontsource-variable/inter/wght.css';
+
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -47,7 +53,7 @@
   --chart-4: #3f3f46;
   --chart-5: #71717a;
   --radius: 0.75rem;
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
   /* 状态语义色（默认与原 Tailwind 值一致，零视觉变化） */
   --status-ok: #16a34a;
   --status-warn: #f59e0b;

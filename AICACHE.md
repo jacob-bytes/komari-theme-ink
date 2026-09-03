@@ -13,6 +13,16 @@
 
 ## 当前任务
 
+- 状态：done，前端性能优化四项：自托管字体 + 图标构建期打包 + 首页死代码清理 + 列表合成层收敛（M2 性能，四个独立小改动）
+- 目标：例行性能扫描（构建产物体积、字体/图标加载链路、定时器、合成层）发现的四处具体问题，逐一修复：
+  1. **Google Fonts 改为自托管**：`index.html` 原有 `<link rel="preconnect">` + `<link href="https://fonts.googleapis.com/css2?family=Inter...">` 是同步阻塞的跨域请求；`fonts.googleapis.com`/`fonts.gstatic.com` 在中国大陆（本主题 `lang="zh-CN"`、默认时区 `Asia/Shanghai`，面向中文用户）访问不稳定甚至被墙，而 Inter 又是纯 Latin 字体、中文字符本就走系统字体 fallback，等于为少数英文/数字字符承担了整页阻塞风险。改为 `@fontsource-variable/inter`（新增生产依赖）自托管：`src/styles/main.css` 顶部（必须在 `@import 'tailwindcss'` 之前）新增 `@import '@fontsource-variable/inter/wght.css'`，`--font-sans` token 里的字体名同步改成 `'Inter Variable'`（fontsource 可变字体包的实际 `font-family` 名）；`index.html` 移除两条 Google Fonts 相关 `<link>`。
+  2. **Iconify 图标构建期打包**：`src/utils/iconify.ts` 原来是纯 no-op，`<Icon icon="tabler:xxx">` 走 `@iconify/vue` 默认策略——每个图标首次使用时单独向 `api.iconify.design` 发请求。全仓扫描确认本项目用到的图标是完全静态可枚举的集合（118 个，来自 tabler/lucide/icon-park-outline/carbon 四个前缀，无运行时拼接的图标名）。新增 `scripts/generate-icon-subset.ts`（构建期脚本，`bun run icons:generate`）：扫描 `src/**/*.{vue,ts}` 里所有 `'前缀:图标名'` 字面量，从 `@iconify/json`（新增 devDependency）按需抽取对应图标数据，生成 `src/assets/icons/subset.generated.ts`（38.4KB，118 个图标里 115 个成功收录；3 个在当前锁定的 `@iconify/json` 快照里找不到——`tabler:brand-nvidia`/`chart-line-off`/`chip`，可能是比快照版本更新才收录的图标名，脚本对找不到的图标只 warn 不报错，这几个会自动回退到原有 CDN 加载策略，不影响显示，不阻塞构建）。`src/utils/iconify.ts` 的 `setupIconify()` 改为 `addCollection()` 注册这份子集，在 `main.ts` 里挂载前调用。新增 `fast-glob`、`@iconify/utils` 两个 devDependency 供生成脚本使用。**注意**：以后新增/删除图标引用后要重新跑一次 `bun run icons:generate` 并把改动后的 `subset.generated.ts` 一并提交，否则新图标会静默回退到 CDN 加载（不会报错，只是少了离线加速）。
+  3. **首页死代码/重复请求清理**：`HomeView.vue` 的 `onMounted` 里有一段调用 `financeHelper.getDailyExchangeRates()` 存入本地 `exchangeRates` ref，但该 ref 在整个组件里从未被模板或其他逻辑读取——纯死代码；而真正消费汇率数据的 `NodeGeneralCards.vue`（首页默认工具，几乎每个访客都会挂载）已经完全独立地自己调用了一次同名方法。也就是原来每个访客打开首页会触发两次独立的汇率请求（有当日缓存所以实际影响有限，但仍是浪费）。核实 `ProviderValuePanel.vue` 同样自带独立的 `excludeFreeNodes`/`shouldExcludeFreeNodes()` 调用，与 `HomeView.vue` 里的同名死代码无任何耦合后，直接删除 `HomeView.vue` 里的 `exchangeRates` ref、`excludeFreeNodes` ref、整个 `onMounted` 块，以及随之变成未使用的 `onMounted`（vue 导入）和 `financeHelper`（模块导入）。
+  4. **列表视图合成层收敛**：`NodeList.vue` 桌面表格行原来是逐行（`v-for` 内）各自加一层 `backdrop-blur-sm`；虚拟滚动只减少了同时存在的 DOM 节点数量，可视区内同屏的十几行仍各自是独立合成层，`backdrop-filter` 是浏览器里开销最大的滤镜之一，逐行叠加在中低端设备滚动时有明显的重复取样开销。改为把 `backdrop-blur-sm` 从每行移到外层视口容器（`nodeRowsViewportBind` 所在的 div，虚拟滚动开启与否都存在，一直渲染）上做一次，每行只保留半透明背景色叠加在这层已模糊背景上——高斯模糊对局部区域的卷积结果不受"整体一次做"还是"逐块分别做"影响，视觉结果等价，合成层数从 N 降到 1。移动端堆叠卡片分支未使用 `backdrop-blur`，未受影响。
+- 验证：`bun run type-check`（`vue-tsc --build`）、`bun run lint`（针对本次改动文件单独跑通过；全量 `lint --fix` 命中一处与本次改动无关的 ESLint 自动修复 bug——把已有的模块级 `let closeActiveTouchTooltip` 声明误判为需要"添加"导致同名变量重复声明，已用 `git checkout` 还原该文件，未提交该 lint 误改）、`bun run build`（type-check + vite build + zip 打包）三者均通过。浏览器验证（`agent-browser`，`bun run dev` 临时起本地 dev server）：`performance.getEntriesByType('resource')` 确认零个 `fonts.googleapis.com`/`fonts.gstatic.com`/`api.iconify.design` 请求，字体走本地 `node_modules/@fontsource-variable/inter/...woff2`；首屏渲染的 14 个 `svg.iconify` 图标全部带有效 `viewBox`/`path`（本地子集注册成功，无需等待网络往返）。因沙盒无真实 Komari 后端数据（控制台可见 RPC/health check 500，与本次改动无关，是环境限制），列表视图 backdrop-blur 的实际滚动跟手性未能用真实节点数据截图对比，仅代码复查确认视觉等价（半透明背景色 + 单层模糊叠加）。
+- 版本：`komari-theme.json` 0.6.1 → 0.6.2。
+- 下一步：若之后引入图标集合切换（比如新增一个当前 `KNOWN_PREFIXES` 之外的前缀），脚本会直接报错提醒补充清单，不会静默漏收录；如果开发时频繁增删图标引用觉得手动跑 `icons:generate` 麻烦，可以考虑接入 Vite 插件在 dev/build 前自动跑一次（本次未做，保持最小改动范围）。
+
 - 状态：done，Header 数据新鲜度改为绑定真实轮询数据到达时间（bug fix，接续上一条记录）
 - 目标：上一条记录里的修复只是把"每 2s 重置锚点"改成了"锚点固定在页面挂载时刻"，但本质仍是页面开着就单调递增的挂钟计时——用户反馈截图显示"32s 前更新"，纯粹因为页面开了 32 秒，跟数据是否新鲜完全无关，给人数据越来越旧的错觉。真正的修复需要把锚点绑定到"最近一次真实收到节点状态数据"的时刻。
 - 实现：`src/stores/nodes.ts` 新增 `lastStatusUpdateAt` ref（初始 `null`），在 `updateNodeStatuses()`（每次轮询/推送成功拿到最新状态时的唯一入口，`src/utils/init.ts` 的 `poll()` 每个周期都调用，周期即 `dataUpdateInterval` 配置项，默认 3s）末尾写入 `Date.now()`，并加入 store 返回对象导出。`src/components/Header.vue` 改为 `import { useNodesStore }`，`freshText` 读取 `nodesStore.lastStatusUpdateAt`：为 `null`（尚未收到过第一次数据）时显示"等待数据"；否则显示"距上次真实数据到达的秒数"，正常情况下每个轮询周期就会回落到很小的数字（0-3s），只有真的断连/卡住时才会持续变大——这才是"新鲜度"该有的语义。本地 tick 间隔从 2s 收紧到 1s，让秒数增长更平滑。
@@ -28,13 +38,13 @@
   2. **Header 定时器修复**：`src/components/Header.vue` 把"每 2s 重置 `freshAt.value = Date.now()`"改为"`freshAt` 只在组件创建时设置一次（普通常量，非 ref），新增独立的 `now` ref 每 2s 更新一次仅用于触发 `freshText` 重新计算"，这样"Ns 前更新"才会真正随时间递增而不是永远显示"实时"；同时补上 `onUnmounted` 里的 `window.clearInterval`，避免定时器泄漏。因为该组件目前没有接入任何真实数据刷新事件源，"新鲜度"锚点实质是"页面挂载时间"，这是最小改动范围内能做到的最接近原意图的修复，未新增数据源接入（超出本次约定的裁剪/性能范围）。
 - 验证：`bun run lint`、`bun run build`（type-check + vite + zip）均通过；zip 从 3.37MB 降到 3.36MB。
 - 版本：`komari-theme.json` 0.5.10 → 0.5.11（注：上一轮记录写的是 0.6.0，但实际当前文件是 0.5.10——中间有一次未在本文件留痕的版本回调，此处以 git log 里 komari-theme.json 的真实历史为准）。
-- 下一步：若后续要让"数据新鲜度"真正反映 RPC/WebSocket 数据到达时间，需要在 `rpc.ts` 或节点 store 里新增一个"最近一次收到数据"的时间戳并透传给 `Header.vue`，这是比本次修复更大的改动，未在本轮做。
+- 下一步：若后续要让"数据新鲜度"真正反映 RPC/WebSocket 数据到达时间，需要在 `rpc.ts` 或节点 store ���新增一个"最近一次收到数据"的时间戳并透传给 `Header.vue`，这是比本次修复更大的改动，未在本轮做。
 
 - 状态：done，删除地球功能 + 首页卡片网格虚拟滚动 + 配置项梳理（M4 UI/UX 裁剪 + M2 性能 + M6 配置 DX，混合任务）
 - 目标：1) 彻底删除"地球"三维可视化功能（组件/composable/常量/工具/依赖/文档全链路清理）；2) 首页卡片视图接入虚拟滚动，节点数超阈值时窗口化渲染，避免 DOM/图表实例只增不减；3) 补全代码已实现但 `komari-theme.json` 缺失的 3 个配置项，删除彻底死亡的 `hideGeneralCard` 读取。
 - 实现：
   1. **删地球**：删除 `NodeGlobePanel.vue`、`useGlobeProjection.ts`、`globeTheme.ts`、`regionCoordinates.ts`（`regionHelper.ts` 是独立的地区名称/图标工具，仍被多处使用，未动）；`HomeView.vue` 移除 `globe` 懒加载分支、`HomeToolKey`/`PrivateHomeToolKey` 联合类型、`homeTools` 条目、`toggleHomeTool` 权限豁免判断里的 `globe`；`package.json` 移除 `d3-drag`/`d3-geo`/`d3-selection`/`topojson-client`/`world-atlas` 及对应 `@types/*`，`bun install` 刷新 lockfile；同步清理 README.md、`docs/DetailPageRework.md` 里的地球描述。构建产物确认：主 bundle 不再包含地球相关 chunk（约 168KB 异步 chunk，含 108KB `countries-110m` 地图数据全部消失）。
-  2. **卡片网格虚拟滚动**：新增 `src/composables/useVirtualCardGrid.ts`——把响应式多列卡片网格（CSS `auto-fill`）按当前列数切成"虚拟行"数组，再接入 `@vueuse/core` 的 `useVirtualList` 做行级窗口化（滚出视口的行真正卸载 DOM/图表实例）。`HomeView.vue`：新增 `nodeGridAreaRef`（`useElementSize` 测容器宽度）、`cardColumnCount`（按 `nodeCardSize` 对应最小卡片宽度/gap 估算每行列数，规则与现有 `nodeCardGridClass` 的 `minmax` 值保持一致）、`shouldVirtualizeCards`（复用现有 `UI_CONFIG.virtualList.nodeThreshold`，阈值 30，与原 `deferNodeCards` 判断标准一致）；模板新增虚拟滚动分支（`v-else-if="... && shouldVirtualizeCards"`，`max-h-[70vh] overflow-y-auto` 容器 + 虚拟行内部小 grid 渲染 `NodeCard`），阈值以下保留原 `TransitionGroup` 路径不变。因虚拟滚动分支与原 `DeferredRender`（进入视口挂载、之后不卸载）用的是同一阈值判断，两者会互斥触发，`DeferredRender` 在保留分支里永远是禁用状态，遂顺手删除死代码：移除 `deferNodeCards` computed、`TransitionGroup` 分支里的 `DeferredRender` 包裹，以及不再被任何文件引用的 `src/components/DeferredRender.vue` 组件本身。
+  2. **卡片网格虚拟滚动**：新增 `src/composables/useVirtualCardGrid.ts`——把响应式多列卡片网格（CSS `auto-fill`）按当前列数切成"虚拟行"数组，再接入 `@vueuse/core` 的 `useVirtualList` 做行级窗口化（滚出视口的行真正卸载 DOM/图表实例）。`HomeView.vue`：新增 `nodeGridAreaRef`（`useElementSize` 测容器宽度）、`cardColumnCount`（按 `nodeCardSize` 对应最小卡片宽度/gap 估算每行列数，规则与现有 `nodeCardGridClass` 的 `minmax` 值保持一致）、`shouldVirtualizeCards`（复用现有 `UI_CONFIG.virtualList.nodeThreshold`，阈值 30，与原 `deferNodeCards` 判断标准一致）；模板新增虚拟滚动分支（`v-else-if="... && shouldVirtualizeCards"`，`max-h-[70vh] overflow-y-auto` 容器 + 虚拟行内部小 grid 渲染 `NodeCard`），阈值以下保留原 `TransitionGroup` 路径不变。因虚拟滚动分支与原 `DeferredRender`（进入视口挂载、之后不卸载）用的是同一阈值判断，两者会互斥触发，`DeferredRender` 在保留分支��永远是禁用状态，遂顺手删除死代码：移除 `deferNodeCards` computed、`TransitionGroup` 分支里的 `DeferredRender` 包裹，以及不再被任何文件引用的 `src/components/DeferredRender.vue` 组件本身。
   3. **配置项梳理**：`komari-theme.json` 新增 3 项——"01·基础与外观"块 `nodeCardSize` 之后插入 `defaultViewMode`（select，card/list）；"02·首页布局"块 `colorVisionMode` 之后插入 `generalCardPreset`（select，9 种预设）与 `generalCardKeys`（richtext，自定义 key 列表）。三项代码里已有完整读取/校验/默认值回退逻辑（`app.ts` 的 `defaultViewMode`/`generalCardOrder`/`parseGeneralCardPreset` 等 computed），本次只暴露 schema，未改代码。`src/stores/app.ts` 删除彻底死亡的 `hideGeneralCard` computed 定义及 store 返回对象里的导出（核实过除定义/导出外无任何消费方，删除零行为影响）。收尾跑了一次全部 42 个 `komari-theme.json` key 与 `src/` 引用的交叉核查脚本，确认无孤儿配置项（无"有配置无代码"或"有代码无配置"）。
 - 验证：`bun run lint`、`bun run build`（type-check + vite + zip）均通过；构建输出确认无 d3-geo/d3-drag/d3-selection/topojson-client/world-atlas 依赖链，无地球专属 chunk；zip 从改动前体积下降。因沙盒无真实 Komari 后端数据，卡片网格虚拟滚动的真实节点数据滚动效果未能截图核对，仅代码复查确认列数估算、虚拟行切分、点击/Ping 弹窗透传逻辑正确；已有 Playwright 视觉测试用例（`nodes-card-desktop`、mini 卡片等）节点数远低于虚拟滚动阈值 30，不受本次改动影响，未重跑。
 - 版本：`komari-theme.json` 0.5.9 → 0.6.0。
@@ -61,7 +71,7 @@
   - 问题 3：`NodeUptimeTimeline.vue` 模板里色块统一写了 `cursor-help`，与色块状态（正常/异常/离线/无数据）无关，所以任何状态 hover 都是问号光标。
   - 问题 4 **确认是真实代码 bug，不是数据碰巧一致**：时间轴按固定的 `timelineDays`（最多 14 天）铺满渲染，但请求历史记录时有 `LOAD_RECORD_MAX_COUNT` 条数上限，后端超出上限只返回窗口内最新的一段记录。只要节点上报间隔较短（如 30 秒/条），几天内的记录量就会超过上限，更早的日期不是"节点真的没有历史"，而是"根本没请求到那段samples"，于是被一律误判成灰色 no-data——上报频率相近的节点因此呈现出几乎相同的"前面几天灰、最后一两天有色"的截断形状。
 - 修复：
-  - `DataTooltip.vue`：气泡不再用纯 CSS 居中定位，改为默认居中 + `mouseenter`/`focusin` 时用 `getBoundingClientRect` 实测触发元素和气泡尺寸，越界部���通过 CSS 变量（`--dt-shift-x`/`--dt-shift-y`，叠加进 `transform`）纠偏拉回视口内（`margin: 8px`）；隐藏方式从 `hidden`/`block` 改为 `invisible`/`visible` + `opacity`，保证隐藏态也能被测量到真实尺寸。此文件是通用组件，本次修复对所有用到 `DataTooltip` 的位置（三网行、延迟/丢包面板等）统一生效，不是三网专属 patch。
+  - `DataTooltip.vue`：气泡不再用纯 CSS 居中定位，改为默认居中 + `mouseenter`/`focusin` 时用 `getBoundingClientRect` 实测触发元素和气泡尺寸，越界部���通过 CSS 变量（`--dt-shift-x`/`--dt-shift-y`，叠加进 `transform`）纠偏拉回视口内（`margin: 8px`）；隐藏方式从 `hidden`/`block` 改为 `invisible`/`visible` + `opacity`，保证隐藏态也能被测量到真实尺寸。此文件���通用组件，本次修复对所有用到 `DataTooltip` 的位置（三网行、延迟/丢包面板等）统一生效，不是三网专属 patch。
   - `NodeCard.vue`（三网行美化）：数值套用与"延迟"面板一致的 `latencyTextClass` 严重度颜色阈值（不再统一 `text-foreground` 一个颜色，能一眼看出哪个网络延迟高/丢包/异常），字重从 `font-bold` 降为 `font-medium`（避免和左侧"延迟"数字抢视觉权重），分隔点 `·` 透明度降到 `text-muted-foreground/50`（更轻、不抢眼）。
   - `NodeUptimeTimeline.vue`：色块 `cursor-help` 改为按 `bucket.status === 'no-data'` 条件切换（`no-data` → `cursor-help`，其余 → `cursor-pointer`）；新增 `effectiveDays`（调用新增的 `estimateCoverableDays`）替代直接用 `timelineDays` 渲染，真正按该节点的真实上报密度反推可信天数；新增 `isCoverageTruncated` 判断并在时间轴下方追加一行浅色提示"该节点上报较频繁...仅能可靠展示近 N 天"，避免用户把截断误判成节点异常；summary 文案"近 N 天估算正常率"里的 N 同步改用 `effectiveDays`。
   - `uptimeHistory.ts`：新增导出 `estimateCoverableDays(records, maxRecordCount, requestedDays)`——用已拿到记录的时间间隔中位数估算真实上报间隔分钟数，反推 `maxRecordCount` 条配额理论上能覆盖多少天，与 `requestedDays` 取较小值；`estimateReportIntervalMinutes` 从模块私有函数改为导出，供新函数复用。
@@ -91,7 +101,7 @@
     - 经纬网格线步长从默认 10° 放宽到 20°（`geoGraticule().step([20, 20])`），线条数量减半；网格线、陆地描边都改成以球心为中心的径向渐变（中心亮、边缘淡出到 0.03），球体主体填充也改成受光角渐变，共同制造近大远小的空间纵深，替代之前"整张网格线/线框一样亮"的钢丝球感。
     - 悬浮控件（地球/地图切换、飞线开关、汇总统计角标）从 `bg-background/80` + `text-selection`（跟随站点主题）改为内联样式引用 `GLOBE_THEME.panelGlassBg` 等固定深色玻璃令牌，新增 scoped `:deep([data-globe-chip-btn='true']:hover...)` 覆盖 shadcn Button ghost 默认 hover 配色，避免控件在深色地球上突然冒出站点主题的浅色高亮。
   - 未改动：`useGlobeProjection.ts`、投影/旋转/飞线动画逻辑、标记点脉冲逻辑。
-- 验证：临时 Playwright 用例截图核对（节点卡片点阵扁平效果、浅色/暗色站点主题下地球柔和外框+深度渐变+控件 hover 态），四���截图均符合预期；跑完后删除临时测试文件。`bun run lint`、`bun run build` 通过。另跑了现有 `tests/visual/visual.spec.ts` 全量回归，`nodes tool view renders card grid` 一项失败（`data-node-metric-icon="cpu"` 找不到），经 `git stash` 验证为改动前（上次提交 `ab4c9fe`）就已存在的既有问题，与本次修改无关，未处理。
+- 验证：临时 Playwright 用例截图核对（节点卡片点阵扁平效果、浅色/暗色站点主题下地球柔和外框+深度渐变+控件 hover 态），四���截图均符合预期；跑完后删除临时测���文件。`bun run lint`、`bun run build` 通过。另跑了现有 `tests/visual/visual.spec.ts` 全量回归，`nodes tool view renders card grid` 一项失败（`data-node-metric-icon="cpu"` 找不到），经 `git stash` 验证为改动前（上次提交 `ab4c9fe`）就已存在的既有问题，与本次修改无关，未处理。
 - 版本：`komari-theme.json` 0.4.3 → 0.4.4。
 - 产物：`ink-build-<commit-sha>.zip`（bun run build 自动按当前 HEAD short sha 命名，提交后 sha 会变化，需要在提交后再跑一次 build 确认 zip 文件名与 HEAD 一致）。
 - 下一步：无遗留工作。若需要进一步验证"割裂感"改善程度，可考虑在真实生产数据/更多地区分布下再看一次实际效果。
@@ -144,7 +154,7 @@
 - 目标：修复详情页延迟任务卡片、图例和主页 Ping 指标线与 Komari 后台任务排序不一致的问题。
 - 里程碑：M4 UI/UX 兼容性修复，不修改后端任务权重或接口契约。
 - 已确认缺陷：后端 `GetAllPingTasks()` 明确按 `weight ASC, id ASC` 返回；主页重新计算该规则，详情页新版指标路径却按 `getPingMetricStats` 的无保证数组顺序重建任务，可能与后台���位。
-- 实现：共享排序工具改为使用 `public:getPublicPingTasks` 返回数组索引；LoadChart 的 Ping 指标线��� PingChart 新指标路径重建��任务卡片、图例、颜色均使用该顺序；指标接口独有的未知任务按数值 ID 稳定追加。
+- 实现：共享排序工具改为使用 `public:getPublicPingTasks` 返回数组索引；LoadChart 的 Ping 指标线��� PingChart 新指标路径重建��任务卡��、图例、颜色均使用该顺序；指标接口独有的未知任务按数值 ID 稳定追加。
 - 回归：夹具构造后台 `30,10,20`、指标统计 `20,30,10`、ID 自然顺序 `10,20,30` 三套冲突次序；直接排序断言通过，Playwright 能收集到详情页卡片顺序用例。
 - 验证：`bun run type-check`、涉及文件 ESLint、`bun run lint`、`bun run build`、`git diff --check` 均通过；生成 `komari-theme-Glassmorphism-build-e212925.zip`，顶层仍为 `komari-theme.json`、`preview.png`、`dist/`。
 - 浏览器限制：托管 Chromium 可执行文件未安装；系统 Chrome 能启动唯一用例但在 Windows 驱动生命周期中停住直至 120 秒外层超时，没有返回断言结果。内置浏览器可加载本地预览，但不能复用 RPC mock，且本机没有 Komari 后端，因此未把该页面作为数据回归证据。
@@ -201,7 +211,7 @@
 
 ### 2026-08-26 blueprint v0.0.11 概览卡片背景修复
 
-- 用户反馈：顶部概览板块 6 个指标卡（内存用量、剩余价值、实时上行、硬盘用量、累计流量、实时下行）无白色背景框。
+- 用户反馈：顶部概览板块 6 个指标卡（内存用量、剩余价值、实时上行、硬盘用���、累计流量、实时下行）无白色背景框。
 - 根因：`NodeGeneralCards` 的 `cardClass` 仍是毛玻璃时代的 `bg-background/50 border-none`（半透明+无边框），蓝图主题下不可见。
 - 修复：`cardClass` → `bg-card border-border hover:bg-secondary transition-all`（与详情页/图表卡一致）。至此全站残余的「半透明无框」卡片样式已清理完毕（首页概览/节点卡/详情指标卡/图表卡/延迟模块全部 bg-card+border）。
 - 验证：type-check、lint、build、视觉回归 11 条全绿（快照更新）；zip 内 version=0.0.11。
@@ -266,7 +276,7 @@
 ### 2026-08-26 blueprint v0.0.3 五项修复
 
 - 用户反馈 5 项并全部修复（版本 0.0.2→0.0.3）：
-  1. 首次访问默认折叠工具条：`stores/app.ts` 的 `homeAdvancedToolsVisible` 默认恢复 false（手动点 Header「显示首页工具」展开）。
+  1. 首次访问默认折叠工具条：`stores/app.ts` 的 `homeAdvancedToolsVisible` 默��恢复 false（手动点 Header「显示首页工具」展开）。
   2. 拓扑图蓝线穿插：根因是 blueprint.css 的 `fill: transparent` 覆盖了 BlueprintGa 内联 `fill="var(--bp-paper)"`（SVG 内联属性优先级低于 CSS 选择器）。改为 CSS 统一用 `fill: var(--bp-paper)`（hover 用 paper-deep），分区/设备符号遮蔽跳线。
   3. 分区图告警不准确：`mapper.ts` 的 `deriveStatus` 误用 `n.ram`（字节，恒 ≥85 阈值），改为 `percent(n.ram, n.mem_total)` 百分比比较。
   4. 设备表主机列显示 uuid 片段（commit 字符）：`mapper.ts` 的 host 改为 `n.public_remark || n.remark || '-'`，无备注不再显示 uuid.slice(0,8)。
@@ -364,7 +374,7 @@
 - 主题功能：节点卡/列表延迟与丢包可打开完整 Ping 图；剩余价值可打开逐节点费用、币种和汇率明细；访客审计增加开关、UTF-8 字节截断及完整 JSON/CSV 导出；默认背景替换为原创青蓝/淡紫/薄荷网格图。
 - 背景资产：`public/images/default-background-v2.webp` 与 `output/imagegen/default-background-v2.webp` 均为 2048x1152、32,436 bytes、SHA-256 `42377961822666817def3d3b51b2c236a0f5f631dd1475535d9438a6b7ac551b`；仅使用本地 Lanczos 放大修正画布，未再次调用图像 API。
 - 代码复核：修复费用明细把“未设置到期时间”误显示为“今天”的问题；空费率和空开机费按 0，开机费只有存在首次成功上报锚点才计入；汇率保持“1 CNY 对应目标币种”的既有换算方向；旧核心能力检测通过。
-- 验证：`bun run lint`、`bun run type-check`、`bun run build` 和产品源码 diff check 全部通过。浏览器验证桌面无横向溢出；价值弹窗 1280x720 下为 1024x525，390x844 下为 358x687 且表格滚动不溢出；`/admin` 恢复原 URL、完整菜单和 `glass-admin.css` 正常加载。
+- 验证：`bun run lint`、`bun run type-check`、`bun run build` 和产品源码 diff check 全部通过。浏览器验证桌面无横向溢出；价值弹窗 1280x720 下为 1024x525，390x844 下为 358x687 且表格滚动不溢出；`/admin` 恢复原 URL、完整菜���和 `glass-admin.css` 正常加载。
 - 本地包：`komari-theme-Glassmorphism-build-e3abeff.zip`，7,606,509 bytes，SHA-256 `7539c1ef6ba8d65391215d04075256e59957e1b3af758832c72841412c17632b`；770 个条目，顶层为 `komari-theme.json`、`preview.png`、`dist/`，包内版本 3.1.6，`dist/admin-app/` 419 个条目且无 PWA/Service Worker 文件。
 - 发布完成：提交 `c368669ec10468a026991e21556ee3e34d5c99a0` 已推送 main；Release On Version Bump run `#29420879366`（#54）成功；annotated tag `v3.1.6`、Release target 与 main 均指向该提交。
 - 线上资产：`komari-theme-Glassmorphism-build-c368669.zip`，7,615,774 bytes，GitHub digest / 下载后 SHA-256 均为 `c9495a97e754512103fb0bb38a528ea27a31c3e02888cf18b796fd7a6985f3ae`；下载复核版本 3.1.6、770 个条目、419 个后台条目、顶层契约和无 PWA/Service Worker 文件均正确。
@@ -467,7 +477,7 @@
 ### 2026-07-14 v3.1.0 background/list/Ping regression quick fix
 
 - 修复默认背景被 `body` 实色层遮挡：页面可见背景统一由 `Background.vue` 负责，`html` 继续提供无 JS/加载失败时的底色。
-- 列表模式小 Ping 条移除每行 40 个绝对定位气泡，改用原生提示，避免气泡压住运行时间，同时降低列表 DOM/hover 合成开销。
+- 列表模式小 Ping 条移除每行 40 个��对定位气泡，改用原生提示，避免气泡压住运行时间，同时降低列表 DOM/hover 合成开销。
 - 首页快捷控制计数改为直接计数；月成本、流量、上下行、峰值等只显示数量的入口不再每轮实时更新重复排序全部节点。
 - 普通节点 Ping 延迟/丢包恢复公开访问，移除 `historyMetrics` 登录权限；高级工具、Geo、导出、审计和磁盘预测权限保持不变，相关开发文档已同步。
 - Ping 详情请求增加序列保护，快速切换时间范围/节点时旧请求不再覆盖新结果；时间锚点合并从遍历全部历史锚点改为只回看最近候选，避免大样本下退化为 O(n²)。
@@ -525,7 +535,7 @@
 
 - 开始修复历史详情页加载时请求爆炸放大因素：将 v3 共享服��/工具模块纳入 Vite manual chunk，并让 LoadChart legacy fallback 与详情页 24h 统计使用同一个 `LOAD_RECORD_MAX_COUNT` cache/request 维度。
 - 已更新 `vite.config.ts`：新增 `v3-services` manual chunk，合并 history/metrics/request/cache service 与 osImageHelper/metricSeries/useNodePingDisplay 等跨异步组件共享模块，减少 Rollup 自动拆出的零散共享 chunk。
-- 已更新 `src/components/LoadChart.vue`：legacy fallback 调用 `loadNodeLoadRecords(props.uuid, hours, LOAD_RECORD_MAX_COUNT)`，与 `InstanceDetail.vue` 的 24h 峰值统计保持同一 `maxCount` 维度以复用 cache/request key。
+- 已更新 `src/components/LoadChart.vue`：legacy fallback 调用 `loadNodeLoadRecords(props.uuid, hours, LOAD_RECORD_MAX_COUNT)`��与 `InstanceDetail.vue` 的 24h 峰值统计保持同一 `maxCount` 维度以复用 cache/request key。
 - 发布前同步 `origin/main`（包含 README 更新提交 `94691f1`），并将 `komari-theme.json.version` 从 `3.0.2` bump 到 `3.0.3`，避免已有 `v3.0.2` tag 导致 release workflow 跳过。
 
 ### 2026-07-13 v3.0.0 frontend follow-up
@@ -584,7 +594,7 @@
 - CSV 攻击样例检查：通过。对 `"\t=cmd|' /C calc'!\r\nFakeNode,10.0.0.1,Admin"` 调用 `escapeCsvCell()` 输出为单个加引号 CSV cell，内容前置半角单引号并保留 CRLF 在 RFC 4180 引号包裹内。
 - 2026-07-13 official metric-store feature port：`bun run lint` 通过；`bun run build` 通过，生成 `dist/` 与 `komari-theme-Glassmorphism-build-881385d.zip`。构建中仍有既有 Rollup 提示：`@vueuse/core` PURE 注释位置警告，以及 `globe` chunk 超过 600 kB 的体积警告。
 - 2026-07-13 full official feature port：首次 `bun run lint && bun run build` lint 失败（LoadChart `chartData` 前置引用）；第二次 build 失败（`parseChartDashboardTemplate` 局部变量类型过窄）；均已修复。最终 `bun run lint && bun run build` 通过，生成 `dist/` 与 `komari-theme-Glassmorphism-build-881385d.zip`。构建仍有既有 `@vueuse/core` PURE 注释警告与 `globe` chunk 超过 600 kB 警告。
-- 2026-07-13 settings compaction / GPU switch：`bun run lint && bun run build` 通过，生成 `dist/` 与 `komari-theme-Glassmorphism-build-881385d.zip`。构建仍有既有 `@vueuse/core` PURE 注释警告与 `globe` chunk 超过 600 kB 警告。
+- 2026-07-13 settings compaction / GPU switch：`bun run lint && bun run build` 通过，生成 `dist/` 与 `komari-theme-Glassmorphism-build-881385d.zip`。构建仍有既有 `@vueuse/core` PURE 注释警告�� `globe` chunk 超过 600 kB 警告。
 - 2026-07-13 v3.0.0 release prep：README 已删除预览图并重写为实用功能介绍，`komari-theme.json.version` 已更新为 `3.0.0`；`bun run lint && bun run build` 通过，生成 `dist/` 与 `komari-theme-Glassmorphism-build-881385d.zip`。构建仍有既有 `@vueuse/core` PURE 注释警告与 `globe` chunk 超过 600 kB 警告。
 - v3.0.0 已提交并推送 main：commit `c50f6ed`；GitHub release workflow #34 已成功；Release `v3.0.0` 已发布，资产为 `komari-theme-Glassmorphism-build-c50f6ed.zip`。
 - 2026-07-13 v3.0.0 frontend follow-up / AuditLogPanel：`bun run lint` 通过；`bun run build` 通过，生成 `dist/` 与 `komari-theme-Glassmorphism-build-6ccc9d7.zip`。构建仍有既有 `@vueuse/core` PURE 注释警告与 `globe` chunk 超过 600 kB 警告。
@@ -635,7 +645,7 @@
 
 1. 人工查看当前 diff，注意工作区还包含此前 v3.0 稳定性重构和 AI 文档改动，不只有本批 Komari 1.2.x 适配。
 2. 在真实新版后端打开 PingChart 和 LoadChart，确认 Network 优先出现 `public:getPingMetricStats` / `public:queryMetrics`，旧后端确认 fallback 到 `common:getRecords` / `loadNodeLoadRecords`。
-3. 有 GPU 节点时检查 GPU 卡片、per-device tooltip、显存百分比和温度展示；无 GPU 节点时确认 GPU 卡片自动隐藏。
+3. 有 GPU 节点时检查 GPU 卡片、per-device tooltip、显存百分比和温度展示；无 GPU 节点时确认 GPU 卡片自动��藏。
 4. 若不希望提交构建产物，提交前按项目发布流程决定是否保留本次 `dist/` 与 zip 输出。
 
 ---
@@ -652,7 +662,7 @@
 ### 2026-07-12
 
 - 新增 [AIAGENTREADME.md](AIAGENTREADME.md)：集中说明项目是什么、技术栈、架构分层、服务层职责、开发路径、发布契约、安全/性能规则和 AI 交接要求。
-- 重写 [CLAUDE.md](CLAUDE.md)：精简为 Claude Code 入口，指向 AIAGENTREADME、AICACHE 和最近作用域 AGENTS。
+- 重写 [CLAUDE.md](CLAUDE.md)：精简为 Claude Code 入口，指向 AIAGENTREADME、AICACHE ��最近作用域 AGENTS。
 - 重写 [AGENTS.md](AGENTS.md)：精简为根作用域 agent 指引，保留 build/release/root map/safeguards。
 - 重写 [src/AGENTS.md](src/AGENTS.md)：精简为 src 子树实现规则，强调 v3 分层、store/service/UI/security/validation。
 - 新增本文件 [AICACHE.md](AICACHE.md)：提供持久化待办、执行日志、验证和交接模板。
@@ -800,7 +810,7 @@
 
 ## 2026-07-25巡检效率与大规模节点优化（M2/M4/M5）
 
-- 超过 30 台节点时，卡片模式使用 `DeferredRender` 在视口前后 700px 内按需挂载 `NodeCard`，未挂载区域保留按卡片密度计算的稳定高度；列表模式继续使用既有虚拟列表。
+- 超过 30 台节点时，卡片模式使用 `DeferredRender` 在视口前后 700px 内按需挂载 `NodeCard`，未挂载区域保留按卡片密度计算的���定高度；列表模式继续使用既有虚拟列表。
 - 收藏节点保存在站点隔离的 `theme:favorite-nodes:v1`，卡片、列表与详情页均可切换星标；首页快捷控制新增 `favorite`。运行时会清洗损坏的本地存储值。
 - 详情页头部新增收藏、上一台、下一个和下拉节点切换器，继续使用公开可见节点列表，不引入新接口。
 - 首页工具新增公开的实时节点对比，最多选择 4 台，支持按名称/IP/CPU 搜索，显示 CPU、内存、磁盘、网络、流量、运行时间和按隐私设置降级的价格；选择保存在 `theme:node-compare:v1`。
@@ -847,7 +857,7 @@
 
 ## 2026-09-01 · 首页"地球"工具（d3-geo 点阵地球 + 投影插值变形）验收与修复
 
-- 该功能（`NodeGlobePanel.vue` + `useGlobeProjection.ts` + `regionCoordinates.ts` + `HomeView.vue` 集成）已在此前会话实现并提交（`403b98b`），本次会话专做浏��器可视化验收。
+- 该功能（`NodeGlobePanel.vue` + `useGlobeProjection.ts` + `regionCoordinates.ts` + `HomeView.vue` 集成）已在此前会话实现并提交���`403b98b`），本次会话专做浏��器可视化验收。
 - **发现并修复一个渲染 bug**：`NodeGlobePanel.vue` 的 `withAlpha(color, alpha)` helper 对已经是百分比整数（6/16/38/55/80）的 `alpha` 参数又做了 `alpha * 100`，拼出 `color-mix(in oklab, ... 600% ...)` 之类的非法百分比值。浏览器静默拒绝这个非法 `fillStyle`/`strokeStyle` 赋值并回退成 canvas 默认的不透明黑色，导致地球在浅/深色模式���都渲染成纯黑球体（陆地、经纬网���、球体轮廓全部看不见，只剩标记点）。修复：`withAlpha` 直接用 `Math.round(alpha)`，不再二次乘 100（提交 `f273a8a`）。
 - 用 Playwright + `installKomariFixture` 补充了地球工具专项截图验收（浅色/深色默认视图、拖拽旋转、地球↔地图切换、移动端堆叠、标记聚合），全部通过后按仓库约定删除了临时 `_debug_globe.spec.ts` / `_verify_globe.spec.ts`（提交 `e79ac0f`），不保留在仓库里。
 - **踩坑记录**：`playwright.config` 的 webServer 跑的是 `vite preview`（serve `dist/`），源码改完必须先 `bun run build` 再跑测试，否则截图仍是旧代码的黑球——本次调试一开始就是被这个坑迷惑了一轮。
