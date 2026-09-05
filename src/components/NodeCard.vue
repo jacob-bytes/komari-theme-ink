@@ -575,10 +575,11 @@ const customTags = computed(() => parseTags(props.node.tags).flatMap(t => t.text
           >{{ tag }}</span>
         </div>
 
-        <!-- 离线遮罩 -->
+        <!-- 离线遮罩：与卡片本体（CardX，rounded-lg）圆角保持一致，
+             避免 inset-0 贴合的遮罩圆角比卡片本体更大导致四角露出方形背景 -->
         <div
           v-if="!props.node.online"
-          class="absolute inset-0 flex flex-col items-center justify-center z-10 rounded-xl bg-background/40 backdrop-blur-[2px]"
+          class="absolute inset-0 flex flex-col items-center justify-center z-10 rounded-lg bg-background/40 backdrop-blur-[2px]"
         >
           <div class="text-sm font-semibold text-destructive">
             离线

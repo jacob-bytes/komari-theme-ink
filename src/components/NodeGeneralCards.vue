@@ -526,7 +526,9 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
         label: '实时速率',
         icon: 'tabler:arrows-exchange',
         value: `↑${formattedSpeedUp.value.value}`,
-        unit: `KB/s · ↓${formattedSpeedDown.value.value} ${formattedSpeedDown.value.unit}`,
+        // 上传/下载速率各自独立换算单位（KB/s、MB/s、GB/s…），此前这里把上传单位硬编码成了
+        // 固定的 'KB/s' 字符串，导致上传速率跨过 1024 KB/s 换算成 MB/s 后，单位显示仍停留在 KB/s。
+        unit: `${formattedSpeedUp.value.unit} · ↓${formattedSpeedDown.value.value} ${formattedSpeedDown.value.unit}`,
         tooltip: `上行 ${formattedSpeedUp.value.value} ${formattedSpeedUp.value.unit} · 下行 ${formattedSpeedDown.value.value} ${formattedSpeedDown.value.unit}`,
       }
     case 'systemLoad':
