@@ -20,10 +20,6 @@ export interface NodePingTaskLatencyItem {
   key: string
   valueText: string
   tooltip: string
-  // 任务名称的前 2 个字（如"电信"/"联通"/"移动"取满，更长的自定义任务名截断到 2 字）。
-  // 之前「三网」行只显示裸数字，用 · 隔开，哪个数字对应哪条线路只能靠悬浮 tooltip 逐个查——
-  // 违背了「三网对比」本身的意图。任务未配置名称时为空串，展示层据此退化为纯数字（不显示占位符）。
-  shortLabel: string
 }
 
 const TASK_LATENCY_DISPLAY_LIMIT = 3
@@ -215,15 +211,10 @@ export function useNodePingDisplay(
       .slice(0, TASK_LATENCY_DISPLAY_LIMIT)
       .map((task) => {
         const valueText = task.latency === null ? '--' : `${Math.round(task.latency)}ms`
-        const trimmedName = task.name?.trim() ?? ''
-        const label = trimmedName || `任务 ${task.taskId}`
-        // 用 Array.from 按 Unicode 码位截取，避免中文场景下 slice(0, 2) 无风险
-        // 但仍保持与「任意语言任务名」的截断规则一致：固定取前 2 个字符。
-        const shortLabel = trimmedName ? Array.from(trimmedName).slice(0, 2).join('') : ''
+        const label = task.name?.trim() || `任务 ${task.taskId}`
         return {
           key: task.taskId,
           valueText,
-          shortLabel,
           tooltip: `${label} ${valueText}`,
         }
       })

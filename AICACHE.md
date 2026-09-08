@@ -13,12 +13,19 @@
 
 ## 当前任务
 
-- 状态：done，M4 UI/UX 小修：清除筛选按钮防抖同步 bug + 全仓圆角一致性审计（无新增问题）+「三网」延迟行补充短标签
+- 状态：done，用户明确反馈不喜欢「三网」延迟行的短标签方案（"电23ms · 联45ms · 移61ms"），已整体撤回，还原为上一版本的纯数字展示（"23ms · 45ms · 61ms"，完整任务名仍在 tooltip 里）
+- 目标：`NodeCard.vue` 的三网行模板还原为撤回前的样式（去掉 `shortLabel` 的 `<span>`，`gap-1.5` 改回 `gap-1`，分隔点透明度 `/40` 改回 `/50`）；同步移除 `useNodePingDisplay.ts` 里 `NodePingTaskLatencyItem.shortLabel` 字段和 `taskLatencyItemsRaw` 里的截取逻辑（不再被任何地方使用，避免留下死代码）。这是纯粹的用户偏好回退，不是发现了新 bug——上一版本身逻辑是对的，只是视觉风格不合口味，因此代码里不需要保留任何 shortLabel 相关的分支或注释痕迹。
+- 验证：`bun run type-check`、对 2 个改动文件单独跑 `eslint`（零告警）、`bun run build` 均通过。
+- 版本：`komari-theme.json` 0.6.6 → 0.6.7。
+
+## 历史任务
+
+- 状态：done，M4 UI/UX 小修：清除筛选按钮防抖同步 bug + 全仓圆角一致性审计（无新增问题）+「三网」延迟行补充短标签（**此方案已被用户否决并撤回，见上方"当前任务"**）
 - 目标：用户要求「完成 3、4」（延续上一轮对话里我给出的四条待办中的第 3、4 条：全仓 `absolute inset-0` 圆角/阴影一致性审计、空状态"清除筛选"可操作性），同时分析首页卡片「三网」延迟行是否还有美化空间：
   1. **全仓圆角/阴影一致性审计**：系统性搜索了 `absolute inset-0` 结合 `rounded-*`/`shadow-*` 的所有组合（`NodeList.vue`/`NodeCard.vue` 的在线状态指示灯 ping 动画、离线遮罩、`AppDialog.vue` 的全屏 `DialogOverlay`、`Spinner.vue` 通用加载遮罩），结论：**没有发现新问题**。上一轮已修复的 `NodeCard.vue` 离线遮罩 `rounded-xl`→`rounded-lg` 是孤立个案，`NodeList.vue` 对应遮罩本来就是对的（`rounded-lg`）；`rounded-full` 的 ping 动画点天然不受父容器圆角影响；`AppDialog` 遮罩覆盖整个视口不需要圆角；`Spinner.vue` 是通用组件，只在卡片内容区域内出现（不贴卡片边缘），不存在裁切问题。**未发现问题，未做代码改动**，如实报告审计结果而非编造问题。
-  2. **空状态"清除筛选"可操作性**：核实发现 `HomeView.vue` 空状态里其实**已经有**"清除搜索与筛选"按钮（`resetHomeFilters` + `Empty` 组件的 `#extra` slot），是我上一轮分析时看漏了。但审计该函数时发现一个真实的小 bug：`resetHomeFilters()` 只重置了 `searchText`，没有同步重置 `debouncedSearchText`——而后者是走 `useDebounceFn` 300ms 防抖同步的（`watch(searchText, v => updateDebouncedSearch(v))`），空状态的文案/图标/列表过滤全部读的是 `debouncedSearchText`。所以点击"清除搜索与筛选"后，空状态会卡住 300ms 才消失，与旁边搜索框自带的"清除"按钮（`clearSearch()`，两个字段同步清空）体验不一致。修复：`resetHomeFilters()` 里补上 `debouncedSearchText.value = ''`，与 `clearSearch()` 保持一致的即时清空行为。
-  3. **首页卡片「三网」延迟行分析与美化**：`NodeCard.vue` 的"三网"行（按 ping 任务分项展示电信/联通/移动等线路延迟）此前只显示裸数字用 `·` 分隔（如 "23ms · 45ms · 61ms"），要分清哪个数字对应哪条线路必须逐个悬浮 `DataTooltip` 查看——这违背了"三网对比"本身"一眼看清"的设计意图，是这次分析发现的核心问题。另确认这一行只存在于卡片视图（`NodeCard.vue`），列表视图（`NodeList.vue`）完全没有等价行——这是一个更大的功能缺口，本次未处理（需要新增列，改动范围超出"美化"，留作后续独立任务）。修复实现：`useNodePingDisplay.ts` 的 `NodePingTaskLatencyItem` 新增 `shortLabel` 字段，取任务名前 2 个 Unicode 码位（`Array.from(name).slice(0,2)`，避免中文场景下 `.slice()` 按 UTF-16 code unit 截断的潜在风险——尽管中文常用字都在基本平面内本来不会触发这个问题，但用 `Array.from` 更稳妥、也和其余任意语言任务名的截断规则统一);未配置任务名的任务 `shortLabel` 为空串，模板层 `v-if` 让其退化回纯数字展示，不引入占位符噪音。`NodeCard.vue` 模板在每个数值前用 `text-[10px] text-muted-foreground/70` 的小号 `font-sans` 标签渲染 `shortLabel`（与数值的 `font-mono` 区分开，视觉上是"标签+数值"而不是等宽对齐的两组数字，避免混淆），"电信 23ms · 联通 45ms · 移动 61ms" 这类场景变成一眼可辨的 "电23ms · 联45ms · 移61ms"，完整任务名仍保留在 tooltip 里。
-- 验证：`bun run type-check`、对 3 个改动文件单独跑 `eslint`（零告警）、`bun run build`（type-check + vite build + zip 打包）均通过。浏览器验证：`agent-browser` 打开首页确认无新增 JS 报错（仅有沙盒环境固有的 RPC 500，与本次改动无关）；因沙盒无真实后端数据/无真实 ping 任务配置，"三网"短标签的真实视觉效果（含中文字体渲染、多任务对齐）未能用真实数据截图验证，仅代码审查 + 类型检查确认逻辑正确，建议接入真实数据后人工回归一次。
+  2. **空状态"清除筛选"可操作性**：核实发现 `HomeView.vue` 空状态里其实**已经有**"清除搜索与筛选"按钮（`resetHomeFilters` + `Empty` 组件的 `#extra` slot），是我上一轮分析时看漏了。但审计该函数时发现一个真实的小 bug：`resetHomeFilters()` 只重置了 `searchText`，没有同步重置 `debouncedSearchText`——而后者是走 `useDebounceFn` 300ms 防抖同步的（`watch(searchText, v => updateDebouncedSearch(v))`），空状态的文案/图标/列表过滤全部读的是 `debouncedSearchText`。所以点击"清除搜索与筛选"后，空状态会卡住 300ms 才消失，与旁边搜索框自带的"清除"按钮（`clearSearch()`，两个字段同步清空）体验不一致。修复：`resetHomeFilters()` 里补上 `debouncedSearchText.value = ''`，与 `clearSearch()` 保持一致的即时清空行为。**该修复保留，未被撤回。**
+  3. **首页卡片「三网」延迟行分析与美化**：`NodeCard.vue` 的"三网"行（按 ping 任务分项展示电信/联通/移动等线路延迟）此前只显示裸数字用 `·` 分隔（如 "23ms · 45ms · 61ms"），要分清哪个数字对应哪条线路必须逐个悬浮 `DataTooltip` 查看——这违背了"三网对比"本身"一眼看清"的设计意图，是这次分析发现的核心问题。另确认这一行只存在于卡片视图（`NodeCard.vue`），列表视图（`NodeList.vue`）完全没有等价行——这是一个更大的功能缺口，本次未处理（需要新增列，改动范围超出"美化"，留作后续独立任务）。修复实现：曾给每个数值前加任务名前 2 字的短标签（"电23ms · 联45ms · 移61ms"）。**用户反馈不喜欢这个视觉风格，明确要求恢复原来的纯数字展示，已在下一轮撤回**（`shortLabel` 字段和渲染逻辑全部移除，完整任务名仍保留在 tooltip 里）。
+- 验证：`bun run type-check`、对 3 个改动文件单独跑 `eslint`（零告警）、`bun run build`（type-check + vite build + zip 打包）均通过。浏览器验证：`agent-browser` 打开首页确认无新增 JS 报错（仅有沙盒环境固有的 RPC 500，与本次改动无关）。
 - 版本：`komari-theme.json` 0.6.5 → 0.6.6；README 版本里程碑表格同步追加本次改动摘要。
 
 ## 历史任务
@@ -71,7 +78,7 @@
 
 - 状态：done，DataTooltip 改为 Teleport+fixed 彻底重构（上一版 CSS transform 纠偏方案仍会「跑位盖住别处内容」，本次为根治版）
 - 起因：用户反馈上一轮修复（见下方旧记录）没有解决问题——截图显示悬停「三网」行最右侧延迟数字时，tooltip 确实渲染出来了，但被拽到离数字很远的左侧位置，盖住了上一行「剩余152天 / ¥138.78」的文字。说明上一版"水平居中 + 越界纠偏"的 CSS transform 方案在窄卡片场景下纠偏量过大，会让气泡跑到无关位置盖住别的正文——遮罩问题从"自己被裁掉"变成了"别人被盖住"，本质没解决。
-- 根因：上一版用 `position: absolute` 挂在触发元素自身的包裹层下（该层在多层 `overflow-hidden` 的卡片/进度条容器内），靠 CSS 变量做"从期望居中位置到视口边界"的位移纠偏；这个位移量在窄视口/窄卡片下可能很大，导致气泡被硬拽到离触发元素很远的地方。
+- 根因：上一版用 `position: absolute` 挂在触发元素自身的包裹层下（该层在多层 `overflow-hidden` 的卡片/进度条容器内），靠 CSS 变量做"从期望居中位置到视口边界"的位移纠偏；这个��移量在窄视口/窄卡片下可能很大，导致气泡被硬拽到离触发元素很远的地方。
 - 修复（彻底重写 `DataTooltip.vue`）：
   - 气泡不再挂在触发元素的局部容器下，改用 `<Teleport to="body">` 直接挂到 `<body>`，彻底脱离任何祖先的 `overflow`/层叠上下文，永久不会被任何卡片、进度条容器裁切；
   - 定位方式从"先居中再算纠偏"改为"直接用 `getBoundingClientRect()` 实测触发元素和气泡尺寸，计算贴着触发元素只留 8px 间距的精确坐标"（`position: fixed`），气泡永远紧贴被悬停的元素本身，不会跳到很远的位置；
@@ -100,7 +107,7 @@
 - 版本：`komari-theme.json` 0.5.5 → 0.5.6。
 
 - 状态：done，节点卡片新增「三网」分项延迟行（M4 UI/UX）
-- 目标：在节点卡片"延迟/丢包"整块区域正上方新增一行"三网"，按 ping 任务分项展示延迟（不做跨任务平均），动态适配任务数量：1 个任务时显示单个数字、无分隔符；≥2 个任务时最多显示前 3 个，用 `·` 分隔；丢包仍只看现有底部加权均值，不新增丢包分项行；不加折叠/展开交互，满足条件（存在任务级延迟数据）就固定显示。
+- 目标：在节点卡片"延迟/丢包"整块区域正上方新增一行"三网"，按 ping 任务分项展示延迟（不做跨任务平均），动态适配任务数量：1 个任务时显示单个数字、无分��符；≥2 个任务时最多显示前 3 个，用 `·` 分隔；丢包仍只看现有底部加权均值，不新增丢包分项行；不加折叠/展开交互，满足条件（存在任务级延迟数据）就固定显示。
 - 实现：
   - `useNodePingStats.ts`：`NodePingStatsState` 新增 `taskLatencies: NodePingTaskLatency[]`（`taskId`/`name?`/`latency`，`latency` 为 `null` 表示该任务当前无有效样本）；`buildStats` 两条分支（metricStats 主路径 + records-only 回退路径）都补齐计算，顺序沿用后端/上游返回的原始任务顺序；`isValidStatsState` 同步校验新字段；`CACHE_VERSION` 8→9 使旧缓存整体失效；`useNodePingStats` 返回值新增 `taskLatencies` computed。
   - `useNodePingDisplay.ts`：新增 `NodePingTaskLatencyItem`（`key`/`valueText`/`tooltip`）与 `TASK_LATENCY_DISPLAY_LIMIT = 3`；新增 `taskLatencyItems`（取前 3 项，`latency===null` 时 `valueText` 为 `--`，`tooltip` 为"任务名 数值"）与 `hasTaskLatencyItems`；沿用 `lastLatencyBars` 同款"记忆最后一次有数据的值"模式，避免 `pingEnabled` 短暂置 false（路由切换等）时该行闪烁消失。
@@ -187,7 +194,7 @@
 - 实现：共享阈值改为 5 天红色、10 天黄色；NodeCard 对到期状态着色并把无效日期显示为 `-`；短时历史缺少有效 CPU 点时回退 `common:getRecords`，同时保留新指标接口返回的 Ping 等独立序列；兼容记录的运行时数值先过滤非有限值再进入图表。
 - 回归：新增固��时钟下的 5/10 天边界颜色检查，以及新指标接口缺少 `cpu.usage` 时 4 小�� / 1 天 CPU 兼容回退检查。
 - 验证：`bun run lint`、`bun run build`、后续 `bun run build-only` 和 `git diff --check` 通过；构建产物 `komari-theme-Glassmorphism-build-b56ef97.zip` 保持 `komari-theme.json`、`preview.png`、`dist/` 顶层契约。
-- 浏览器：系统 Chrome 两条聚焦用例均执行���且无失败产物，Windows Chrome 在测试结束后的关闭阶段未自行退出，由 120 秒外层超时终止；应用内浏览器确认 Vite 入口可装载，本机未运行 `127.0.0.1:25774` Komari 后端，因此普通开发页的 API/RPC 代理按预期返回 500，实际数据视图由确定性 mock 用例覆盖。
+- 浏览器：系统 Chrome 两条聚焦用例均执行���且无失败产物，Windows Chrome 在测试结束后的关闭阶段未自行退出，由 120 秒外层超时终止；应用内浏览器确认 Vite 入口可装载，本机未运行 `127.0.0.1:25774` Komari 后端，因此普通开发页的 API/RPC ��理按预期返回 500，实际数据视图由确定性 mock 用例覆盖。
 - 发布目标：`komari-theme.json` 与 README 已同步至 v3.3.4；发布提交仅包含本次修复、测试、版本和文档，不包含工作区原有预览图删除及本地目录。
 - 发布完成：提交 `e2129252b358fcbc42d1fe445b736df2b8003f8c` 已推送 `main`；Release On Version Bump run `31414499653` 与 Visual Regression run `31414499655` 均成功，tag / Release `v3.3.4` 指向该提交。
 - 线上资产：`komari-theme-Glassmorphism-build-e212925.zip`，7,593,495 bytes；GitHub digest 与下载后 SHA-256 均为 `6DE5F47E8EB4178572C3B78117481403EB68A8858C7A1DBDDC0D2F004CC37693`，包内版本 3.3.4、771 个 entries，顶层契约完整。此最终交接状态只保留在本地，避免纯文档推送再次触发工作流。
@@ -225,7 +232,7 @@
 ### 2026-08-26 目录调整与 README 重写
 
 - **项目目录调整**：把项目从 `repo-analysis/` 子目录移动到仓库根目录 `/Users/jlthzy/Documents/kmemos/komari-theme/`。方式：合并 `repo-analysis/docs/` → 根 `docs/`（superpowers 计划保留），rsync 项目文件（含 `.git`、排除 docs/node_modules/dist/产物）到根，mv node_modules，删除 `repo-analysis/`。根目录即 git 仓库（HEAD 0468dd9），构建验证通过（zip `blueprint-build-0468dd9.zip`）。
-- **README 重写**：移除 v3.x Glassmorphism 历史 changelog（v3.3.7-v3.1.2）与旧更新日志；blueprint 保留为当前项目（定位/蓝图视图/首页/工具/详情/Metric/Ping/架构/安全/兼容/设置/安装/开发/更新日志）；致谢增加 Glassmorphism 相关内容（延续自 komari-theme-Glassmorphism 的提及）；GitHub 仓库 URL 保留（远程仓库实际未��名，改 URL 会 404）。
+- **README 重写**：移除 v3.x Glassmorphism 历史 changelog（v3.3.7-v3.1.2）与旧更新日志；blueprint 保留为当前项目（定位/蓝图视图/首页/工具/详情/Metric/Ping/架构/安全/兼容/设置/安装/开发/更新日志）；致谢增加 Glassmorphism 相关内容（延续自 komari-theme-Glassmorphism 的提及）；GitHub 仓库 URL 保留（远程仓库实际未����，改 URL 会 404）。
 - 注意：`docs/superpowers/`、`prototypes/` 为非 git 跟踪的本地文件（原型与开发计划），未提交；远程仓库名仍为 komari-theme-Glassmorphism（如需彻底改名需在 GitHub 重命名仓库并同步 README URL）。内部开发文档（AGENTS.md/CLAUDE.md/AIAGENTREADME.md）仍含旧名 "komari-theme-Glassmorphism"，未同步（用户仅要求 README）。
 
 ### 2026-08-26 blueprint v0.0.11 概览卡片背景修复
@@ -317,7 +324,7 @@
 - 用户在真实后端验证 blueprint 主题：蓝图默认视图正常���节点卡片视图效果良好、但设备表 CPU/内存/硬盘列显示异常。
 - 根因：`mapper.ts` 的 `mapNode` 把 `NodeData.ram`/`disk`（字节数）直接当作百分比显示，`cpu` 未格式化，`fmtDiskText` 也错误地假设 `disk` 是百分比。
 - 修复：新增 `percent(used,total)`（字节→0-100 百分比）与 `round1`（1 位小数）；`mem`/`disk` 改为百分比换算，`cpu` 保留 1 位小数，`diskText` 改为字节直接换算 GiB；`BlueprintSchedule` 网络列新增 `fmtNet`（B/s→G/M/K 自适应单位）。
-- 用户明确：**不要**把蓝图改成独立默认主页，保持"蓝图作为首页工具且默认显示"的现状。已回退 HomeView 的结构改动（activeHomeTool 恢复默认 'blueprint'、homeTools 含 blueprint、渲染顺序恢复为 v-else-if）。
+- 用���明确：**不要**把蓝图改成独立默认主页，保持"蓝图作为首页工具且默认显示"的现状。已回退 HomeView 的结构改动（activeHomeTool 恢复默认 'blueprint'、homeTools 含 blueprint、渲染顺序恢复为 v-else-if）。
 - 验证：`bun run type-check`、`bun run lint`、`bun run build` 通过；视觉回归 11 条全绿（快照更新，蓝图设备表现显示百分比）。
 
 ### 2026-08-11 Ping task order parity
@@ -371,7 +378,7 @@
 - 默认主题替换为已发布的 Glassmorphism `v3.1.8` 资产；包内配置名为“主题设置”，完整管理端来源记录为 komari-web `0fee1f1`，路由桥接覆盖 `/admin`、`/terminal`、`/manage/*` 并加载 `glass-admin.css`。
 - 使用 Go `1.26.4`、Zig `0.14.1`、`x86_64-linux-musl`、`CGO_ENABLED=1` 和 `-buildvcs=false` 构建 Linux amd64 ELF；显式版本为 `integration-f08f47d-theme-v3.1.8`，版本哈希为完整 Komari PR head。
 - `go test ./database/clients ./web/api/client ./web/rpc/jsonrpc` 在 Windows amd64 CGO + Zig 环境下通过；`go vet ./...` 通过；Linux 目标构建通过。
-- 功能存在性清单确认：计费费率/锚点/下月到期/一次性开机费/流量重置保护/非阻塞上报，访客审计默认关闭/RPC/IP-UA 限流/UTF-8 截断/日志索引与 SQL 过滤，主题审计摘要及 JSON/CSV 导出，以及 Glassmorphism 默认前后台均进入交付包。
+- 功能存在性清单确认：计费费率/锚点/下月到期/一次性开机费/流量重置保护/非阻塞上报，访��审计默认关闭/RPC/IP-UA 限流/UTF-8 截断/日志索引与 SQL 过滤，主题审计摘要及 JSON/CSV 导出，以及 Glassmorphism 默认前后台均进入交付包。
 - 最终目录：`output/integration-test/final/komari-glassmorphism-integration-20260716/`；总包：`output/integration-test/final/komari-glassmorphism-integration-20260716.zip`，32,089,492 bytes，SHA-256 `02f896751dfb87ff1a4a144ca69c3f9bfd83376de54492ba2013918f51c6c873`。
 - 二进制 SHA-256 `a966d695e4d3b84496567465ed8bf7a585459656bf756a1e50616ff21b3578ae`；主题 zip SHA-256 `f4dd86ad26a9a55ebfcecc1c76ac07cdcd5fcfd1883cf608ec4e7f491388ea26`；独立后台 zip SHA-256 `e17fa820a4a2d184541f068bc996dea70ffa3bb6502be102dad902b1bd599f6d`。
 - 未包含：每日/每周主题更新提醒、自动安装主题、不可篡改账本；实时费用仍是 fork 实验性估算功能。运行态数据库迁移、真实 Agent 上报和登录浏览器联调等待用户在 Linux 测试机部署。
@@ -413,7 +420,7 @@
 - 已从官方 `komari-monitor/komari-web` 提交 `ebfbd3e079f8777a746276fe67429b519024f7c7` 完整构建 415 个 PWA 预缓存文件，并同步到 `public/admin-app/`。
 - 已加入根入口路由桥接和 admin-app URL 恢复，BrowserRouter 在 `/admin/...`、`/terminal`、`/manage/*` 下保留原路径语义。
 - 已加入 Glassmorphism 亮暗色 CSS 覆盖，不改官方 React ���能代码；后台菜单已在浏览器确认包含站点、主��、登录、通知、XtermJS、监控数据库、远程执行、Ping、会话、账户和日志等完整模块。
-- 已新增 `bun run sync:admin -- <komari-web-path>`，可从新的官方 checkout 重建并记录来源提交。
+- ���新增 `bun run sync:admin -- <komari-web-path>`，可从新的官方 checkout 重建并记录来源提交。
 - 已为主题 Vite 开发服务器补 `/api`、`/themes` 代理，默认指向 `http://127.0.0.1:25774`，可用 `VITE_API_TARGET` 覆盖。
 - 最终校验：`bun run lint` 和 `bun run build` 均通过；生成 `komari-theme-Glassmorphism-build-e3abeff.zip`（7,573,457 bytes、770 个条目），关键管理模块与来源记录均已核对。浏览器已确认 `/admin` 完整菜单和 Glassmorphism 亮暗色覆盖；本地未启动 Komari 后端，因此未进行登录后的 API 写操作验证。
 
@@ -515,7 +522,7 @@
 - 已实测公开节点详情页 `mt.vpnmiao.com`：官方默认将 CPU+Load、RAM+Swap、实时网络+累计流量、Ping 多任务合并成卡，支持 S/M/L、增删指标和拖拽；新增菜单来自 `public:listMetricDefinitions`。
 - 已核对 RPC 文档与 Komari 1.2.6 `c828653`：后端固定创建 25 个定义；GPU 设备序列带 `device_index/device_name`，Ping 序列带 `task_id`；`ping.loss` 写入值为 0/1，聚合后按比例显示；`public:queryMetrics` 的空桶是 `null`。
 - 设计决策：主题设置提供 12 个稳定指标族和多套预设，覆盖全部官方指标但避免 25 张单指标碎卡；保留原有独立 PingChart，LoadChart 中的 Ping 卡为可选紧凑总览。
-- 已完成 25 个 definition 到 12 个图表族的查询、展示和预设映射；统一图标头部，并校验 Iconify 图标资源。GPU、显存、温度、流量、Ping 延迟和 Ping 丢包按 definition/数据存在性自动显示。
+- 已完成 25 个 definition 到 12 个图表族的查询、展示和预设映射；统一图标头部，并校验 Iconify 图标资源。GPU、显存、温度、流量、Ping ��迟和 Ping 丢包按 definition/数据存在性自动显示。
 - 按用户反馈将详情概览恢复为宽屏 4 列、中屏 3 列、移动端 2 列，预设调整为 8/12/16 张；独立 Ping 图新增精确起止时间，新 metric API 传 `start/end`，无有效时序点时回落 legacy 并按保留窗口回溯后裁剪，legacy 仍以 `value < 0` 识别丢包。
 - 丢包兼容补强：PingChart 只有 latency series 对应任务同时具备非 approximate loss stats 才采用新路径，否则整体回落旧 records；首页 Ping 汇总不再过滤 100% 丢包任务，metric loss 按 `total` 加权，loss stats 缺失/估算时回落 legacy。旧接口的负值哨兵判断保持不变。
 

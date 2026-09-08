@@ -461,9 +461,7 @@ const customTags = computed(() => parseTags(props.node.tags).flatMap(t => t.text
           后台可能只配置了 1 个任务，也可能配置了多个（如电信/联通/移动三网测速）——
           这里最多取前 3 项，单任务节点这里就是一个数字、没有分隔点，多任务节点用 · 分隔。
           只在存在任务级延迟数据时渲染，不占位、不影响其余节点的卡片高度。
-          每项数值前带任务名前 2 字的短标签（如"电信""联通"）：此前这里只显示裸数字，
-          要分清"23ms"到底是哪条线路只能逐个悬浮 tooltip 查看，违背了"三网对比"一眼看清的初衷；
-          未配置任务名的节点 shortLabel 为空串，v-if 会让这些数字退化回原来的纯数字展示。
+          纯数字展示，完整任务名放在 tooltip 里，悬浮查看对应线路。
         -->
         <div
           v-if="hasTaskLatencyItems"
@@ -472,14 +470,11 @@ const customTags = computed(() => parseTags(props.node.tags).flatMap(t => t.text
           @click.stop
         >
           <span class="text-xs font-normal text-muted-foreground">三网</span>
-          <div class="flex items-center gap-1.5 font-mono text-xs font-medium">
+          <div class="flex items-center gap-1 font-mono text-xs font-medium">
             <template v-for="(item, index) in taskLatencyItems" :key="item.key">
-              <span v-if="index > 0" class="text-muted-foreground/40">·</span>
+              <span v-if="index > 0" class="text-muted-foreground/50">·</span>
               <DataTooltip :content="item.tooltip" placement="top" as="span" content-class="whitespace-nowrap">
-                <span class="inline-flex items-baseline gap-0.5">
-                  <span v-if="item.shortLabel" class="font-sans text-[10px] font-normal text-muted-foreground/70">{{ item.shortLabel }}</span>
-                  <span :class="latencyTextClass(item.valueText)">{{ item.valueText }}</span>
-                </span>
+                <span :class="latencyTextClass(item.valueText)">{{ item.valueText }}</span>
               </DataTooltip>
             </template>
           </div>
