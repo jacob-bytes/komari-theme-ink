@@ -23,6 +23,7 @@
 - 版本：0.6.6 → 0.6.7。
 - 0.6.8：纯升版号（代码无变化，把去重+实心条两次改动正式落版，之前漏升版是我的错）。
 - 0.6.9：三网每行加丢包历史第二排（lossBars，走自带getLossToneClass），对齐图二每家两排。临时夹具强制legacy验证两排渲染后已恢复夹具，截图为证；lint+build过，已提交推送。
+- 0.6.10：回退第二排（metric下无真实分任务丢包历史，灰条是噪音，不如6.8），回到每行名字+延迟+丢包数字+延迟历史一排。数据层loss标量保留。
 - 去重：分任务迷你条并入自带唯一的`toLatencyHistoryBar`构造，与聚合大块同一套色阶/tooltip，不再两套并存。lint+build通过，包不变`ink-build-b4ea02a.zip`。
 - 真机验证（visual lab代替）：一次性`threeline.verify.spec.ts`（已删）+ `pingTaskOrdering`夹具（浙江移动/联通/电信3任务）跑通，首页卡三行名字+延迟+丢包+各自行实心历史条均渲染，顺序跟后端一致；截图`test-results/threeline-verify.png`保留。
 - 本机真实部署验证：Komari 1.4.3 dashboard（127.0.0.1:25774）+ agent（本地验证机，在线）+ ink 0.6.7（`ink-build-b4ea02a.zip`已导入并设为当前主题）；直插3条TCP ping任务（河南电信180.76.76.76:80 / 河南联通119.29.29.29:80 / 河南移动223.5.5.5:443，10s间隔），agent真实上报，`test-results/real-deploy-card.png`为证：三行名字+延迟（44/48/46ms）+丢包0.0%+各自行历史条，下面平均大块不动。

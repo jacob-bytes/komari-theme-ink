@@ -24,7 +24,6 @@ export interface NodePingTaskLatencyItem {
   lossText: string
   lossTooltip: string
   historyBars: NodePingBar[]
-  lossBars: NodePingBar[]
 }
 
 const TASK_LATENCY_DISPLAY_LIMIT = 3
@@ -246,15 +245,6 @@ export function useNodePingDisplay(
             ? `${formatDateTime(point.time, 'HH:mm:ss')}\n无采样数据`
             : `${formatDateTime(point.time, 'HH:mm:ss')}\n${Math.round(point.latency)} ms`,
         }))
-        // 图二每家运营商下面有两排：延迟一排、丢包一排。这里第二排直接复用该任务自己的
-        // 分桶丢包（与延迟同一批桶），色阶走自带 getLossToneClass，不另起一套。
-        const lossBars: NodePingBar[] = (task.history ?? []).map((point, index) => ({
-          key: `${task.taskId}-loss-${point.time}-${index}`,
-          className: point.loss === null ? 'bg-muted-foreground/15' : getLossToneClass(point.loss),
-          tooltip: point.loss === null
-            ? `${formatDateTime(point.time, 'HH:mm:ss')}\n无采样数据`
-            : `${formatDateTime(point.time, 'HH:mm:ss')}\n${point.loss.toFixed(1)}%`,
-        }))
         return {
           key: task.taskId,
           name: label,
@@ -263,7 +253,6 @@ export function useNodePingDisplay(
           lossText,
           lossTooltip: `${label} 丢包 ${lossText}`,
           historyBars,
-          lossBars,
         }
       })
   })
