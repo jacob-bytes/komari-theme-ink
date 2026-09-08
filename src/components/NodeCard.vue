@@ -504,6 +504,27 @@ const customTags = computed(() => parseTags(props.node.tags).flatMap(t => t.text
                 />
               </DataTooltip>
             </div>
+            <div
+              v-if="item.lossBars.length"
+              class="grid h-1 items-end gap-[1px] opacity-80"
+              :style="{ gridTemplateColumns: `repeat(${item.lossBars.length}, minmax(0, 1fr))` }"
+            >
+              <DataTooltip
+                v-for="bar in item.lossBars"
+                :key="bar.key"
+                :content="bar.tooltip"
+                placement="top"
+                as="span"
+                class="h-full w-full"
+                content-class="whitespace-nowrap"
+              >
+                <span
+                  :aria-label="bar.tooltip"
+                  class="block h-full w-full rounded-[1px]"
+                  :class="bar.className"
+                />
+              </DataTooltip>
+            </div>
           </div>
         </div>
 
