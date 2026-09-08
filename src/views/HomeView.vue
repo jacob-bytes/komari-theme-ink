@@ -84,6 +84,10 @@ const activeHomeTool = ref<HomeToolKey>('nodes')
 const activeQuickControl = ref<HomeQuickControlKey | null>(null)
 function resetHomeFilters() {
   searchText.value = ''
+  // 搜索文本走 300ms 防抖同步到 debouncedSearchText（见下方 watch(searchText, ...)），
+  // 而空状态的文案/图标和列表过滤都读的是 debouncedSearchText。只清空 searchText 的话，
+  // 用户点击"清除搜索与筛选"后空状态会卡住 300ms 才消失——这里必须两个一起立即清空。
+  debouncedSearchText.value = ''
   activeQuickControl.value = null
 }
 const pingDialogNode = ref<NodeData | null>(null)
