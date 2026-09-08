@@ -21,6 +21,10 @@ export interface NodePingTaskLatency {
   name?: string
   // 该任务当前没有任何有效样本时为 null，展示层应显示为占位符（如 --），而不是 0ms。
   latency: number | null
+  // 该任务的丢包率（%），无有效样本时为 null，展示层显示占位符。
+  loss: number | null
+  // 该任务各自的延迟历史（只取延迟部分画迷你条），不做跨任务平均。
+  history: NodePingHistoryPoint[]
 }
 
 export interface NodePingStatsState {
@@ -69,8 +73,8 @@ interface SharedPingRecordsEntry {
 }
 
 const HISTORY_BUCKET_COUNT = 20
-// v9：NodePingStatsState 新增 taskLatencies 字段，历史缓存条目结构不再匹配，需要整体失效重取。
-const CACHE_VERSION = 9
+// v10：NodePingStatsState.taskLatencies 新增 loss + history 字段，历史缓存条目结构不再匹配，需要整体失效重取。
+const CACHE_VERSION = 10
 const CACHE_KEY_PREFIX = 'komari-theme-emerald:node-ping-stats'
 const FULL_LOSS_EPSILON = 1e-6
 const PING_RECORD_REFRESH_INTERVAL_MS = 60_000
@@ -164,7 +168,9 @@ function isValidTaskLatency(value: unknown): value is NodePingTaskLatency {
   const item = value as Record<string, unknown>
   return typeof item.taskId === 'string'
     && (item.latency === null || typeof item.latency === 'number')
+    && (item.loss === undefined || item.loss === null || typeof item.loss === 'number')
     && (item.name === undefined || typeof item.name === 'string')
+    && (item.history === undefined || (Array.isArray(item.history) && (item.history as unknown[]).every(isValidHistoryPoint)))
 }
 
 function isValidStatsState(value: unknown): value is NodePingStatsState {
@@ -587,17 +593,27 @@ function buildStats(records: PingRecord[], metricStats?: PingMetricTaskStats[], 
 
     const avgLoss = weightedAverage(lossValues)
 
-    // 按任务保留各自的延迟数值（不做跨任务平均），供首页卡片「三网」行分项展示。
+    // 按任务保留各自的延迟/丢包/历史（不做跨任务平均），供首页卡片「三网」行分项展示。
     // 顺序沿用 statsWithSamples 的原始顺序（即后端 stats 接口返回的任务顺序，近似任务配置顺序）。
-    const taskLatencies: NodePingTaskLatency[] = statsWithSamples.map(stat => ({
-      taskId: stat.task_id,
-      name: stat.name,
-      latency: stat.valid > 0 && isFiniteNumber(stat.avg)
-        ? stat.avg
-        : isFiniteNumber(stat.latest)
-          ? stat.latest
-          : null,
-    }))
+    // 历史按该任务自己的采样点单独分桶，只取延迟部分画迷你条；metric 的丢包明细是聚合的，
+    // 分任务丢包只给标量（stat.loss），不伪造分任务丢包历史。
+    const taskLatencies: NodePingTaskLatency[] = statsWithSamples.map((stat) => {
+      const numericTaskId = normalizeTaskId(stat.task_id)
+      const taskRecords = Number.isFinite(numericTaskId)
+        ? records.filter(record => record.task_id === numericTaskId)
+        : []
+      return {
+        taskId: stat.task_id,
+        name: stat.name,
+        latency: stat.valid > 0 && isFiniteNumber(stat.avg)
+          ? stat.avg
+          : isFiniteNumber(stat.latest)
+            ? stat.latest
+            : null,
+        loss: !stat.loss_approximate && isFiniteNumber(stat.loss) ? stat.loss : null,
+        history: buildPingHistory(taskRecords),
+      }
+    })
 
     return {
       avgLatency: latencyValues.length ? weightedAverage(latencyValues) : average(latestLatencyValues),
@@ -636,16 +652,18 @@ function buildStats(records: PingRecord[], metricStats?: PingMetricTaskStats[], 
       .map(record => record.value)
       .filter(value => value >= 0)
 
-    taskLossValues.push((recordsByTask.length - validValues.length) / recordsByTask.length * 100)
+    const taskLoss = (recordsByTask.length - validValues.length) / recordsByTask.length * 100
+    taskLossValues.push(taskLoss)
+    const taskHistory = buildPingHistory(recordsByTask)
 
     if (!validValues.length) {
-      taskLatencies.push({ taskId: String(taskId), latency: null })
+      taskLatencies.push({ taskId: String(taskId), latency: null, loss: taskLoss, history: taskHistory })
       continue
     }
 
     const taskAvgLatency = average(validValues)
     latencyValues.push(taskAvgLatency)
-    taskLatencies.push({ taskId: String(taskId), latency: taskAvgLatency })
+    taskLatencies.push({ taskId: String(taskId), latency: taskAvgLatency, loss: taskLoss, history: taskHistory })
 
     if (validValues.length > 1) {
       const p50 = getPercentile(validValues, 0.5)

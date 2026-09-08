@@ -18,8 +18,12 @@ export interface NodePingBar {
 // UI 侧固定只取前 N_TASK_LATENCY_ITEMS 项，其余的本阶段不处理。
 export interface NodePingTaskLatencyItem {
   key: string
+  name: string
   valueText: string
   tooltip: string
+  lossText: string
+  lossTooltip: string
+  historyBars: NodePingBar[]
 }
 
 const TASK_LATENCY_DISPLAY_LIMIT = 3
@@ -58,6 +62,19 @@ function getLossToneClass(loss: number): string {
   return 'bg-signal-5 ping-signal-pattern-4'
 }
 
+// 迷你条只用实心色阶，不带斜纹：h-1 高度下斜纹就是脏点，与延迟/丢包大块的实心观感对齐。
+function getLatencySolidClass(latency: number): string {
+  if (latency <= 60)
+    return 'bg-signal-1'
+  if (latency <= 100)
+    return 'bg-signal-2'
+  if (latency <= 160)
+    return 'bg-signal-3'
+  if (latency <= 200)
+    return 'bg-signal-4'
+  return 'bg-signal-5'
+}
+
 export function useNodePingDisplay(
   uuid: MaybeRefOrGetter<string>,
   options: UseNodePingDisplayOptions = {},
@@ -85,26 +102,34 @@ export function useNodePingDisplay(
     maxCount: PING_SUMMARY_MAX_COUNT,
   })
 
+  // 自带的唯一一套延迟色块构造：聚合大块和分任务迷你条都走这里，
+  // 不另起一套色阶/tooltip，避免两处展示语义分叉。
+  function toLatencyHistoryBar(time: string, latency: number | null, key: string): NodePingBar {
+    return {
+      key,
+      className: latency === null ? 'bg-muted-foreground/15' : getLatencyToneClass(latency),
+      tooltip: latency === null
+        ? `${formatDateTime(time, 'HH:mm:ss')}\n无采样数据`
+        : `${formatDateTime(time, 'HH:mm:ss')}\n${Math.round(latency)} ms`,
+    }
+  }
+
   function buildPingBars(metric: NodePingMetric): NodePingBar[] {
     const points = pingStats.history.value
     if (!points.length)
       return []
 
     return points.map((point, index) => {
-      const value = point[metric]
+      if (metric === 'latency')
+        return toLatencyHistoryBar(point.time, point.latency, `${point.time}-${index}`)
 
+      const value = point[metric]
       return {
         key: `${point.time}-${index}`,
-        className: value === null
-          ? 'bg-muted-foreground/15'
-          : metric === 'latency'
-            ? getLatencyToneClass(value)
-            : getLossToneClass(value),
+        className: value === null ? 'bg-muted-foreground/15' : getLossToneClass(value),
         tooltip: value === null
           ? `${formatDateTime(point.time, 'HH:mm:ss')}\n无采样数据`
-          : metric === 'latency'
-            ? `${formatDateTime(point.time, 'HH:mm:ss')}\n${Math.round(value)} ms`
-            : `${formatDateTime(point.time, 'HH:mm:ss')}\n${value.toFixed(1)}%`,
+          : `${formatDateTime(point.time, 'HH:mm:ss')}\n${value.toFixed(1)}%`,
       }
     })
   }
@@ -204,18 +229,30 @@ export function useNodePingDisplay(
   })
 
   // 只要该节点配置了 ping 任务（不管 1 个、2 个还是 3 个以上），就取前
-  // TASK_LATENCY_DISPLAY_LIMIT 项渲染「三网」行；单任务节点这里就是一个数字，
-  // 不带分隔符——由使用方（模板）按数组长度自然渲染，这里不做数量上的特殊分支。
+  // TASK_LATENCY_DISPLAY_LIMIT 项渲染「三网」行；每项自带该任务自己的延迟历史迷你条
+  // 和丢包标量，不做跨任务平均。单任务节点这里就是一行，不做数量上的特殊分支。
   const taskLatencyItemsRaw = computed<NodePingTaskLatencyItem[]>(() => {
     return pingStats.taskLatencies.value
       .slice(0, TASK_LATENCY_DISPLAY_LIMIT)
       .map((task) => {
         const valueText = task.latency === null ? '--' : `${Math.round(task.latency)}ms`
         const label = task.name?.trim() || `任务 ${task.taskId}`
+        const lossText = task.loss === null || task.loss === undefined ? '--' : `${task.loss.toFixed(1)}%`
+        const historyBars: NodePingBar[] = (task.history ?? []).map((point, index) => ({
+          key: `${task.taskId}-${point.time}-${index}`,
+          className: point.latency === null ? 'bg-muted-foreground/15' : getLatencySolidClass(point.latency),
+          tooltip: point.latency === null
+            ? `${formatDateTime(point.time, 'HH:mm:ss')}\n无采样数据`
+            : `${formatDateTime(point.time, 'HH:mm:ss')}\n${Math.round(point.latency)} ms`,
+        }))
         return {
           key: task.taskId,
+          name: label,
           valueText,
-          tooltip: `${label} ${valueText}`,
+          tooltip: `${label} ${valueText} · 丢包 ${lossText}`,
+          lossText,
+          lossTooltip: `${label} 丢包 ${lossText}`,
+          historyBars,
         }
       })
   })

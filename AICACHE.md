@@ -13,6 +13,26 @@
 
 ## 当前任务
 
+- 状态：in_progress，用户需求第二轮：三网三行每行还要有自己的历史条+丢包（M4 UI/UX）
+- 目标：接上一版三行名字+延迟，补上分任务丢包标量和分任务延迟历史迷你条，对齐junimo直观度，不写死地区、不伪造分任务丢包历史（metric丢包明细聚合，只给标量）。
+- 改动：
+  1. `useNodePingStats.ts`：`NodePingTaskLatency`加`loss`+`history`；metric路径按`normalizeTaskId`过滤该任务采样单独分桶；legacy路径按`taskRecords`分组单独分桶；`CACHE_VERSION 9→10`。
+  2. `useNodePingDisplay.ts`：`NodePingTaskLatencyItem`加`lossText/lossTooltip/historyBars`，复用`getLatencyToneClass`+时间tooltip。
+  3. `NodeCard.vue`三网块：每行`任务名 + 延迟 + 丢包`首行，下挂`h-1`历史条grid；大数据块延迟/丢包不动。
+- 验证：lint三文件零告警；`bun run build`通过，`ink-build-b4ea02a.zip (3.58MB)`，0.6.7。沙盒无真实后端，分任务条待真机看。
+- 版本：0.6.6 → 0.6.7。
+- 去重：分任务迷你条并入自带唯一的`toLatencyHistoryBar`构造，与聚合大块同一套色阶/tooltip，不再两套并存。lint+build通过，包不变`ink-build-b4ea02a.zip`。
+- 真机验证（visual lab代替）：一次性`threeline.verify.spec.ts`（已删）+ `pingTaskOrdering`夹具（浙江移动/联通/电信3任务）跑通，首页卡三行名字+延迟+丢包+各自行实心历史条均渲染，顺序跟后端一致；截图`test-results/threeline-verify.png`保留。
+- 本机真实部署验证：Komari 1.4.3 dashboard（127.0.0.1:25774）+ agent（本地验证机，在线）+ ink 0.6.7（`ink-build-b4ea02a.zip`已导入并设为当前主题）；直插3条TCP ping任务（河南电信180.76.76.76:80 / 河南联通119.29.29.29:80 / 河南移动223.5.5.5:443，10s间隔），agent真实上报，`test-results/real-deploy-card.png`为证：三行名字+延迟（44/48/46ms）+丢包0.0%+各自行历史条，下面平均大块不动。
+- 目标：把`NodeCard.vue`三网行从`170ms·203ms·185ms`单行`·`分隔，改成按后台实际任务名纵向一任务一行，最多3行，不写死江苏字样。数据层`taskLatencies`本来就是分任务不平均、保后台顺序，直接复用。
+- 改动：
+  1. `src/composables/useNodePingDisplay.ts`：`NodePingTaskLatencyItem`新增`name`字段并透出。
+  2. `src/components/NodeCard.vue`三网块改`flex-col`纵向`v-for`，每行任务名+延迟值+Tooltip，保留离线模糊、无数据不占位。
+- 验证：`bun run lint`两文件零告警通过；`bun run build`通过，产出`ink-build-b4ea02a.zip (3.57MB)`，zip含`komari-theme.json`+`preview.png`+`dist/`，版本0.6.6。沙盒无真实Komari后端，三行效果待真机验证。
+- 版本：`komari-theme.json` 0.6.5 → 0.6.6 并重打 zip。
+
+## 上一轮任务（done）
+
 - 状态：done，用户反馈两处 bug 修复：顶部“实时速率”卡片上传单位硬编码 + 离线节点卡片圆角与卡片本体不一致
 - 目标：核实并修复用户反馈的两个具体问题：
   1. **“上传速率单位有问题，MB/s 也显示 KB/s”**：`NodeGeneralCards.vue` 的 `netSpeed`（首页“实时速率”卡片）case 里，`unit` 字段把上传速率单位写成了固定字符串 `` `KB/s · ↓${...}` ``，而下载那一半正确地用了 `formattedSpeedDown.value.unit`（随数值动态换算 KB/s、MB/s、GB/s）。也就是上传速率一旦跨过 1024 KB/s 换算成 MB/s，数值变了但单位显示仍卡在 "KB/s"。改成读取 `formattedSpeedUp.value.unit`，和下载保持同样的动态换算逻辑。`formattedSpeedUp`/`formattedSpeedDown` 本身（`formatBytesPerSecondSplit`）没有问题，只是这一处展示层把值硬编码了。

@@ -457,25 +457,53 @@ const customTags = computed(() => parseTags(props.node.tags).flatMap(t => t.text
         </div>
 
         <!--
-          三网：按 ping 任务分项展示延迟，不做跨任务平均。
-          后台可能只配置了 1 个任务，也可能配置了多个（如电信/联通/移动三网测速）——
-          这里最多取前 3 项，单任务节点这里就是一个数字、没有分隔点，多任务节点用 · 分隔。
+          三网：按 ping 任务分项展示，不做跨任务平均。
+          后台配几个任务就显示几行（最多前 3 项），每行任务名 + 延迟 + 丢包 + 该任务自己的历史迷你条。
           只在存在任务级延迟数据时渲染，不占位、不影响其余节点的卡片高度。
         -->
         <div
           v-if="hasTaskLatencyItems"
-          class="flex items-center justify-between gap-2"
+          class="flex flex-col gap-1.5"
           :class="!props.node.online ? 'blur-xs opacity-50' : ''"
           @click.stop
         >
-          <span class="text-xs font-normal text-muted-foreground">三网</span>
-          <div class="flex items-center gap-1 font-mono text-xs font-medium">
-            <template v-for="(item, index) in taskLatencyItems" :key="item.key">
-              <span v-if="index > 0" class="text-muted-foreground/50">·</span>
-              <DataTooltip :content="item.tooltip" placement="top" as="span" content-class="whitespace-nowrap">
-                <span :class="latencyTextClass(item.valueText)">{{ item.valueText }}</span>
+          <div
+            v-for="item in taskLatencyItems"
+            :key="item.key"
+            class="flex flex-col gap-[1px]"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <span class="truncate text-xs font-normal text-muted-foreground">{{ item.name }}</span>
+              <span class="flex shrink-0 items-center gap-1.5 font-mono text-xs font-medium">
+                <DataTooltip :content="item.tooltip" placement="top" as="span" content-class="whitespace-nowrap">
+                  <span :class="latencyTextClass(item.valueText)">{{ item.valueText }}</span>
+                </DataTooltip>
+                <DataTooltip :content="item.lossTooltip" placement="top" as="span" content-class="whitespace-nowrap">
+                  <span :class="lossTextClass(item.lossText)">{{ item.lossText }}</span>
+                </DataTooltip>
+              </span>
+            </div>
+            <div
+              v-if="item.historyBars.length"
+              class="grid h-1 items-end gap-[1px] opacity-80"
+              :style="{ gridTemplateColumns: `repeat(${item.historyBars.length}, minmax(0, 1fr))` }"
+            >
+              <DataTooltip
+                v-for="bar in item.historyBars"
+                :key="bar.key"
+                :content="bar.tooltip"
+                placement="top"
+                as="span"
+                class="h-full w-full"
+                content-class="whitespace-nowrap"
+              >
+                <span
+                  :aria-label="bar.tooltip"
+                  class="block h-full w-full rounded-[1px]"
+                  :class="bar.className"
+                />
               </DataTooltip>
-            </template>
+            </div>
           </div>
         </div>
 
