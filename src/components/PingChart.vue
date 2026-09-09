@@ -483,7 +483,7 @@ const chartData = computed(() => {
   return data
 })
 
-// ==================== �����具函数 ====================
+// ==================== �������具函数 ====================
 
 function formatTime(time: string, showDate: boolean): string {
   const date = dayjs(time)
@@ -550,6 +550,13 @@ function toggleTask(taskId: number) {
   else {
     selectedTaskIds.value = [...selectedTaskIds.value, taskId]
   }
+}
+
+function handleTaskToggleKeydown(event: KeyboardEvent, taskId: number) {
+  if (event.key !== 'Enter' && event.key !== ' ')
+    return
+  event.preventDefault()
+  toggleTask(taskId)
 }
 
 function showAllTasks() {
@@ -830,9 +837,14 @@ onBeforeUnmount(() => {
             :data-ping-task-id="task.id"
             class="rounded-md bg-muted/60 px-2.5 py-2 hover:bg-muted flex gap-2.5 cursor-pointer select-none transition-all items-center"
             :class="[!selectedTaskIds.includes(task.id) && 'opacity-30']"
+            role="button"
+            tabindex="0"
+            :aria-pressed="selectedTaskIds.includes(task.id)"
+            :aria-label="`${selectedTaskIds.includes(task.id) ? '隐藏' : '显示'} ${task.name} 延迟曲线`"
             :onmouseover="(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.borderColor = task.color)"
             :onmouseout="(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.borderColor = '')"
             @click="toggleTask(task.id)"
+            @keydown="handleTaskToggleKeydown($event, task.id)"
           >
             <div class="flex-1 min-w-0">
               <TooltipProvider>

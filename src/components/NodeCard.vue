@@ -407,11 +407,11 @@ const customTags = computed(() => parseTags(props.node.tags).flatMap(t => t.text
           <!-- 实时网速 -->
           <div class="flex flex-col gap-0.5 rounded-lg bg-transparent min-w-0 overflow-hidden" :class="nodeCardMetricBoxClass">
             <div class="text-[11px] text-foreground flex items-center gap-1">
-              <Icon icon="tabler:chevron-up" width="11" height="11" class="text-muted-foreground/70" />
+              <Icon icon="tabler:chevron-up" width="12" height="12" class="text-muted-foreground/70" />
               <span class="truncate min-w-0 overflow-hidden">{{ formatBytesPerSecond(props.node.net_out ?? 0) }}</span>
             </div>
             <div class="text-[11px] text-foreground flex items-center gap-1">
-              <Icon icon="tabler:chevron-down" width="11" height="11" class="text-muted-foreground/70" />
+              <Icon icon="tabler:chevron-down" width="12" height="12" class="text-muted-foreground/70" />
               <span class="truncate min-w-0 overflow-hidden">{{ formatBytesPerSecond(props.node.net_in ?? 0) }}</span>
             </div>
           </div>
@@ -419,11 +419,11 @@ const customTags = computed(() => parseTags(props.node.tags).flatMap(t => t.text
           <!-- 总流量 -->
           <div class="flex flex-col gap-0.5 rounded-lg bg-transparent min-w-0 overflow-hidden" :class="nodeCardMetricBoxClass">
             <div class="text-[11px] text-muted-foreground flex items-center gap-1">
-              <Icon icon="tabler:upload" width="11" height="11" />
+              <Icon icon="tabler:upload" width="12" height="12" />
               <span class="truncate min-w-0 overflow-hidden">{{ formatBytes(props.node.net_total_up ?? 0) }}</span>
             </div>
             <div class="text-[11px] text-muted-foreground flex items-center gap-1">
-              <Icon icon="tabler:download" width="11" height="11" />
+              <Icon icon="tabler:download" width="12" height="12" />
               <span class="truncate min-w-0 overflow-hidden">{{ formatBytes(props.node.net_total_down ?? 0) }}</span>
             </div>
           </div>
@@ -436,7 +436,7 @@ const customTags = computed(() => parseTags(props.node.tags).flatMap(t => t.text
                 class="text-[11px] flex items-center gap-0.5"
                 :class="item.className ?? 'text-muted-foreground'"
               >
-                <Icon :icon="item.icon" width="11" height="11" class="shrink-0" />
+                <Icon :icon="item.icon" width="12" height="12" class="shrink-0" />
                 <span v-if="item.text" class="truncate min-w-0 overflow-hidden">{{ item.text }}</span>
                 <template v-else>
                   <span v-if="item.prefix" class="shrink-0">{{ item.prefix }}</span>

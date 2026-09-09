@@ -409,7 +409,7 @@ onMounted(() => {
         </div>
         <div class="flex flex-col gap-2 rounded-md bg-background/45 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-start gap-2 text-xs text-muted-foreground">
-            <Icon :icon="visitorAuditStatus.icon" width="15" height="15" class="mt-0.5 shrink-0" :class="visitorAuditStatus.tone" />
+            <Icon :icon="visitorAuditStatus.icon" width="14" height="14" class="mt-0.5 shrink-0" :class="visitorAuditStatus.tone" />
             <span>{{ visitorAuditStatus.text }}</span>
           </div>
           <Button
@@ -482,7 +482,7 @@ onMounted(() => {
               </td>
               <td class="px-2 py-3">
                 <Badge v-if="row.visitor && row.eventMeta" variant="outline" class="max-w-full gap-1 rounded-md border-info/40 text-[11px] text-info">
-                  <Icon :icon="row.eventMeta.icon" width="13" height="13" class="shrink-0" />
+                  <Icon :icon="row.eventMeta.icon" width="14" height="14" class="shrink-0" />
                   <span class="truncate">{{ row.eventMeta.label }}</span>
                 </Badge>
                 <Badge v-else variant="outline" class="max-w-full rounded-md text-[11px]" :class="logLevelClass(row.log.msg_type)">

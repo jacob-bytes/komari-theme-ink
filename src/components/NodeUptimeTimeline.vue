@@ -116,7 +116,7 @@ const summaryRatio = computed(() => {
     <div class="rounded-xl border border-border bg-muted/40 p-3.5">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-1.5 text-[11px] font-medium tracking-wider text-muted-foreground">
-          <Icon icon="tabler:calendar-stats" width="13" height="13" />
+          <Icon icon="tabler:calendar-stats" width="14" height="14" />
           在线状态时间轴
           <DataTooltip
             placement="top"
@@ -132,7 +132,7 @@ const summaryRatio = computed(() => {
       </div>
 
       <div v-if="isCoverageTruncated" class="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground/70">
-        <Icon icon="tabler:alert-triangle" width="11" height="11" class="shrink-0" />
+        <Icon icon="tabler:alert-triangle" width="12" height="12" class="shrink-0" />
         该节点上报较频繁，受历史记录采样上限限制，仅能可靠展示近 {{ effectiveDays }} 天（早于此的日期未展示，不代表节点异常）
       </div>
 

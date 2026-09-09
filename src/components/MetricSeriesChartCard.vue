@@ -103,7 +103,7 @@ const chartOption = computed(() => ({
     type: 'time',
     axisLine: { lineStyle: { color: 'var(--color-border)' } },
     axisTick: { show: false },
-    axisLabel: { color: '#9ca3af', fontSize: 11, hideOverlap: true },
+    axisLabel: { color: 'var(--color-muted-foreground)', fontSize: 11, hideOverlap: true },
     splitLine: { show: false },
   },
   yAxis: {
@@ -126,7 +126,7 @@ const chartOption = computed(() => ({
     axisLine: { show: false },
     axisTick: { show: false },
     axisLabel: {
-      color: '#9ca3af',
+      color: 'var(--color-muted-foreground)',
       fontSize: 11,
       fontFamily: 'ui-monospace, monospace',
       formatter: (value: number) => formatMetricValue(value, primaryKind.value),

@@ -231,7 +231,7 @@ const sizeStyle = computed(() => {
         ref="bubbleRef"
         role="tooltip"
         :class="cn(
-          'pointer-events-none fixed z-[100] rounded bg-foreground/80 p-1 text-[10px] leading-none text-background shadow-lg transition-opacity duration-100 whitespace-normal break-words',
+          'pointer-events-none fixed z-[100] rounded bg-foreground/80 p-1 text-[10px] leading-none text-background shadow-lg transition-opacity duration-150 whitespace-normal break-words',
           visible ? 'visible opacity-100' : 'invisible opacity-0',
           props.contentClass,
         )"

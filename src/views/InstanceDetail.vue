@@ -404,7 +404,7 @@ const deviceInfoFields = computed(() => {
           >
             <div class="flex items-center justify-between gap-2">
               <span class="flex items-center gap-1.5 text-[11px] font-medium tracking-wider text-muted-foreground">
-                <Icon :icon="metric.icon" :width="13" :height="13" />
+                <Icon :icon="metric.icon" :width="14" :height="14" />
                 {{ metric.label }}
               </span>
               <span
@@ -431,7 +431,7 @@ const deviceInfoFields = computed(() => {
       <div v-if="deviceInfoFields.length" class="px-4">
         <div data-device-info class="rounded-xl border border-border bg-muted/40 p-3.5">
           <div class="flex items-center gap-1.5 text-[11px] font-medium tracking-wider text-muted-foreground">
-            <Icon :icon="DETAIL_ICONS.device" :width="13" :height="13" />
+            <Icon :icon="DETAIL_ICONS.device" :width="14" :height="14" />
             设备信息
           </div>
           <div class="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-4">

@@ -112,6 +112,15 @@ function handleSort(col: ColumnConfig) {
   }
 }
 
+function handleSortKeydown(event: KeyboardEvent, col: ColumnConfig) {
+  if (!col.sortable)
+    return
+  if (event.key !== 'Enter' && event.key !== ' ')
+    return
+  event.preventDefault()
+  handleSort(col)
+}
+
 const sortedNodes = computed(() => {
   const nodes = [...props.nodes]
   const key = sortKey.value
@@ -385,8 +394,12 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
       <div class="hidden px-2.5 py-2 bg-background/70 rounded-lg backdrop-blur-sm gap-2 sm:grid" :style="gridStyle">
         <div
           v-for="col in columns" :key="col.key"
-          :class="[col.sortable ? 'cursor-pointer select-none' : '', ['status', 'os'].includes(col.key) ? 'text-center' : 'text-left']"
+          :class="[col.sortable ? 'cursor-pointer select-none rounded-sm' : '', ['status', 'os'].includes(col.key) ? 'text-center' : 'text-left']"
+          :role="col.sortable ? 'button' : undefined"
+          :tabindex="col.sortable ? 0 : undefined"
+          :aria-label="col.sortable ? `按${col.label}排序，当前${sortKey === col.key ? (sortDir === 1 ? '升序' : '降序') : '未排序'}` : undefined"
           @click="handleSort(col)"
+          @keydown="handleSortKeydown($event, col)"
         >
           <span class="text-[11px] font-medium tracking-wide text-foreground/70">
             {{ col.label }}{{ col.sortable && sortKey === col.key ? (sortDir === 1 ? ' ↑' : ' ↓') : '' }}
@@ -435,7 +448,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
                   class="size-3.5 rounded-sm shrink-0"
                 />
                 <span
-                  class="truncate text-[13px] font-semibold text-foreground min-w-0 flex-1"
+                  class="truncate text-sm font-semibold text-foreground min-w-0 flex-1"
                   :class="[!node.online && 'blur-sm opacity-30']"
                 >{{ node.name }}</span>
                 <DataTooltip
@@ -447,7 +460,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
                   content-class="w-56 whitespace-pre-line leading-snug text-left"
                   @click.stop
                 >
-                  <Icon icon="tabler:alert-triangle-filled" width="13" height="13" aria-label="节点消息" />
+                  <Icon icon="tabler:alert-triangle-filled" width="14" height="14" aria-label="节点消息" />
                 </DataTooltip>
                 <button
                   type="button"
@@ -458,7 +471,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
                   @click.stop="toggleFavorite(node)"
                   @keydown.stop
                 >
-                  <Icon :icon="appStore.isFavoriteNode(node.uuid) ? 'tabler:star-filled' : 'tabler:star'" width="13" height="13" />
+                  <Icon :icon="appStore.isFavoriteNode(node.uuid) ? 'tabler:star-filled' : 'tabler:star'" width="14" height="14" />
                 </button>
               </div>
 
@@ -473,10 +486,10 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
                   内存 {{ ((node.ram ?? 0) / (node.mem_total || 1) * 100).toFixed(0) }}%
                 </span>
                 <span class="flex items-center gap-0.5 truncate min-w-0 text-foreground/55">
-                  <Icon icon="tabler:chevron-up" width="10" height="10" class="shrink-0 text-success" />{{ formatBytesPerSecond(node.net_out ?? 0) }}
+                  <Icon icon="tabler:chevron-up" width="12" height="12" class="shrink-0 text-success" />{{ formatBytesPerSecond(node.net_out ?? 0) }}
                 </span>
                 <span class="flex items-center gap-0.5 truncate min-w-0 text-foreground/55">
-                  <Icon icon="tabler:chevron-down" width="10" height="10" class="shrink-0 text-primary" />{{ formatBytesPerSecond(node.net_in ?? 0) }}
+                  <Icon icon="tabler:chevron-down" width="12" height="12" class="shrink-0 text-primary" />{{ formatBytesPerSecond(node.net_in ?? 0) }}
                 </span>
               </div>
             </div>
@@ -497,7 +510,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
 
                 <!-- 节点名称 -->
                 <div v-else-if="col.key === 'name'" class="space-y-0.5 min-w-0" :class="[!node.online && 'blur-sm opacity-30']">
-                  <div class="flex gap-1.5 items-center text-[13px] font-semibold text-foreground min-w-0">
+                  <div class="flex gap-1.5 items-center text-sm font-semibold text-foreground min-w-0">
                     <FlagIcon
                       v-if="hasRegion(node.region)"
                       :region="node.region"
@@ -513,7 +526,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
                       @click.stop="toggleFavorite(node)"
                       @keydown.stop
                     >
-                      <Icon :icon="appStore.isFavoriteNode(node.uuid) ? 'tabler:star-filled' : 'tabler:star'" width="13" height="13" />
+                      <Icon :icon="appStore.isFavoriteNode(node.uuid) ? 'tabler:star-filled' : 'tabler:star'" width="14" height="14" />
                     </button>
                     <DataTooltip
                       v-if="getNodeMessage(node)"
@@ -524,7 +537,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
                       content-class="w-56 whitespace-pre-line leading-snug text-left"
                       @click.stop
                     >
-                      <Icon icon="tabler:alert-triangle-filled" width="13" height="13" aria-label="节点消息" />
+                      <Icon icon="tabler:alert-triangle-filled" width="14" height="14" aria-label="节点消息" />
                     </DataTooltip>
                   </div>
                   <div

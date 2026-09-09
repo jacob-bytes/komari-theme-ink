@@ -45,7 +45,7 @@ const emit = defineEmits<{
               class="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="关闭"
             >
-              <Icon icon="tabler:x" width="17" height="17" />
+              <Icon icon="tabler:x" width="16" height="16" />
             </button>
           </DialogClose>
         </div>

@@ -278,10 +278,16 @@ class InitManager {
     try {
       // 使用 ping 验证连接，10 秒超时
       await client.ensureWebSocketConnectedWithPing(10000)
+      // 仅在此前确实失败过重连（attempts > 0）时才提示恢复，避免首次建连
+      // 成功也弹出一条多余的"已恢复"提示——首次连接从来没有断开过，谈不上恢复
+      const wasReconnecting = this.nodesStore.wsReconnectAttempts > 0
       this.nodesStore.updateWsState('connected', 0)
 
       // 连接成功，重置错误状态
       this.appStore.connectionError = false
+      if (wasReconnecting) {
+        window.$message?.success('WebSocket 连接已恢复。')
+      }
 
       // 监听连接状态变化
       this.monitorWebSocketConnection()
@@ -418,9 +424,16 @@ class InitManager {
 
       this.nodesStore.updateNodeStatuses(statusesResult)
 
+      // 仅在此前已经达到失败阈值、页面上正显示错误提示（connectionError）时才提示恢复，
+      // 避免每次轮询成功都弹一条提示——多数轮询本来就是成功的，那不叫"恢复"
+      const wasFailing = this.appStore.connectionError
+
       // 连接恢复正常，重置错误状态
       this.postFailureCount = 0
       this.appStore.connectionError = false
+      if (wasFailing) {
+        window.$message?.success('连接已恢复。')
+      }
     }
     catch (error) {
       if (error instanceof RpcError) {

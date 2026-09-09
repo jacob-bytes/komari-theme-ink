@@ -96,6 +96,13 @@ const sitename = computed(() => {
   return cached || appStore.publicSettings?.sitename || 'Komari Monitor'
 })
 
+function handleLogoKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Enter' && event.key !== ' ')
+    return
+  event.preventDefault()
+  router.push('/')
+}
+
 /**
  * 数据新鲜度指示：锚点是 nodesStore.lastStatusUpdateAt——每次轮询/推送真正拿到最新节点
  * 状态时都会被 store 更新一次（见 nodes.ts 的 updateNodeStatuses），因此这里显示的是
@@ -132,7 +139,14 @@ onUnmounted(() => {
     style="padding-top: env(safe-area-inset-top); width: 100%;"
   >
     <div class="px-4 flex-between h-14 max-w-[1280px] mx-auto">
-      <div class="flex items-center gap-3 cursor-pointer" @click="router.push('/')">
+      <div
+        class="flex items-center gap-3 cursor-pointer rounded-sm"
+        role="button"
+        tabindex="0"
+        aria-label="返回首页"
+        @click="router.push('/')"
+        @keydown="handleLogoKeydown"
+      >
         <Avatar class="size-8">
           <AvatarImage :src="siteFavicon" :alt="sitename" />
           <AvatarFallback>{{ sitename.slice(0, 1) }}</AvatarFallback>
@@ -160,7 +174,7 @@ onUnmounted(() => {
                 :class="button.pressed && 'bg-background/70 text-selection'"
                 @click="handleButtonClick(button.action)"
               >
-                <Icon :icon="button.icon" :width="18" :height="18" />
+                <Icon :icon="button.icon" :width="16" :height="16" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>{{ button.title }}</TooltipContent>

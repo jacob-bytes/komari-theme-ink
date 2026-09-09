@@ -235,7 +235,7 @@ function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
     <div v-if="bestRows.length" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <CardX v-for="row in bestRows" :key="row.key" size="small" class="border-none bg-background/50">
         <div class="flex items-start gap-2">
-          <Icon icon="tabler:trophy" width="18" height="18" class="mt-0.5 text-[var(--status-warn)]" />
+          <Icon icon="tabler:trophy" width="16" height="16" class="mt-0.5 text-[var(--status-warn)]" />
           <div class="min-w-0 flex-1">
             <div class="truncate text-sm font-semibold">
               {{ row.node.name }}
@@ -268,13 +268,13 @@ function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
             <th class="sticky left-0 z-10 bg-background px-2 py-2 font-medium" :aria-sort="ariaSort('name')">
               <button type="button" class="group inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground" @click="setSort('name')">
                 机器
-                <Icon :icon="sortIcon('name')" :width="13" :height="13" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'name' }" />
+                <Icon :icon="sortIcon('name')" :width="14" :height="14" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'name' }" />
               </button>
             </th>
             <th class="px-2 py-2 font-medium" :aria-sort="ariaSort('provider')">
               <button type="button" class="group inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground" @click="setSort('provider')">
                 服务商
-                <Icon :icon="sortIcon('provider')" :width="13" :height="13" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'provider' }" />
+                <Icon :icon="sortIcon('provider')" :width="14" :height="14" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'provider' }" />
               </button>
             </th>
             <th class="px-2 py-2 font-medium">
@@ -283,25 +283,25 @@ function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
             <th class="px-2 py-2 font-medium" :aria-sort="ariaSort('monthlyCostCNY')">
               <button type="button" class="group inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground" @click="setSort('monthlyCostCNY')">
                 月成本
-                <Icon :icon="sortIcon('monthlyCostCNY')" :width="13" :height="13" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'monthlyCostCNY' }" />
+                <Icon :icon="sortIcon('monthlyCostCNY')" :width="14" :height="14" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'monthlyCostCNY' }" />
               </button>
             </th>
             <th class="px-2 py-2 font-medium" :aria-sort="ariaSort('costPerCore')">
               <button type="button" class="group inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground" @click="setSort('costPerCore')">
                 每核月成本
-                <Icon :icon="sortIcon('costPerCore')" :width="13" :height="13" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'costPerCore' }" />
+                <Icon :icon="sortIcon('costPerCore')" :width="14" :height="14" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'costPerCore' }" />
               </button>
             </th>
             <th class="px-2 py-2 font-medium" :aria-sort="ariaSort('costPerMemoryGb')">
               <button type="button" class="group inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground" @click="setSort('costPerMemoryGb')">
                 每 GB 内存
-                <Icon :icon="sortIcon('costPerMemoryGb')" :width="13" :height="13" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'costPerMemoryGb' }" />
+                <Icon :icon="sortIcon('costPerMemoryGb')" :width="14" :height="14" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'costPerMemoryGb' }" />
               </button>
             </th>
             <th class="px-2 py-2 font-medium" :aria-sort="ariaSort('costPerTrafficGb')">
               <button type="button" class="group inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground" @click="setSort('costPerTrafficGb')">
                 每 GB 流量
-                <Icon :icon="sortIcon('costPerTrafficGb')" :width="13" :height="13" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'costPerTrafficGb' }" />
+                <Icon :icon="sortIcon('costPerTrafficGb')" :width="14" :height="14" class="opacity-40 transition-opacity group-hover:opacity-80" :class="{ 'opacity-90 text-primary': sortKey === 'costPerTrafficGb' }" />
               </button>
             </th>
             <th class="px-2 py-2 font-medium">

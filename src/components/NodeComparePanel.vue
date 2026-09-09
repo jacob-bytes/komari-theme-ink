@@ -140,7 +140,7 @@ watch(() => props.nodes.map(node => node.uuid), (uuids) => {
         @click="toggleNode(node.uuid)"
       >
         <span class="size-1.5 rounded-full" :class="node.online ? 'bg-success' : 'bg-destructive'" />
-        <Icon v-if="appStore.isFavoriteNode(node.uuid)" icon="tabler:star-filled" width="11" height="11" class="text-[var(--status-warn)]" />
+        <Icon v-if="appStore.isFavoriteNode(node.uuid)" icon="tabler:star-filled" width="12" height="12" class="text-[var(--status-warn)]" />
         <span class="max-w-38 truncate">{{ node.name }}</span>
       </button>
     </div>

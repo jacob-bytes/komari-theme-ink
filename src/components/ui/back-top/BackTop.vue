@@ -50,7 +50,7 @@ onUnmounted(() => {
       aria-label="返回顶部"
       @click="scrollToTop"
     >
-      <Icon icon="tabler:arrow-up" :width="18" :height="18" />
+      <Icon icon="tabler:arrow-up" :width="16" :height="16" />
     </button>
   </Transition>
 </template>

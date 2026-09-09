@@ -377,7 +377,7 @@ function formatTraffic(tib: number): string {
                       <span v-if="pi === 0" class="font-medium">{{ stripCurrency(part, row.node.currency) }}</span>
                       <span v-else class="text-[10px] text-muted-foreground">{{ part }}</span>
                     </template>
-                    <span class="ml-1 rounded-sm bg-muted/60 px-1 py-0.5 text-[9px] font-medium text-muted-foreground">{{ row.node.currency }}</span>
+                    <span class="ml-1 rounded-sm bg-muted/60 px-1 py-0.5 text-[10px] font-medium text-muted-foreground">{{ row.node.currency }}</span>
                   </td>
                   <td class="whitespace-nowrap px-3 py-2.5 text-right">
                     <template v-if="splitExpiry(row.expiryLabel)[0] !== null">
