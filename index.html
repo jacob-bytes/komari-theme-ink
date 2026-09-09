@@ -54,18 +54,36 @@
           if (!('noModule' in document.createElement('script'))) root.classList.add('no-esm')
 
           var mode = localStorage.getItem('themeMode')
-          var isDark = mode === 'dark'
+          var isDark
 
-          if (mode !== 'dark' && mode !== 'light') {
-            var hour = Number(
-              new Intl.DateTimeFormat('en-US', {
-                hour: '2-digit',
-                hour12: false,
-                timeZone: 'Asia/Shanghai',
-              }).format(new Date()),
-            )
-            if (hour === 24) hour = 0
-            isDark = Number.isFinite(hour) ? hour < 7 || hour >= 19 : true
+          if (mode === 'dark' || mode === 'light') {
+            // 用户在本机显式选择过明暗，直接采用，与后台管理端配置无关。
+            isDark = mode === 'dark'
+          } else {
+            // 本机为"跟随后台"时，后台的真实策略（跟随北京时间 / 强制浅色 / 强制深色）
+            // 只有等 publicSettings 接口返回才知道。这里用上次已知的策略缓存兜底，
+            // 而不是每次都先假设"跟随北京时间"再等接口纠正——否则在后台强制浅色/深色、
+            // 或当前时段与北京时间日夜判断不一致时，页面会先闪一次错误的明暗再纠正过来。
+            var managedMode = localStorage.getItem('theme:managedThemeMode:v1')
+            if (managedMode !== 'light' && managedMode !== 'dark' && managedMode !== 'beijing') {
+              managedMode = 'beijing'
+            }
+
+            if (managedMode === 'light') {
+              isDark = false
+            } else if (managedMode === 'dark') {
+              isDark = true
+            } else {
+              var hour = Number(
+                new Intl.DateTimeFormat('en-US', {
+                  hour: '2-digit',
+                  hour12: false,
+                  timeZone: 'Asia/Shanghai',
+                }).format(new Date()),
+              )
+              if (hour === 24) hour = 0
+              isDark = Number.isFinite(hour) ? hour < 7 || hour >= 19 : true
+            }
           }
 
           root.classList.toggle('dark', isDark)

@@ -824,6 +824,19 @@ const useAppStore = defineStore('app', () => {
   }
 
   const themeSettings = computed(() => normalizeThemeSettings(publicSettings.value?.theme_settings))
+  // 后台托管主题模式本地缓存：该配置需要等 publicSettings 异步加载后才知道，若不缓存，
+  // Provider 首次挂载时只能按"北京时间"临时猜测明暗，等接口返回真实配置后再纠正，
+  // 页面（尤其是 Header）就会先错后对地闪一下——刷新时看到的深色条即由此产生。
+  watch(themeSettings, (settings) => {
+    if (isValidManagedThemeMode(settings.themeMode)) {
+      try {
+        localStorage.setItem('theme:managedThemeMode:v1', settings.themeMode)
+      }
+      catch {
+        // 本地存储不可用时静默
+      }
+    }
+  })
   const visitorAuditSupported = computed(() => typeof publicSettings.value?.visitor_audit_enabled === 'boolean')
   const visitorAuditEnabled = computed(() => publicSettings.value?.visitor_audit_enabled === true)
 
@@ -1104,9 +1117,22 @@ const useAppStore = defineStore('app', () => {
     }
   }, { immediate: true })
 
+  // publicSettings 尚未加载完成时的兜底：优先用上次已知的管理端配置缓存，而不是
+  // 一律先假设 'beijing'——否则每次刷新都会先按北京时间猜一次，稍后被真实配置纠正，
+  // 在管理端强制浅色/深色、或当前时段与北京时间日夜判断不一致时就会产生明暗闪烁。
+  const managedThemeModeFallback: ManagedThemeMode = (() => {
+    try {
+      const cached = localStorage.getItem('theme:managedThemeMode:v1')
+      return isValidManagedThemeMode(cached) ? cached : 'beijing'
+    }
+    catch {
+      return 'beijing'
+    }
+  })()
+
   const managedThemeMode = computed<ManagedThemeMode>(() => {
     const value = themeSettings.value.themeMode
-    return isValidManagedThemeMode(value) ? value : 'beijing'
+    return isValidManagedThemeMode(value) ? value : managedThemeModeFallback
   })
 
   const isBeijingDaytime = computed<boolean>(() => {
