@@ -1,7 +1,7 @@
 import type { PermissionKey, VerifyLoginOptions } from '@/services/auth.service'
 import type { MeInfo, PublicSettings } from '@/utils/api'
 import type { ByteDecimalsConfig } from '@/utils/helper'
-import { useStorageAsync } from '@vueuse/core'
+import { useStorage, useStorageAsync } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { getAuthSession, requirePermission, setAuthSessionFromLogin, verifyLogin } from '@/services/auth.service'
@@ -783,8 +783,14 @@ function parseColorVisionMode(value: unknown): ColorVisionMode {
 const useAppStore = defineStore('app', () => {
   const loading = ref<boolean>(true)
 
-  // 使用 VueUse 的 useStorageAsync 实现自动持久化
-  const themeMode = useStorageAsync<ThemeMode>('themeMode', 'auto', localStorage)
+  // 这里必须用同步的 useStorage，不能用 useStorageAsync：后者即便对着同步的
+  // localStorage，内部也会 `await storage.getItem(key)`，导致 ref 初始值先短暂
+  // 停留在默认值 'auto' 一个微任务，再被真实存储值纠正。Provider.vue 里
+  // `watch(() => appStore.isDark, ..., { immediate: true })` 恰好在这个窗口内
+  // 同步执行，会先按错误的 'auto' 猜一次明暗、被纠正后再猜一次真实值，两次切换
+  // 各触发一次 `transition-colors duration-200`，就是刷新时 Header 那一下深浅
+  // 交替的灰色闪烁。换成同步读取后 themeMode 从一开始就是真实值，不会再来回切。
+  const themeMode = useStorage<ThemeMode>('themeMode', 'auto', localStorage)
   const lang = ref<Lang>('zh-CN')
   const publicSettings = ref<PublicSettings>()
   // 站点名本地缓存：刷新时 Header 先读缓存，避免默认文案 → 自定义站名的闪烁
