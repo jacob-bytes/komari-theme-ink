@@ -483,7 +483,7 @@ const chartData = computed(() => {
   return data
 })
 
-// ==================== ���������具函数 ====================
+// ==================== �����������具函数 ====================
 
 function formatTime(time: string, showDate: boolean): string {
   const date = dayjs(time)
@@ -871,53 +871,58 @@ onBeforeUnmount(() => {
                     浮层会朝弹窗外（甚至页面顶部）溢出；显式向下展开保证浮层始终落在
                     弹窗可视区域内 -->
                     <TooltipContent side="bottom" class="!rounded p-3">
+                      <!-- 字段名不能用 text-muted-foreground：这个 token 的中灰色是配合
+                      页面浅色背景设计的，浅色模式下放在这里的 bg-primary 蓝底上对比度
+                      很低，几乎看不清（深色模式下 muted-foreground 恰好是浅色，才没暴露
+                      问题）。改用从 text-primary-foreground 派生的半透明色，保证在这个
+                      固定蓝底上两种模式下都清晰可辨 -->
                       <div class="text-xs gap-x-4 gap-y-1.5 grid grid-cols-4">
                         <template v-if="task.min !== undefined">
-                          <span class="text-muted-foreground">最小</span>
+                          <span class="text-primary-foreground/70">最小</span>
                           <span class="font-medium">{{ Math.round(task.min) }} ms</span>
                         </template>
                         <template v-if="task.max !== undefined">
-                          <span class="text-muted-foreground">最大</span>
+                          <span class="text-primary-foreground/70">最大</span>
                           <span class="font-medium">{{ Math.round(task.max) }} ms</span>
                         </template>
                         <template v-if="task.avg !== undefined">
-                          <span class="text-muted-foreground">平均</span>
+                          <span class="text-primary-foreground/70">平均</span>
                           <span class="font-medium">{{ Math.round(task.avg) }} ms</span>
                         </template>
                         <template v-if="task.latest !== undefined">
-                          <span class="text-muted-foreground">最新</span>
+                          <span class="text-primary-foreground/70">最新</span>
                           <span class="font-medium">{{ Math.round(task.latest) }} ms</span>
                         </template>
                         <template v-if="task.p50 !== undefined">
-                          <span class="text-muted-foreground">P50</span>
+                          <span class="text-primary-foreground/70">P50</span>
                           <span class="font-medium">{{ Math.round(task.p50) }} ms</span>
                         </template>
                         <template v-if="task.p99 !== undefined">
-                          <span class="text-muted-foreground">P99</span>
+                          <span class="text-primary-foreground/70">P99</span>
                           <span class="font-medium">{{ Math.round(task.p99) }} ms</span>
                         </template>
                         <template v-if="task.p99_p50_ratio !== undefined">
-                          <span class="text-muted-foreground">波动率</span>
+                          <span class="text-primary-foreground/70">波动率</span>
                           <span class="font-medium">{{ task.p99_p50_ratio.toFixed(2) }}</span>
                         </template>
                         <template v-if="task.interval !== undefined">
-                          <span class="text-muted-foreground">间隔</span>
+                          <span class="text-primary-foreground/70">间隔</span>
                           <span class="font-medium">{{ task.interval }}s</span>
                         </template>
                         <template v-if="task.type">
-                          <span class="text-muted-foreground">类型</span>
+                          <span class="text-primary-foreground/70">类型</span>
                           <span class="font-medium">{{ task.type.toUpperCase() }}</span>
                         </template>
                         <template v-if="task.stddev !== undefined">
-                          <span class="text-muted-foreground">标准差</span>
+                          <span class="text-primary-foreground/70">标准差</span>
                           <span class="font-medium">{{ task.stddev.toFixed(1) }}</span>
                         </template>
                         <template v-if="task.total !== undefined">
-                          <span class="text-muted-foreground">总数</span>
+                          <span class="text-primary-foreground/70">总数</span>
                           <span class="font-medium">{{ task.total }}</span>
                         </template>
                         <template v-if="task.valid !== undefined">
-                          <span class="text-muted-foreground">有效</span>
+                          <span class="text-primary-foreground/70">有效</span>
                           <span class="font-medium">{{ task.valid }}</span>
                         </template>
                       </div>
