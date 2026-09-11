@@ -483,7 +483,7 @@ const chartData = computed(() => {
   return data
 })
 
-// ==================== �������具函数 ====================
+// ==================== ���������具函数 ====================
 
 function formatTime(time: string, showDate: boolean): string {
   const date = dayjs(time)
@@ -572,7 +572,11 @@ function hideAllTasks() {
 // 通用 Tooltip 配置
 const baseTooltipConfig = computed(() => ({
   trigger: 'axis' as const,
-  confine: false,
+  // confine 为 false 时，ECharts 会把浮层 DOM 直接摆在鼠标附近，不受本图表自身
+  // 网格区域的约束——弹窗内该图表上方还堆叠着带宽图等其它面板，靠近顶部悬停时
+  // 浮层会向上溢出，盖住上方无关的图表/图例（如截图所示）。改为 true 后浮层
+  // 会被限制在本图表的坐标系区域内，不再跨界覆盖其它面板。
+  confine: true,
   backgroundColor: chartThemeColors.value.tooltipBg,
   borderColor: 'transparent',
   borderWidth: 0,
@@ -751,7 +755,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="flex flex-col gap-4">
-    <!-- 时间选择器 -->
+    <!-- 时间��择器 -->
     <div class="flex flex-col gap-2">
       <Tabs v-model="selectedView" class="w-full items-center">
         <div class="min-w-0 flex-1 overflow-x-auto rounded-sm pointer-events-auto">
@@ -863,7 +867,10 @@ onBeforeUnmount(() => {
                     <TooltipTrigger as-child>
                       <span class="inline-flex size-4 cursor-help items-center justify-center text-[10px] text-muted-foreground/60">ⓘ</span>
                     </TooltipTrigger>
-                    <TooltipContent class="!rounded p-3">
+                    <!-- 这些运营商卡片常年紧贴弹窗顶部，若用默认的 side="top" 展开，
+                    浮层会朝弹窗外（甚至页面顶部）溢出；显式向下展开保证浮层始终落在
+                    弹窗可视区域内 -->
+                    <TooltipContent side="bottom" class="!rounded p-3">
                       <div class="text-xs gap-x-4 gap-y-1.5 grid grid-cols-4">
                         <template v-if="task.min !== undefined">
                           <span class="text-muted-foreground">最小</span>
@@ -952,7 +959,7 @@ onBeforeUnmount(() => {
                     <Icon icon="carbon:information" :width="14" :height="14" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent side="bottom">
                   <span>使用 EWMA 算法平滑数据并过滤突变值</span>
                 </TooltipContent>
               </Tooltip>
