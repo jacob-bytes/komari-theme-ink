@@ -914,10 +914,10 @@ onUnmounted(() => {
                 <span class="text-base sm:text-lg md:text-xl font-mono font-bold leading-none tracking-tight">{{ formattedSpeedDown.value }}</span>
                 <span class="text-[10px] font-medium text-primary/70">{{ formattedSpeedDown.unit }}</span>
               </span>
-              <span class="flex items-baseline gap-1 text-success">
+              <span class="flex items-baseline gap-1 text-muted-foreground">
                 <Icon icon="tabler:arrow-up" :width="13" :height="13" class="shrink-0" />
                 <span class="text-base sm:text-lg md:text-xl font-mono font-bold leading-none tracking-tight">{{ formattedSpeedUp.value }}</span>
-                <span class="text-[10px] font-medium text-success/70">{{ formattedSpeedUp.unit }}</span>
+                <span class="text-[10px] font-medium text-muted-foreground/70">{{ formattedSpeedUp.unit }}</span>
               </span>
             </div>
             <div v-if="netDownHistory.length > 1" class="mt-auto h-9 w-full" aria-hidden="true">
@@ -928,14 +928,14 @@ onUnmounted(() => {
                     <stop offset="100%" stop-color="var(--primary)" stop-opacity="0" />
                   </linearGradient>
                   <linearGradient id="inkSparkGrad-netUp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="var(--success)" stop-opacity="0.18" />
-                    <stop offset="100%" stop-color="var(--success)" stop-opacity="0" />
+                    <stop offset="0%" stop-color="var(--muted-foreground)" stop-opacity="0.18" />
+                    <stop offset="100%" stop-color="var(--muted-foreground)" stop-opacity="0" />
                   </linearGradient>
                 </defs>
                 <polygon :points="sparkAreaScaled(netDownHistory, netSpeedChartDomain.min, netSpeedChartDomain.max)" fill="url(#inkSparkGrad-netDown)" />
                 <polygon :points="sparkAreaScaled(netUpHistory, netSpeedChartDomain.min, netSpeedChartDomain.max)" fill="url(#inkSparkGrad-netUp)" />
                 <polyline :points="sparkPointsScaled(netDownHistory, netSpeedChartDomain.min, netSpeedChartDomain.max)" fill="none" stroke="var(--primary)" stroke-width="1.5" opacity="0.9" />
-                <polyline :points="sparkPointsScaled(netUpHistory, netSpeedChartDomain.min, netSpeedChartDomain.max)" fill="none" stroke="var(--success)" stroke-width="1.5" opacity="0.9" />
+                <polyline :points="sparkPointsScaled(netUpHistory, netSpeedChartDomain.min, netSpeedChartDomain.max)" fill="none" stroke="var(--muted-foreground)" stroke-width="1.5" opacity="0.9" />
               </svg>
             </div>
           </template>
