@@ -454,6 +454,7 @@ const nodeCardGridClass = computed(() => {
 
     <NodeGeneralCards
       v-if="activeHomeTool === 'nodes'"
+      :nodes="nodeList"
       :transition-key="appStore.nodeSelectedGroup"
     />
 
