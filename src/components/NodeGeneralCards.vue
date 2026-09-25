@@ -93,41 +93,56 @@ const overviewAuxLines = computed<Record<string, string>>(() => {
     totalTraffic: `今日 ↑${upFmt.value}${upFmt.unit} · ↓${downFmt.value}${downFmt.unit}`,
   }
 })
-const netHistory = ref<number[]>([])
+/** 实时网速卡的上/下行分别采样，用于绘制双线趋势图（区分下载/上传两条曲线） */
+const netDownHistory = ref<number[]>([])
+const netUpHistory = ref<number[]>([])
 const cpuHistory = ref<number[]>([])
 let netTimer: number | undefined
 
-/** 每 2s 采一次全域上下行总速率与在线节点平均 CPU，供迷你趋势图使用，各保留 30 点 */
+/** 每 2s 采一次全域上下行速率（KB/s）与在线节点平均 CPU，供迷你趋势图使用，各保留 30 点 */
 function sampleOverviewMetrics() {
   const onlineNodes = summaryNodes.value.filter(n => n.online)
-  const total = summaryNodes.value.reduce((sum, n) => sum + (n.net_out ?? 0) + (n.net_in ?? 0), 0) / 1024
+  const down = summaryNodes.value.reduce((sum, n) => sum + (n.net_in ?? 0), 0) / 1024
+  const up = summaryNodes.value.reduce((sum, n) => sum + (n.net_out ?? 0), 0) / 1024
   const cpuAvg = onlineNodes.length > 0 ? onlineNodes.reduce((sum, n) => sum + (n.cpu ?? 0), 0) / onlineNodes.length : 0
-  netHistory.value = [...netHistory.value, Math.round(total * 10) / 10].slice(-30)
+  netDownHistory.value = [...netDownHistory.value, Math.round(down * 10) / 10].slice(-30)
+  netUpHistory.value = [...netUpHistory.value, Math.round(up * 10) / 10].slice(-30)
   cpuHistory.value = [...cpuHistory.value, Math.round(cpuAvg * 10) / 10].slice(-30)
 }
 
-/** 支持迷你趋势图的卡片 key 到其历史数据的映射 */
+/** 支持迷你趋势图的卡片 key 到其历史数据的映射（netSpeed 走独立的双线渲染，不在此列） */
 const SPARKLINE_HISTORIES: Partial<Record<GeneralCardKey, () => number[]>> = {
-  netSpeed: () => netHistory.value,
   avgCpu: () => cpuHistory.value,
 }
 
 function sparkHistoryFor(key: GeneralCardKey): number[] {
   return SPARKLINE_HISTORIES[key]?.() ?? []
 }
+/** 按给定数据自身的最小/最大值归一化取点（用于单序列迷你趋势图） */
 function sparkPoints(data: number[]): string {
   if (data.length < 2)
     return ''
   const min = Math.min(...data)
   const max = Math.max(...data, min + 1)
-  return data.map((v, i) => {
-    const x = (i / (data.length - 1)) * 100
-    const y = 22 - ((v - min) / (max - min)) * 20
-    return `${x.toFixed(1)},${y.toFixed(1)}`
-  }).join(' ')
+  return sparkPointsScaled(data, min, max)
 }
 function sparkArea(data: number[]): string {
   const pts = sparkPoints(data)
+  return pts ? `${pts} 100,24 0,24` : ''
+}
+/** 按外部传入的统一值域归一化取点（用于双序列图表，保证两条线的相对高度可比） */
+function sparkPointsScaled(data: number[], min: number, max: number): string {
+  if (data.length < 2)
+    return ''
+  const span = max - min || 1
+  return data.map((v, i) => {
+    const x = (i / (data.length - 1)) * 100
+    const y = 22 - ((v - min) / span) * 20
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+}
+function sparkAreaScaled(data: number[], min: number, max: number): string {
+  const pts = sparkPointsScaled(data, min, max)
   return pts ? `${pts} 100,24 0,24` : ''
 }
 
@@ -336,6 +351,13 @@ const totalTrafficTooltip = computed(() => formatBytesSplit(totalTraffic.value.u
 
 const formattedSpeedUp = computed(() => formatBytesPerSecondSplit(totalSpeed.value.up, appStore.byteDecimals))
 const formattedSpeedDown = computed(() => formatBytesPerSecondSplit(totalSpeed.value.down, appStore.byteDecimals))
+/** 实时网速卡双线图表的统一值域：上下行共用同一刻度，两条曲线的相对高度才有可比性 */
+const netSpeedChartDomain = computed(() => {
+  const all = [...netDownHistory.value, ...netUpHistory.value]
+  const min = all.length > 0 ? Math.min(...all) : 0
+  const max = all.length > 0 ? Math.max(...all, min + 1) : 1
+  return { min, max }
+})
 
 // ==================== 内存 / 硬盘 / 交换内存 汇总 ====================
 // 离线节点的 ram / disk / swap 为 0，不影响 used 求和；total 是静态库存信息，按全量统计
@@ -882,40 +904,78 @@ onUnmounted(() => {
             />
             <span class="text-xs font-medium tracking-wider text-muted-foreground truncate">{{ card.label }}</span>
           </div>
-          <Transition v-bind="metricSwitchTransitionProps">
-            <div
-              :key="`${card.key}-${summaryTransitionKey}`"
-              class="mt-1 flex items-baseline gap-1 min-w-0"
-              :style="getMetricSwitchStyle(index)"
-            >
-              <!-- `sm:text-md` 不是 Tailwind 的合法工具类（应为 text-base），之前一直静默失效——
-                   数字字号从手机端的 11px 一路卡到 md 断点才跳到 24px，中间整个 sm~md 区间
-                   （640~768px，横屏手机/小平板正好落在这段）字号完全没有变化。
-                   另外 11px 对手机上"当前节点在线数/流量"这类首屏关键数字来说也偏小，
-                   这里把基准提到 text-base（16px），并补上 sm:text-lg 让断点之间也有过渡。 -->
-              <span class="text-base sm:text-lg md:text-2xl font-mono font-bold leading-none tracking-tight truncate">
-                {{ card.value }}
+
+          <!-- 实时网速卡改为独立布局：下行/上行两个数值并排展示，下方配双色双线趋势图，
+               替代其余卡片"单数值 + 单色迷你趋势图"的通用模板，呼应速率天然是双向量这一点。 -->
+          <template v-if="card.key === 'netSpeed'">
+            <div class="mt-1 flex items-baseline gap-3 min-w-0">
+              <span class="flex items-baseline gap-1 text-primary">
+                <Icon icon="tabler:arrow-down" :width="13" :height="13" class="shrink-0" />
+                <span class="text-base sm:text-lg md:text-xl font-mono font-bold leading-none tracking-tight">{{ formattedSpeedDown.value }}</span>
+                <span class="text-[10px] font-medium text-primary/70">{{ formattedSpeedDown.unit }}</span>
               </span>
-              <span v-if="card.unit" :class="unitClass">
-                {{ card.unit }}
+              <span class="flex items-baseline gap-1 text-success">
+                <Icon icon="tabler:arrow-up" :width="13" :height="13" class="shrink-0" />
+                <span class="text-base sm:text-lg md:text-xl font-mono font-bold leading-none tracking-tight">{{ formattedSpeedUp.value }}</span>
+                <span class="text-[10px] font-medium text-success/70">{{ formattedSpeedUp.unit }}</span>
               </span>
             </div>
-          </Transition>
-          <div v-if="overviewAuxLines[card.key]" class="mt-auto text-[11px] text-muted-foreground">
-            {{ overviewAuxLines[card.key] }}
-          </div>
-          <div v-if="sparkHistoryFor(card.key).length > 1" class="mt-auto h-9 w-full text-muted-foreground" aria-hidden="true">
-            <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="h-full w-full">
-              <defs>
-                <linearGradient :id="`inkSparkGrad-${card.key}`" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="currentColor" stop-opacity="0.08" />
-                  <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
-                </linearGradient>
-              </defs>
-              <polygon :points="sparkArea(sparkHistoryFor(card.key))" :fill="`url(#inkSparkGrad-${card.key})`" />
-              <polyline :points="sparkPoints(sparkHistoryFor(card.key))" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7" />
-            </svg>
-          </div>
+            <div v-if="netDownHistory.length > 1" class="mt-auto h-9 w-full" aria-hidden="true">
+              <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="h-full w-full">
+                <defs>
+                  <linearGradient id="inkSparkGrad-netDown" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--primary)" stop-opacity="0.18" />
+                    <stop offset="100%" stop-color="var(--primary)" stop-opacity="0" />
+                  </linearGradient>
+                  <linearGradient id="inkSparkGrad-netUp" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--success)" stop-opacity="0.18" />
+                    <stop offset="100%" stop-color="var(--success)" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <polygon :points="sparkAreaScaled(netDownHistory, netSpeedChartDomain.min, netSpeedChartDomain.max)" fill="url(#inkSparkGrad-netDown)" />
+                <polygon :points="sparkAreaScaled(netUpHistory, netSpeedChartDomain.min, netSpeedChartDomain.max)" fill="url(#inkSparkGrad-netUp)" />
+                <polyline :points="sparkPointsScaled(netDownHistory, netSpeedChartDomain.min, netSpeedChartDomain.max)" fill="none" stroke="var(--primary)" stroke-width="1.5" opacity="0.9" />
+                <polyline :points="sparkPointsScaled(netUpHistory, netSpeedChartDomain.min, netSpeedChartDomain.max)" fill="none" stroke="var(--success)" stroke-width="1.5" opacity="0.9" />
+              </svg>
+            </div>
+          </template>
+
+          <template v-else>
+            <Transition v-bind="metricSwitchTransitionProps">
+              <div
+                :key="`${card.key}-${summaryTransitionKey}`"
+                class="mt-1 flex items-baseline gap-1 min-w-0"
+                :style="getMetricSwitchStyle(index)"
+              >
+                <!-- `sm:text-md` 不是 Tailwind 的合法工具类（应为 text-base），之前一直静默失效——
+                     数字字号从手机端的 11px 一路卡到 md 断点才跳到 24px，中间整个 sm~md 区间
+                     （640~768px，横屏手机/小平板正好落在这段）字号完全没有变化。
+                     另外 11px 对手机上"当前节点在线数/流量"这类首屏关键数字来说也偏小，
+                     这里把基准提到 text-base（16px），并补上 sm:text-lg 让断点之间也有过渡。 -->
+                <span class="text-base sm:text-lg md:text-2xl font-mono font-bold leading-none tracking-tight truncate">
+                  {{ card.value }}
+                </span>
+                <span v-if="card.unit" :class="unitClass">
+                  {{ card.unit }}
+                </span>
+              </div>
+            </Transition>
+            <div v-if="overviewAuxLines[card.key]" class="mt-auto text-[11px] text-muted-foreground">
+              {{ overviewAuxLines[card.key] }}
+            </div>
+            <div v-if="sparkHistoryFor(card.key).length > 1" class="mt-auto h-9 w-full text-muted-foreground" aria-hidden="true">
+              <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="h-full w-full">
+                <defs>
+                  <linearGradient :id="`inkSparkGrad-${card.key}`" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="currentColor" stop-opacity="0.08" />
+                    <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <polygon :points="sparkArea(sparkHistoryFor(card.key))" :fill="`url(#inkSparkGrad-${card.key})`" />
+                <polyline :points="sparkPoints(sparkHistoryFor(card.key))" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7" />
+              </svg>
+            </div>
+          </template>
         </DataTooltip>
       </CardX>
     </div>
